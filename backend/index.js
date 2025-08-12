@@ -34,6 +34,16 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
   });
 
+  // --- Queue/Room Multiplayer Logic for game.html ---
+  socket.on('joinRoom', ({ roomId, playerId, playerName }) => {
+    if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {} };
+    rooms[roomId].players[playerId] = { name: playerName || 'Player' };
+    rooms[roomId].positions[playerId] = 0;
+    socket.join(roomId);
+    io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({ id, ...info })));
+    io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
+  });
+
   socket.on('moveToken', ({ roomId, playerId, newPosition }) => {
     if (!rooms[roomId]) return;
     rooms[roomId].positions[playerId] = newPosition;
