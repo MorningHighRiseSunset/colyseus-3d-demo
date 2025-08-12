@@ -73,6 +73,7 @@ const material = new THREE.MeshBasicMaterial({ color: blockColor });
 const cube = new THREE.Mesh(geometry, material);
 scene.add(cube);
 
+
 canvas.addEventListener('pointerdown', (event) => {
   isDragging = true;
   blockColor = '#0072ff';
@@ -80,7 +81,8 @@ canvas.addEventListener('pointerdown', (event) => {
   socket.emit('grabBlock', { roomId, playerId, color: blockColor });
 });
 
-window.addEventListener('pointerup', () => {
+// Attach pointermove and pointerup to window for global drag
+window.addEventListener('pointerup', (event) => {
   if (isDragging) {
     isDragging = false;
     blockColor = '#00c6ff';
@@ -91,15 +93,13 @@ window.addEventListener('pointerup', () => {
 
 window.addEventListener('pointermove', (event) => {
   if (isDragging) {
+    // Use last known position if outside canvas
     const rect = canvas.getBoundingClientRect();
-    let x = ((event.clientX - rect.left) / 400) * 4 - 2;
-    let y = -(((event.clientY - rect.top) / 300) * 4 - 2);
-    // Clamp to visible bounds [-1.8, 1.8] so block never leaves canvas
-    x = Math.max(-1.8, Math.min(1.8, x));
-    y = Math.max(-1.8, Math.min(1.8, y));
+    let x = ((event.clientX - rect.left) / rect.width) * 4 - 2;
+    let y = -(((event.clientY - rect.top) / rect.height) * 4 - 2);
+    // Don't clamp to canvas bounds, allow free movement
     cube.position.x = x;
     cube.position.y = y;
-    // Add a simple dangling/rotation effect while dragging
     cube.rotation.z = (x + y) * 0.2;
     cube.rotation.x = y * 0.2;
     cube.rotation.y = x * 0.2;
