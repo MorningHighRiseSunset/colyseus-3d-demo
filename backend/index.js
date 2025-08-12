@@ -24,6 +24,19 @@ const io = new Server(server, {
 const rooms = {};
 
 io.on('connection', (socket) => {
+  // Send player number to each client when they join
+  socket.on('joinRoom', ({ roomId, playerId, playerName }) => {
+    if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {} };
+    rooms[roomId].players[playerId] = { name: playerName || 'Player' };
+    rooms[roomId].positions[playerId] = 0;
+    socket.join(roomId);
+    // Player number is order in Object.keys
+    const playerIds = Object.keys(rooms[roomId].players);
+    const playerNum = playerIds.indexOf(playerId) + 1;
+    socket.emit('playerNumber', playerNum);
+    io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({ id, ...info })));
+    io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
+  });
   // --- Metropoly Multiplayer Logic ---
   socket.on('joinMetropoly', ({ roomId, playerId, playerName }) => {
     if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {} };
