@@ -8,10 +8,11 @@
 <body>
   <div class="container">
     <h1>Lobby</h1>
-    <button id="createRoomBtn" class="btn btn-3d">Create Room</button>
-    <input type="text" id="joinRoomId" placeholder="Enter Room ID" style="padding:8px; border-radius:6px; border:none; width:180px;" />
-    <button id="joinRoomBtn" class="btn btn-3d">Join Room</button>
-    <div id="roomList" class="room-list"></div>
+  <input type="text" id="playerName" placeholder="Your Name" style="padding:8px; border-radius:6px; border:none; width:180px; margin-bottom:8px;" />
+  <button id="createRoomBtn" class="btn btn-3d">Create Room</button>
+  <input type="text" id="joinRoomId" placeholder="Enter Room ID" style="padding:8px; border-radius:6px; border:none; width:180px;" />
+  <button id="joinRoomBtn" class="btn btn-3d">Join Room</button>
+  <div id="roomList" class="room-list"></div>
   </div>
   <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
   <script src="lobby.js"></script>
