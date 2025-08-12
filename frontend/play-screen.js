@@ -1,4 +1,4 @@
-const client = new Colyseus.Client('http://localhost:3001'); // Change to your backend URL when deployed
+const client = new Colyseus.Client('https://colyseus-3d-demo.onrender.com');
 let room = null;
 
 async function joinOrCreateRoom() {
