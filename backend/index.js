@@ -42,7 +42,7 @@ io.on('connection', (socket) => {
     // Only host can start
     const hostId = Object.keys(rooms[roomId].players)[0];
     if (playerId === hostId) {
-      io.to(roomId).emit('gameStarted', { hostName: playerName });
+      io.to(roomId).emit('gameStarted', { hostName: playerName, roomId });
     }
   });
   // --- Room creation/join logic (can be replaced for Monopoly) ---
