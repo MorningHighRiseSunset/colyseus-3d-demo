@@ -5,8 +5,9 @@ const { Server } = require('colyseus');
 
 const app = express();
 app.use(cors({
-  origin: ['https://colyseusdemo3d.netlify.app'], // Netlify frontend URL
-  methods: ['GET', 'POST'],
+  origin: ['https://colyseusdemo3d.netlify.app'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
 

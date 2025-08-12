@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   createRoomBtn.onclick = async () => {
     const room = await client.create('game');
+    alert(`Room created! Room ID: ${room.id}\nShare this ID with your friend to join.`);
     window.location.href = `room.html?roomId=${room.id}`;
   };
 
