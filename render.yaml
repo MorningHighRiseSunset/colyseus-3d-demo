@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: colyseus-backend
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    env: node
+    region: oregon

@@ -11,15 +11,10 @@ app.use(cors({
 }));
 
 const server = http.createServer(app);
-const colyseusServer = new Server({
-  server
-});
+const colyseusServer = new Server({ server });
 
-// Room definitions
-const { LobbyRoom } = require('./rooms/LobbyRoom');
-const { GameRoom } = require('./rooms/GameRoom');
-
-colyseusServer.define('lobby', LobbyRoom);
+// Room definition
+const { GameRoom } = require('./GameRoom');
 colyseusServer.define('game', GameRoom);
 
 const PORT = process.env.PORT || 3001;
