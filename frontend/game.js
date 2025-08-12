@@ -1,8 +1,11 @@
 // --- Multiplayer 3D block demo logic with ready-up and host start ---
 const socket = io('https://colyseus-3d-demo.onrender.com');
+
 const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get('roomId');
 const playerName = urlParams.get('playerName') || 'Player';
+// Generate a unique playerId for this session
+const playerId = Math.random().toString(36).substr(2, 9);
 
 gameInfo.innerHTML = `<strong>Room ID:</strong> 
   <span style="color:#00c6ff;">${roomId}</span>

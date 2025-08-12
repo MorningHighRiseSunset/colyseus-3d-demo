@@ -19,7 +19,6 @@ joinRoomBtn.onclick = () => {
 
 socket.on('roomCreated', (roomId) => {
   const playerName = playerNameInput.value.trim() || 'Player';
-  alert(`Room created! Room ID: ${roomId}\nShare this ID with your friend to join.`);
   window.location.href = `game.html?roomId=${roomId}&playerName=${encodeURIComponent(playerName)}`;
 });
 
