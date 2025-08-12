@@ -26,23 +26,31 @@ const material = new THREE.MeshBasicMaterial({ color: blockColor });
 const cube = new THREE.Mesh(geometry, material);
 scene.add(cube);
 
-canvas.addEventListener('pointerdown', () => {
+canvas.addEventListener('pointerdown', (event) => {
   isDragging = true;
   blockColor = '#0072ff';
   cube.material.color.set(blockColor);
   socket.emit('grabBlock', { roomId, playerId, color: blockColor });
 });
-canvas.addEventListener('pointerup', () => {
-  isDragging = false;
-  blockColor = '#00c6ff';
-  cube.material.color.set(blockColor);
-  socket.emit('releaseBlock', { roomId, playerId });
+
+window.addEventListener('pointerup', () => {
+  if (isDragging) {
+    isDragging = false;
+    blockColor = '#00c6ff';
+    cube.material.color.set(blockColor);
+    socket.emit('releaseBlock', { roomId, playerId });
+  }
 });
-canvas.addEventListener('pointermove', (event) => {
+
+window.addEventListener('pointermove', (event) => {
   if (isDragging) {
     const rect = canvas.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / 400) * 4 - 2;
-    const y = -(((event.clientY - rect.top) / 300) * 4 - 2);
+    // Use window coordinates for drag, clamp to canvas bounds if desired
+    let x = ((event.clientX - rect.left) / 400) * 4 - 2;
+    let y = -(((event.clientY - rect.top) / 300) * 4 - 2);
+    // Optionally clamp x/y to [-2,2] range to keep block visible
+    x = Math.max(-2, Math.min(2, x));
+    y = Math.max(-2, Math.min(2, y));
     cube.position.x = x;
     cube.position.y = y;
     socket.emit('moveBlock', { roomId, playerId, x, y, color: blockColor });
