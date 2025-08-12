@@ -16,3 +16,38 @@ const readyBtn = document.getElementById('readyBtn');
 const startBtn = document.getElementById('startBtn');
 
 socket.emit('joinRoom', { roomId, playerId, playerName });
+
+let playerNum = null;
+let isHost = false;
+let readyStates = {};
+
+socket.on('playerNumber', num => {
+  playerNum = num;
+  gameInfo.innerHTML += `<br><strong>You are Player ${playerNum}</strong>`;
+  isHost = (playerNum === 1); // First player is host
+  if (isHost) {
+    startBtn.style.display = '';
+    readyBtn.style.display = 'none';
+  } else {
+    startBtn.style.display = 'none';
+    readyBtn.style.display = '';
+  }
+});
+
+readyBtn.onclick = () => {
+  socket.emit('playerReady', { roomId, playerId, playerName });
+};
+
+startBtn.onclick = () => {
+  socket.emit('startGame', { roomId, playerId, playerName });
+};
+
+socket.on('playerReadyStates', (states) => {
+  readyStates = states;
+  const statusEl = document.getElementById('status');
+  if (statusEl) {
+    statusEl.innerHTML = Object.entries(readyStates).map(([name, ready]) => {
+      return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> ${name}: ${ready ? 'Ready' : 'Not Ready'}`;
+    }).join('<br>');
+  }
+});
