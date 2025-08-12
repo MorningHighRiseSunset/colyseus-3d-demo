@@ -1,5 +1,6 @@
 // TODO: Remove 3D block demo and multiplayer cursor sync code when integrating with Metropoly game.
 // --- Multiplayer 3D block demo logic for gameplay screen ---
+
 // --- Multiplayer cursor sync (delete for Metropoly) ---
 let remoteCursors = {};
 function createCursor(id, color) {
