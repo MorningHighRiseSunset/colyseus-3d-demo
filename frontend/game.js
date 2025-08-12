@@ -1,4 +1,5 @@
 // --- Multiplayer 3D block demo logic with ready-up and host start ---
+const socket = io('https://colyseus-3d-demo.onrender.com');
 const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get('roomId');
 const playerName = urlParams.get('playerName') || 'Player';
@@ -23,7 +24,18 @@ socket.on('playerNumber', num => {
   gameInfo.innerHTML += `<br><strong>You are Player ${playerNum}</strong>`;
   isHost = (playerNum === 1); // First player is host
   if (isHost) startBtn.style.display = '';
+  else startBtn.style.display = 'none';
   console.log(`Player ${playerNum} = "${playerId}" Name: ${playerName}`);
+});
+
+socket.on('playerReadyStates', (states) => {
+  readyStates = states;
+  const statusEl = document.getElementById('status');
+  if (statusEl) {
+    statusEl.innerHTML = Object.entries(readyStates).map(([name, ready]) => {
+      return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> ${name}: ${ready ? 'Ready' : 'Not Ready'}`;
+    }).join('<br>');
+  }
 });
 
 readyBtn.onclick = () => {

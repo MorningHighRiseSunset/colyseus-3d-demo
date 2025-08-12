@@ -29,7 +29,12 @@ io.on('connection', (socket) => {
     if (!rooms[roomId]) return;
     if (!rooms[roomId].ready) rooms[roomId].ready = {};
     rooms[roomId].ready[playerId] = true;
-    io.to(roomId).emit('playerReadyNotification', { playerName });
+    // Broadcast all ready states
+    const readyStates = {};
+    Object.entries(rooms[roomId].players).forEach(([pid, info]) => {
+      readyStates[info.name] = !!rooms[roomId].ready[pid];
+    });
+    io.to(roomId).emit('playerReadyStates', readyStates);
   });
 
   socket.on('startGame', ({ roomId, playerId, playerName }) => {
