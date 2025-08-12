@@ -1,4 +1,4 @@
-// --- Multiplayer 3D block demo logic (delete for Monopoly) ---
+// --- Multiplayer 3D block demo logic with ready-up and host start ---
 const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get('roomId');
 const playerName = urlParams.get('playerName') || 'Player';
@@ -8,17 +8,31 @@ gameInfo.innerHTML = `<strong>Room ID:</strong>
   <br><small>Share this ID with your friend to join!</small>
   <br><strong>Name:</strong> ${playerName}`;
 
+const readyBtn = document.getElementById('readyBtn');
+const startBtn = document.getElementById('startBtn');
+
 socket.emit('joinRoom', { roomId, playerId, playerName });
 
 let playerNum = null;
 let isDragging = false;
 let blockColor = '#00c6ff';
+let isHost = false;
 
 socket.on('playerNumber', num => {
   playerNum = num;
   gameInfo.innerHTML += `<br><strong>You are Player ${playerNum}</strong>`;
+  isHost = (playerNum === 1); // First player is host
+  if (isHost) startBtn.style.display = '';
   console.log(`Player ${playerNum} = "${playerId}" Name: ${playerName}`);
 });
+
+readyBtn.onclick = () => {
+  socket.emit('playerReady', { roomId, playerId, playerName });
+};
+
+startBtn.onclick = () => {
+  socket.emit('startGame', { roomId, playerId, playerName });
+};
 
 // Setup Three.js scene
 const container = document.querySelector('.container');
@@ -70,11 +84,23 @@ socket.on('blockUpdate', ({ x, y, color, playerId: pid, playerName: pname }) => 
   cube.position.x = x;
   cube.position.y = y;
   cube.material.color.set(color);
-
-  // Show who moved the block (name)
   const statusEl = document.getElementById('status');
   if (statusEl) {
     statusEl.innerHTML = `<span class="player-dot"></span> Block moved by ${pname || pid}`;
+  }
+});
+
+socket.on('playerReadyNotification', ({ playerName }) => {
+  const statusEl = document.getElementById('status');
+  if (statusEl) {
+    statusEl.innerHTML = `<span class="player-dot"></span> ${playerName} is ready!`;
+  }
+});
+
+socket.on('gameStarted', ({ hostName }) => {
+  const statusEl = document.getElementById('status');
+  if (statusEl) {
+    statusEl.innerHTML = `<span class="player-dot"></span> Game started by ${hostName}!`;
   }
 });
 // --- End of 3D block demo logic ---

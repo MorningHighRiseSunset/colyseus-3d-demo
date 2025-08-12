@@ -24,6 +24,22 @@ const io = new Server(server, {
 const rooms = {};
 
 io.on('connection', (socket) => {
+  // --- Ready-up and game start logic ---
+  socket.on('playerReady', ({ roomId, playerId, playerName }) => {
+    if (!rooms[roomId]) return;
+    if (!rooms[roomId].ready) rooms[roomId].ready = {};
+    rooms[roomId].ready[playerId] = true;
+    io.to(roomId).emit('playerReadyNotification', { playerName });
+  });
+
+  socket.on('startGame', ({ roomId, playerId, playerName }) => {
+    if (!rooms[roomId]) return;
+    // Only host can start
+    const hostId = Object.keys(rooms[roomId].players)[0];
+    if (playerId === hostId) {
+      io.to(roomId).emit('gameStarted', { hostName: playerName });
+    }
+  });
   // --- Room creation/join logic (can be replaced for Monopoly) ---
   socket.on('createRoom', () => {
     const roomId = Math.random().toString(36).substr(2, 8);
