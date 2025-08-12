@@ -2,6 +2,8 @@
 // --- Multiplayer 3D block demo logic for gameplay screen ---
 
 // --- Multiplayer cursor sync (delete for Metropoly) ---
+
+
 // Variable declarations moved to top for error-free operation
 let remoteCursors = {};
 let isDragging = false;
@@ -11,6 +13,9 @@ const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get('roomId');
 const playerName = urlParams.get('playerName') || 'Player';
 const playerId = Math.random().toString(36).substr(2, 9);
+
+// Ensure player joins the room for block sync
+socket.emit('joinRoom', { roomId, playerId, playerName });
 
 function createCursor(id, color) {
   let cursor = document.getElementById('cursor-' + id);
