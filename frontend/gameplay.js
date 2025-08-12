@@ -2,7 +2,16 @@
 // --- Multiplayer 3D block demo logic for gameplay screen ---
 
 // --- Multiplayer cursor sync (delete for Metropoly) ---
+// Variable declarations moved to top for error-free operation
 let remoteCursors = {};
+let isDragging = false;
+let blockColor = '#00c6ff';
+const socket = io('https://colyseus-3d-demo.onrender.com');
+const urlParams = new URLSearchParams(window.location.search);
+const roomId = urlParams.get('roomId');
+const playerName = urlParams.get('playerName') || 'Player';
+const playerId = Math.random().toString(36).substr(2, 9);
+
 function createCursor(id, color) {
   let cursor = document.getElementById('cursor-' + id);
   if (!cursor) {
@@ -46,20 +55,6 @@ socket.on('remoteCursorEnd', ({ playerId: pid }) => {
   const cursor = document.getElementById('cursor-' + pid);
   if (cursor) cursor.remove();
 });
-// --- End multiplayer cursor sync ---
-const socket = io('https://colyseus-3d-demo.onrender.com');
-const urlParams = new URLSearchParams(window.location.search);
-const roomId = urlParams.get('roomId');
-const playerName = urlParams.get('playerName') || 'Player';
-
-const playerId = Math.random().toString(36).substr(2, 9);
-// Request initial block state when joining
-socket.emit('requestBlockState', { roomId });
-
-document.getElementById('gameplayInfo').innerHTML = `<strong>Room ID:</strong> <span style="color:#00c6ff;">${roomId}</span><br><strong>Name:</strong> ${playerName}`;
-
-let isDragging = false;
-let blockColor = '#00c6ff';
 
 // Setup Three.js scene
 const canvas = document.getElementById('blockCanvas');
