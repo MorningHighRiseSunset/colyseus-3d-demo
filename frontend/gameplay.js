@@ -1,9 +1,58 @@
 // --- Multiplayer 3D block demo logic for gameplay screen ---
+// --- Multiplayer cursor sync (delete for Metropoly) ---
+let remoteCursors = {};
+function createCursor(id, color) {
+  let cursor = document.getElementById('cursor-' + id);
+  if (!cursor) {
+    cursor = document.createElement('div');
+    cursor.id = 'cursor-' + id;
+    cursor.style.position = 'absolute';
+    cursor.style.width = '18px';
+    cursor.style.height = '18px';
+    cursor.style.borderRadius = '50%';
+    cursor.style.background = color || '#00c6ff';
+    cursor.style.pointerEvents = 'none';
+    cursor.style.zIndex = 10;
+    document.body.appendChild(cursor);
+  }
+  return cursor;
+}
+
+window.addEventListener('pointermove', (event) => {
+  if (isDragging) {
+    // ...existing code...
+    // Broadcast cursor position to others
+    socket.emit('cursorMove', {
+      roomId,
+      playerId,
+      x: event.clientX,
+      y: event.clientY,
+      color: blockColor
+    });
+  }
+});
+
+socket.on('remoteCursorMove', ({ playerId: pid, x, y, color }) => {
+  if (pid === playerId) return; // Don't show own cursor
+  const cursor = createCursor(pid, color);
+  cursor.style.left = x + 'px';
+  cursor.style.top = y + 'px';
+});
+
+// Remove remote cursor when drag ends
+socket.on('remoteCursorEnd', ({ playerId: pid }) => {
+  const cursor = document.getElementById('cursor-' + pid);
+  if (cursor) cursor.remove();
+});
+// --- End multiplayer cursor sync ---
 const socket = io('https://colyseus-3d-demo.onrender.com');
 const urlParams = new URLSearchParams(window.location.search);
 const roomId = urlParams.get('roomId');
 const playerName = urlParams.get('playerName') || 'Player';
+
 const playerId = Math.random().toString(36).substr(2, 9);
+// Request initial block state when joining
+socket.emit('requestBlockState', { roomId });
 
 document.getElementById('gameplayInfo').innerHTML = `<strong>Room ID:</strong> <span style="color:#00c6ff;">${roomId}</span><br><strong>Name:</strong> ${playerName}`;
 
@@ -45,14 +94,17 @@ window.addEventListener('pointerup', () => {
 window.addEventListener('pointermove', (event) => {
   if (isDragging) {
     const rect = canvas.getBoundingClientRect();
-    // Use window coordinates for drag, clamp to canvas bounds if desired
     let x = ((event.clientX - rect.left) / 400) * 4 - 2;
     let y = -(((event.clientY - rect.top) / 300) * 4 - 2);
-    // Optionally clamp x/y to [-2,2] range to keep block visible
-    x = Math.max(-2, Math.min(2, x));
-    y = Math.max(-2, Math.min(2, y));
+    // Clamp to visible bounds [-1.8, 1.8] so block never leaves canvas
+    x = Math.max(-1.8, Math.min(1.8, x));
+    y = Math.max(-1.8, Math.min(1.8, y));
     cube.position.x = x;
     cube.position.y = y;
+    // Add a simple dangling/rotation effect while dragging
+    cube.rotation.z = (x + y) * 0.2;
+    cube.rotation.x = y * 0.2;
+    cube.rotation.y = x * 0.2;
     socket.emit('moveBlock', { roomId, playerId, x, y, color: blockColor });
   }
 });

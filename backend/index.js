@@ -24,6 +24,21 @@ const io = new Server(server, {
 const rooms = {};
 
 io.on('connection', (socket) => {
+  // --- Multiplayer cursor sync (delete for Metropoly) ---
+  socket.on('cursorMove', ({ roomId, playerId, x, y, color }) => {
+    socket.to(roomId).emit('remoteCursorMove', { playerId, x, y, color });
+  });
+  socket.on('releaseBlock', ({ roomId, playerId }) => {
+    // ...existing code...
+    // Notify others to remove remote cursor
+    socket.to(roomId).emit('remoteCursorEnd', { playerId });
+  });
+  // --- End multiplayer cursor sync ---
+  // Send current block state to new clients
+  socket.on('requestBlockState', ({ roomId }) => {
+    if (!rooms[roomId]) return;
+    socket.emit('blockUpdate', { ...rooms[roomId].block });
+  });
   // --- Ready-up and game start logic ---
   socket.on('playerReady', ({ roomId, playerId, playerName }) => {
     if (!rooms[roomId]) return;
