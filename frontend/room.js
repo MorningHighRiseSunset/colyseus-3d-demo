@@ -6,7 +6,7 @@ const startGameBtn = document.getElementById('startGameBtn');
 
 async function joinRoom() {
   const room = await client.joinById(roomId);
-  roomInfo.innerHTML = `<strong>Room ID:</strong> ${roomId}<br><div id="players"></div>`;
+  roomInfo.innerHTML = `<strong>Room ID:</strong> <span style="font-size:1.2em; color:#00c6ff; user-select:all;">${roomId}</span><br><small>Share this ID with your friend to join!</small><br><div id="players"></div>`;
   const playersDiv = document.getElementById('players');
   let ready = false;
 
