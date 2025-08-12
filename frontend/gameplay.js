@@ -129,17 +129,15 @@ let socket = null;
 let playerList = [];
 let playerListUI = null;
 
-function setupSocketIOMultiplayer() {
+function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     // Connect to backend
     socket = io('https://colyseus-3d-demo.onrender.com');
-
-    // Join room (roomId and playerId should be set via URL or prompt)
-    const urlParams = new URLSearchParams(window.location.search);
-    currentRoomId = urlParams.get('room') || 'defaultRoom';
-    currentPlayerId = urlParams.get('player') || socket.id;
-    const playerName = urlParams.get('name') || `Player-${Math.floor(Math.random()*1000)}`;
+    currentRoomId = roomId || 'defaultRoom';
+    currentPlayerId = playerId || socket.id;
+    playerName = playerName || `Player-${Math.floor(Math.random()*1000)}`;
     isMultiplayerMode = true;
 
+    // Join the room
     socket.emit('joinMetropoly', {
         roomId: currentRoomId,
         playerId: currentPlayerId,
@@ -162,8 +160,37 @@ function setupSocketIOMultiplayer() {
             }
         });
     });
+
+    // Override moveToken to emit movement
+    const originalMoveToken = window.moveToken;
+    window.moveToken = function(playerIdx, newPosition, fromServer) {
+        originalMoveToken(playerIdx, newPosition);
+        if (isMultiplayerMode && socket && !fromServer) {
+            socket.emit('moveToken', {
+                roomId: currentRoomId,
+                playerId: currentPlayerId,
+                newPosition
+            });
+        }
+    };
+
+    // Override rollDice to sync dice rolls
+    const originalRollDice = window.rollDice;
+    window.rollDice = function() {
+        if (isMultiplayerMode && socket) {
+            // Only allow dice roll if it's your turn
+            if (playerList[currentPlayerIndex]?.id === currentPlayerId) {
+                originalRollDice();
+            } else {
+                alert('Wait for your turn!');
+            }
+        } else {
+            originalRollDice();
+        }
+    };
 }
 
+// Helper to update player list UI
 function updatePlayerListUI() {
     if (!playerListUI) {
         playerListUI = document.createElement('div');
@@ -211,11 +238,11 @@ window.rollDice = function() {
 
 // Initialize multiplayer on load
 window.addEventListener('DOMContentLoaded', () => {
-    // Check for room/player in URL
+    // Check for room/player in URL (use correct param names)
     const urlParams = new URLSearchParams(window.location.search);
-    let roomId = urlParams.get('room');
-    let playerId = urlParams.get('player');
-    let playerName = urlParams.get('name');
+    let roomId = urlParams.get('roomId');
+    let playerId = urlParams.get('playerId');
+    let playerName = urlParams.get('playerName');
 
     if (!roomId || !playerId || roomId === 'undefined' || playerId === 'undefined') {
         // If missing, redirect to game.html (queue)
@@ -223,7 +250,7 @@ window.addEventListener('DOMContentLoaded', () => {
         window.location.href = 'game.html';
         return;
     }
-    setupSocketIOMultiplayer();
+    setupSocketIOMultiplayer(roomId, playerId, playerName);
 });
 
 // ===== VIDEO CHAT SYSTEM =====

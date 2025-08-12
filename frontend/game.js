@@ -1,9 +1,8 @@
-
 // --- Multiplayer 3D block demo logic with ready-up and host start ---
 const socket = io('https://colyseus-3d-demo.onrender.com');
 socket.on('gameStarted', ({ hostName, roomId }) => {
-  // Redirect all players to gameplay.html with roomId and playerName
-  window.location.href = `gameplay.html?roomId=${roomId}&playerName=${encodeURIComponent(playerName)}`;
+  // Redirect all players to gameplay.html with roomId, playerName, and playerId
+  window.location.href = `gameplay.html?roomId=${roomId}&playerName=${encodeURIComponent(playerName)}&playerId=${playerId}`;
 });
 
 const urlParams = new URLSearchParams(window.location.search);
