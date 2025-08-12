@@ -69,23 +69,32 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, 400 / 300, 0.1, 1000);
 camera.position.z = 5;
 const geometry = new THREE.BoxGeometry();
+
+// Only create the cube once
 const material = new THREE.MeshBasicMaterial({ color: blockColor });
 const cube = new THREE.Mesh(geometry, material);
 scene.add(cube);
+
+// Track last color for sync
+let lastBlockColor = blockColor;
+
 
 
 canvas.addEventListener('pointerdown', (event) => {
   isDragging = true;
   blockColor = '#0072ff';
+  lastBlockColor = blockColor;
   cube.material.color.set(blockColor);
   socket.emit('grabBlock', { roomId, playerId, color: blockColor });
 });
 
 // Attach pointermove and pointerup to window for global drag
+
 window.addEventListener('pointerup', (event) => {
   if (isDragging) {
     isDragging = false;
     blockColor = '#00c6ff';
+    lastBlockColor = blockColor;
     cube.material.color.set(blockColor);
     socket.emit('releaseBlock', { roomId, playerId });
   }
@@ -107,10 +116,15 @@ window.addEventListener('pointermove', (event) => {
   }
 });
 
+
 socket.on('blockUpdate', ({ x, y, color, playerId: pid, playerName: pname }) => {
+  // Only update position and color, never recreate cube
   cube.position.x = x;
   cube.position.y = y;
-  cube.material.color.set(color);
+  if (color && color !== lastBlockColor) {
+    cube.material.color.set(color);
+    lastBlockColor = color;
+  }
   // Show who moved the block (name)
   const statusEl = document.getElementById('gameplayStatus');
   if (statusEl) {
