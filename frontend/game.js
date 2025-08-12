@@ -16,21 +16,3 @@ const readyBtn = document.getElementById('readyBtn');
 const startBtn = document.getElementById('startBtn');
 
 socket.emit('joinRoom', { roomId, playerId, playerName });
-
-canvas.addEventListener('pointerup', () => {
-  isDragging = false;
-  blockColor = '#00c6ff';
-  cube.material.color.set(blockColor);
-  socket.emit('releaseBlock', { roomId, playerId });
-});
-
-canvas.addEventListener('pointermove', (event) => {
-  if (isDragging) {
-    const rect = canvas.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / 400) * 4 - 2;
-    const y = -(((event.clientY - rect.top) / 300) * 4 - 2);
-    cube.position.x = x;
-    cube.position.y = y;
-    socket.emit('moveBlock', { roomId, playerId, x, y, color: blockColor });
-  }
-});
