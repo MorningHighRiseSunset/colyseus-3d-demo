@@ -26,13 +26,11 @@ const rooms = {};
 io.on('connection', (socket) => {
   // --- Metropoly Multiplayer Logic ---
   socket.on('joinMetropoly', ({ roomId, playerId, playerName }) => {
-    if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {} };
+    if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {} };
     rooms[roomId].players[playerId] = { name: playerName || 'Player' };
     rooms[roomId].positions[playerId] = 0;
     socket.join(roomId);
-    // Broadcast updated player list
     io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({ id, ...info })));
-    // Send initial token positions
     io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
   });
 
@@ -43,7 +41,6 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnecting', () => {
-    // Remove player from all rooms
     Object.keys(socket.rooms).forEach(roomId => {
       if (rooms[roomId] && rooms[roomId].players[socket.id]) {
         delete rooms[roomId].players[socket.id];
@@ -53,11 +50,10 @@ io.on('connection', (socket) => {
       }
     });
   });
-  // --- End Metropoly Multiplayer Logic ---
+
   // --- Ready-up and game start logic ---
   socket.on('playerReady', ({ roomId, playerId, playerName }) => {
     if (!rooms[roomId]) return;
-    if (!rooms[roomId].ready) rooms[roomId].ready = {};
     rooms[roomId].ready[playerId] = true;
     // Broadcast all ready states
     const readyStates = {};
@@ -75,71 +71,12 @@ io.on('connection', (socket) => {
       io.to(roomId).emit('gameStarted', { hostName: playerName, roomId });
     }
   });
-  // --- Room creation/join logic (can be replaced for Monopoly) ---
+
+  // --- Room creation logic ---
   socket.on('createRoom', () => {
     const roomId = Math.random().toString(36).substr(2, 8);
-    rooms[roomId] = { positions: {}, block: { x: 0, y: 0, color: '#00c6ff', grabbedBy: null } };
+    rooms[roomId] = { positions: {}, players: {}, tokens: {}, ready: {} };
     socket.emit('roomCreated', roomId);
-  });
-
-  socket.on('joinRoom', ({ roomId, playerId, playerName }) => {
-    if (!rooms[roomId]) return;
-    // Store player info (for Monopoly, use a player object)
-    if (!rooms[roomId].players) rooms[roomId].players = {};
-    rooms[roomId].players[playerId] = { name: playerName || 'Player' };
-    rooms[roomId].positions[playerId] = 0;
-    socket.join(roomId);
-    // Assign player number (for demo, just order of join)
-    const playerNum = Object.keys(rooms[roomId].positions).length;
-    socket.emit('playerNumber', playerNum);
-    io.to(roomId).emit('update', { positions: rooms[roomId].positions });
-    // Send current block state with name
-    socket.emit('blockUpdate', { ...rooms[roomId].block, playerId, playerName });
-  });
-
-  // --- 3D block movement demo (delete for Monopoly) ---
-  socket.on('grabBlock', ({ roomId, playerId, color }) => {
-    if (!rooms[roomId]) return;
-    rooms[roomId].block.grabbedBy = playerId;
-    rooms[roomId].block.color = color;
-    // Broadcast with player name
-    const playerName = rooms[roomId].players?.[playerId]?.name || 'Player';
-    io.to(roomId).emit('blockUpdate', { ...rooms[roomId].block, playerId, playerName });
-  });
-
-  socket.on('releaseBlock', ({ roomId, playerId }) => {
-    if (!rooms[roomId]) return;
-    if (rooms[roomId].block.grabbedBy === playerId) {
-      rooms[roomId].block.grabbedBy = null;
-      rooms[roomId].block.color = '#00c6ff';
-      const playerName = rooms[roomId].players?.[playerId]?.name || 'Player';
-      io.to(roomId).emit('blockUpdate', { ...rooms[roomId].block, playerId, playerName });
-    }
-  });
-
-  socket.on('moveBlock', ({ roomId, playerId, x, y, color }) => {
-    if (!rooms[roomId]) return;
-    if (rooms[roomId].block.grabbedBy === playerId) {
-      rooms[roomId].block.x = x;
-      rooms[roomId].block.y = y;
-      rooms[roomId].block.color = color;
-      const playerName = rooms[roomId].players?.[playerId]?.name || 'Player';
-      io.to(roomId).emit('blockUpdate', { x, y, color, playerId, playerName });
-    }
-  });
-
-  // --- End of 3D block demo logic ---
-
-  // --- Move action (can be deleted for Monopoly) ---
-  socket.on('move', ({ roomId, playerId, position }) => {
-    if (!rooms[roomId]) return;
-    rooms[roomId].positions[playerId] = position;
-    io.to(roomId).emit('update', { positions: rooms[roomId].positions });
-  });
-
-  // --- Room list (can be replaced for Monopoly) ---
-  socket.on('getRooms', () => {
-    socket.emit('roomList', Object.keys(rooms));
   });
 });
 

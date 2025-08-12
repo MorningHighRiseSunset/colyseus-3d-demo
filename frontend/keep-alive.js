@@ -14,7 +14,7 @@ const https = require('https');
 const http = require('http');
 
 // Configuration
-const SERVER_URL = process.env.SERVER_URL || 'https://metropoly.onrender.com';
+const SERVER_URL = process.env.SERVER_URL || 'https://colyseus-3d-demo.onrender.com';
 const PING_INTERVAL = 10 * 60 * 1000; // 10 minutes
 const ENDPOINTS = ['/ping', '/keep-alive', '/health'];
 
