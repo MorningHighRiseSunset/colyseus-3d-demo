@@ -1,4 +1,15 @@
 document.addEventListener('DOMContentLoaded', function() {
+  const joinRoomBtn = document.getElementById('joinRoomBtn');
+  const joinRoomId = document.getElementById('joinRoomId');
+
+  if (joinRoomBtn && joinRoomId) {
+    joinRoomBtn.onclick = function() {
+      const roomId = joinRoomId.value.trim();
+      if (roomId) {
+        window.location.href = `room.html?roomId=${roomId}`;
+      }
+    };
+  }
   const client = new Colyseus.Client('https://colyseus-3d-demo.onrender.com');
   const createRoomBtn = document.getElementById('createRoomBtn');
   const roomList = document.getElementById('roomList');
