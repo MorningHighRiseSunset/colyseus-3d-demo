@@ -61,11 +61,7 @@ let isDragging = false;
 let blockColor = '#00c6ff';
 
 // Setup Three.js scene
-const container = document.querySelector('.container');
-const canvas = document.createElement('canvas');
-canvas.width = 400;
-canvas.height = 300;
-container.appendChild(canvas);
+const canvas = document.getElementById('blockCanvas');
 const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.setSize(400, 300);
 const scene = new THREE.Scene();
