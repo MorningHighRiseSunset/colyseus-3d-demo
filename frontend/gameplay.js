@@ -123,9 +123,108 @@ let isPopupVisible = false;
 // ===== MULTIPLAYER SYSTEM =====
 // Multiplayer state variables
 let isMultiplayerMode = false;
-let multiplayerGame = null;
 let currentPlayerId = null;
 let currentRoomId = null;
+let socket = null;
+let playerList = [];
+let playerListUI = null;
+
+function setupSocketIOMultiplayer() {
+    // Connect to backend
+    socket = io('https://colyseus-3d-demo.onrender.com');
+
+    // Join room (roomId and playerId should be set via URL or prompt)
+    const urlParams = new URLSearchParams(window.location.search);
+    currentRoomId = urlParams.get('room') || 'defaultRoom';
+    currentPlayerId = urlParams.get('player') || socket.id;
+    const playerName = urlParams.get('name') || `Player-${Math.floor(Math.random()*1000)}`;
+    isMultiplayerMode = true;
+
+    socket.emit('joinMetropoly', {
+        roomId: currentRoomId,
+        playerId: currentPlayerId,
+        playerName
+    });
+
+    // Listen for player list updates
+    socket.on('playerList', (list) => {
+        playerList = list;
+        updatePlayerListUI();
+    });
+
+    // Listen for token position updates
+    socket.on('tokenPositions', (positions) => {
+        Object.entries(positions).forEach(([pid, pos]) => {
+            const idx = playerList.findIndex(p => p.id === pid);
+            if (idx !== -1 && players[idx]) {
+                players[idx].currentPosition = pos;
+                moveToken(idx, pos, true); // true = sync from server
+            }
+        });
+    });
+}
+
+function updatePlayerListUI() {
+    if (!playerListUI) {
+        playerListUI = document.createElement('div');
+        playerListUI.id = 'player-list-ui';
+        playerListUI.style.position = 'absolute';
+        playerListUI.style.top = '10px';
+        playerListUI.style.right = '10px';
+        playerListUI.style.background = 'rgba(0,0,0,0.7)';
+        playerListUI.style.color = '#fff';
+        playerListUI.style.padding = '10px';
+        playerListUI.style.borderRadius = '8px';
+        playerListUI.style.zIndex = '1000';
+        document.body.appendChild(playerListUI);
+    }
+    playerListUI.innerHTML = '<b>Players:</b><br>' + playerList.map(p => `<span>${p.name}</span>`).join('<br>');
+}
+
+// Override moveToken to emit movement
+const originalMoveToken = window.moveToken;
+window.moveToken = function(playerIdx, newPosition, fromServer) {
+    originalMoveToken(playerIdx, newPosition);
+    if (isMultiplayerMode && socket && !fromServer) {
+        socket.emit('moveToken', {
+            roomId: currentRoomId,
+            playerId: currentPlayerId,
+            newPosition
+        });
+    }
+};
+
+// Override rollDice to sync dice rolls
+const originalRollDice = window.rollDice;
+window.rollDice = function() {
+    if (isMultiplayerMode && socket) {
+        // Only allow dice roll if it's your turn
+        if (playerList[currentPlayerIndex]?.id === currentPlayerId) {
+            originalRollDice();
+        } else {
+            alert('Wait for your turn!');
+        }
+    } else {
+        originalRollDice();
+    }
+};
+
+// Initialize multiplayer on load
+window.addEventListener('DOMContentLoaded', () => {
+    // Check for room/player in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    let roomId = urlParams.get('room');
+    let playerId = urlParams.get('player');
+    let playerName = urlParams.get('name');
+
+    if (!roomId || !playerId || roomId === 'undefined' || playerId === 'undefined') {
+        // If missing, redirect to game.html (queue)
+        alert('Missing game session info. Returning to queue.');
+        window.location.href = 'game.html';
+        return;
+    }
+    setupSocketIOMultiplayer();
+});
 
 // ===== VIDEO CHAT SYSTEM =====
 // Video Chat State Variables - Declare at top level

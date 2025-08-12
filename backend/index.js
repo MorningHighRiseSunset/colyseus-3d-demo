@@ -24,21 +24,36 @@ const io = new Server(server, {
 const rooms = {};
 
 io.on('connection', (socket) => {
-  // --- Multiplayer cursor sync (delete for Metropoly) ---
-  socket.on('cursorMove', ({ roomId, playerId, x, y, color }) => {
-    socket.to(roomId).emit('remoteCursorMove', { playerId, x, y, color });
+  // --- Metropoly Multiplayer Logic ---
+  socket.on('joinMetropoly', ({ roomId, playerId, playerName }) => {
+    if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {} };
+    rooms[roomId].players[playerId] = { name: playerName || 'Player' };
+    rooms[roomId].positions[playerId] = 0;
+    socket.join(roomId);
+    // Broadcast updated player list
+    io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({ id, ...info })));
+    // Send initial token positions
+    io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
   });
-  socket.on('releaseBlock', ({ roomId, playerId }) => {
-    // ...existing code...
-    // Notify others to remove remote cursor
-    socket.to(roomId).emit('remoteCursorEnd', { playerId });
-  });
-  // --- End multiplayer cursor sync ---
-  // Send current block state to new clients
-  socket.on('requestBlockState', ({ roomId }) => {
+
+  socket.on('moveToken', ({ roomId, playerId, newPosition }) => {
     if (!rooms[roomId]) return;
-    socket.emit('blockUpdate', { ...rooms[roomId].block });
+    rooms[roomId].positions[playerId] = newPosition;
+    io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
   });
+
+  socket.on('disconnecting', () => {
+    // Remove player from all rooms
+    Object.keys(socket.rooms).forEach(roomId => {
+      if (rooms[roomId] && rooms[roomId].players[socket.id]) {
+        delete rooms[roomId].players[socket.id];
+        delete rooms[roomId].positions[socket.id];
+        io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({ id, ...info })));
+        io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
+      }
+    });
+  });
+  // --- End Metropoly Multiplayer Logic ---
   // --- Ready-up and game start logic ---
   socket.on('playerReady', ({ roomId, playerId, playerName }) => {
     if (!rooms[roomId]) return;
