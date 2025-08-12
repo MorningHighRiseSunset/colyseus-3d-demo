@@ -25,13 +25,8 @@ socket.on('playerNumber', num => {
   playerNum = num;
   gameInfo.innerHTML += `<br><strong>You are Player ${playerNum}</strong>`;
   isHost = (playerNum === 1); // First player is host
-  if (isHost) {
-    startBtn.style.display = '';
-    readyBtn.style.display = 'none';
-  } else {
-    startBtn.style.display = 'none';
-    readyBtn.style.display = '';
-  }
+  startBtn.style.display = 'none';
+  readyBtn.style.display = '';
 });
 
 readyBtn.onclick = () => {
@@ -49,5 +44,14 @@ socket.on('playerReadyStates', (states) => {
     statusEl.innerHTML = Object.entries(readyStates).map(([name, ready]) => {
       return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> ${name}: ${ready ? 'Ready' : 'Not Ready'}`;
     }).join('<br>');
+  }
+  // If all players are ready, show Start Game for host
+  const allReady = Object.values(readyStates).every(Boolean);
+  if (isHost && allReady) {
+    startBtn.style.display = '';
+    readyBtn.style.display = 'none';
+  } else {
+    startBtn.style.display = 'none';
+    readyBtn.style.display = '';
   }
 });
