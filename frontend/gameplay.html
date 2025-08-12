@@ -1,19 +1,686 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Metropoly Gameplay</title>
-  <link rel="stylesheet" href="game.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>Vegas Metropoly - Multiplayer</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        
+        #multiplayer-ui h3 {
+            margin: 0 0 10px 0;
+            color: #ffd700;
+        }
+        
+        .player-info {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 5px;
+            background: transparent !important;
+            border-radius: 5px;
+        }
+        
+        .player-avatar {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #3498db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            margin-right: 8px;
+        }
+        
+        .player-details {
+            flex: 1;
+            font-size: 0.9em;
+        }
+        
+        .player-details div {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+        
+        .player-details div:first-child {
+            font-size: 0.9em;
+            opacity: 1;
+        }
+        
+        .current-player {
+            background: transparent !important;
+            border: 1px solid #ffd700;
+        }
+        
+        .player-token {
+            font-size: 0.8em;
+            opacity: 0.8;
+            margin-left: auto;
+        }
+        
+        #game-controls {
+            margin-top: 15px;
+            text-align: center;
+        }
+        
+        .btn {
+            padding: 8px 15px;
+            margin: 2px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            background: #3498db;
+            color: white;
+        }
+        
+        .btn:hover {
+            background: #2980b9;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+                 #connection-status {
+             position: fixed;
+             top: 10px;
+             left: 10px;
+             padding: 8px 12px;
+             border-radius: 5px;
+             font-size: 0.9em;
+             z-index: 1002;
+             background: #e74c3c;
+             color: white;
+             max-width: 150px;
+             overflow: hidden;
+             text-overflow: ellipsis;
+             white-space: nowrap;
+         }
+        
+        .status-connected {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .status-disconnected {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        #turn-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            z-index: 1002;
+            display: none;
+        }
+        
+        #turn-indicator h2 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            z-index: 1003;
+            display: none;
+        }
+
+        /* Video Chat Styles */
+                 .video-chat-toggle-btn {
+             position: fixed;
+             bottom: 120px;
+             right: 50px;
+             width: 50px;
+             height: 50px;
+             border-radius: 50%;
+             border: none;
+             background: #27ae60;
+             color: white;
+             font-size: 20px;
+             cursor: pointer;
+             z-index: 2003;
+             transition: all 0.3s;
+         }
+
+        .video-chat-toggle-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .video-chat-toggle-btn.active {
+            background: #e74c3c;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .video-chat-container {
+            position: fixed;
+            top: 50%;
+            right: 20px;
+            width: 320px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 10px;
+            z-index: 1003;
+            border: 1px solid rgba(255, 215, 0, 0.3);
+            transform: translateY(-50%);
+        }
+
+        .video-chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .video-chat-header h3 {
+            color: #ffd700;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .video-control-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .video-control-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .video-control-btn.danger {
+            color: #e74c3c;
+        }
+
+        .video-grid {
+            padding: 10px;
+            display: grid;
+            gap: 10px;
+        }
+
+        .video-grid.grid-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .video-grid.grid-3, .video-grid.grid-4 {
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .video-grid.grid-5, .video-grid.grid-6 {
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+        }
+
+        .video-box {
+            position: relative;
+            width: 100%;
+            height: 120px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 215, 0, 0.2);
+        }
+
+        .video-box video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .video-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #ccc;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .video-placeholder .icon {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .video-label {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+        
+        /* Dice Button Styles */
+        .dice-button {
+            position: fixed;
+            bottom: 18px;
+            left: 12px;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #333;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+            transition: all 0.3s ease;
+            z-index: 2001;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            min-height: 50px;
+            line-height: 1.2;
+            min-width: 120px;
+            max-width: 150px;
+            width: auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .dice-button:hover {
+            background: linear-gradient(135deg, #ffed4e, #ffd700);
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
+        }
+        
+        .dice-button:active {
+            transform: scale(0.95);
+        }
+        
+        .dice-button:disabled {
+            background: #666;
+            color: #999;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-  <h1>Game</h1>
-  <div id="gameplayInfo"></div>
-  <div id="gameplayStatus"></div>
-  <canvas id="blockCanvas" width="400" height="300" style="display:block;margin:16px auto;border-radius:12px;background:#222;"></canvas>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
-  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
-  <script src="gameplay.js"></script>
+    <div id="connection-status" class="status-disconnected">Disconnected</div>
+    
+    <div id="multiplayer-ui">
+        <h3>Players</h3>
+        <div id="players-list"></div>
+        <div id="game-controls">
+            <button class="btn btn-danger" onclick="leaveGame()">Leave Game</button>
+        </div>
+    </div>
+    
+    <div id="turn-indicator">
+        <h2>🎲 It's Your Turn! 🎲</h2>
+        <p>Roll the dice to continue</p>
+    </div>
+    
+    <div id="notification" class="notification"></div>
+    
+    <!-- Video Chat System -->
+    <button id="videoChatToggle" class="video-chat-toggle-btn">📹</button>
+    
+    <div id="videoChatContainer" class="video-chat-container" style="display: none;">
+        <div class="video-chat-header">
+            <h3>Video Chat</h3>
+            <button class="video-control-btn" onclick="toggleVideo()">🔴</button>
+            <button class="video-control-btn" onclick="toggleAudio()">🔊</button>
+            <button class="video-control-btn" onclick="minimizeVideoChat()">−</button>
+            <button class="video-control-btn danger" onclick="stopVideoChat()">❌</button>
+        </div>
+        <div id="videoGrid" class="video-grid">
+            <!-- Video boxes will be dynamically created here -->
+        </div>
+    </div>
+    
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+    <script src="vegasScene.js"></script>
+    <script type="module" src="script.js"></script>
+    <script type="module" src="multiplayer.js"></script>
+    <script>
+        // Initialize multiplayer game
+        let multiplayerGame;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get room and player info from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            let roomId = urlParams.get('room');
+            let playerId = urlParams.get('player');
+
+            // Fallback to sessionStorage if missing
+            if (!roomId || !playerId || roomId === 'undefined' || playerId === 'undefined') {
+                try {
+                    const storedState = sessionStorage.getItem('metropoly_game_state');
+                    if (storedState) {
+                        const gameState = JSON.parse(storedState);
+                        if (gameState.roomId && gameState.playerId) {
+                            roomId = gameState.roomId;
+                            playerId = gameState.playerId;
+                            console.log('[GAME INIT] Recovered roomId and playerId from sessionStorage:', roomId, playerId);
+                        }
+                    }
+                } catch (error) {
+                    console.error('[GAME INIT] Failed to recover state from sessionStorage:', error);
+                }
+            }
+
+            // If still missing, show error and redirect
+            if (!roomId || !playerId || roomId === 'undefined' || playerId === 'undefined') {
+                alert('Invalid game session. Please return to the lobby.');
+                window.location.href = 'lobby.html';
+                return;
+            }
+
+            // Set multiplayer flag immediately to prevent token selection UI
+            window.isMultiplayerMode = true;
+
+            // Wait for MultiplayerGame class to be available before initializing
+            waitForMultiplayerGame();
+
+            function waitForMultiplayerGame() {
+                if (window.MultiplayerGame) {
+                    console.log('MultiplayerGame class loaded, initializing...');
+                    multiplayerGame = new MultiplayerGame(roomId, playerId);
+                    window.multiplayerGame = multiplayerGame; // Set it on window object
+                    console.log('window.multiplayerGame set:', window.multiplayerGame);
+                    console.log('window.multiplayerGame.playerId:', window.multiplayerGame?.playerId);
+                    // Notify lobby for socket handoff
+                    window.parent && window.parent.postMessage('game_socket_connected', '*');
+                    waitForGameLoad();
+                } else {
+                    console.log('Waiting for MultiplayerGame class to load...');
+                    setTimeout(waitForMultiplayerGame, 100);
+                }
+            }
+            
+            function waitForGameLoad() {
+                // Check if the main game is ready - wait for ES6 modules to load
+                if (window.init && window.scene && window.players && window.createTokens) {
+                    console.log('Game modules loaded successfully!');
+                    
+                    // Wait a moment for multiplayer to initialize, then start the game
+                    setTimeout(() => {
+                        if (multiplayerGame) {
+                            console.log('Starting multiplayer game...');
+                            multiplayerGame.setupGame();
+                        }
+                    }, 500);
+                } else {
+                    console.log('Waiting for game modules to load...');
+                    // Wait a bit and try again
+                    setTimeout(waitForGameLoad, 200);
+                }
+            }
+            
+            // Also listen for the script loaded event
+            document.addEventListener('scriptLoaded', () => {
+                console.log('Script loaded event received, checking modules...');
+                setTimeout(waitForGameLoad, 100);
+            });
+        });
+        
+        function leaveGame() {
+            if (multiplayerGame) {
+                multiplayerGame.leaveGame();
+            }
+        }
+        
+        function showNotification(message, duration = 3000) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, duration);
+        }
+        
+        function showTurnIndicator(show) {
+            const indicator = document.getElementById('turn-indicator');
+            indicator.style.display = show ? 'block' : 'none';
+        }
+
+        // Video Chat System
+        let videoChat = null;
+        let localStream = null;
+        let isVideoEnabled = true;
+        let isAudioEnabled = true;
+        let isMinimized = false;
+        let videoChatActive = false;
+        let videoBoxes = [];
+        let currentPlayerCount = 0;
+
+        // Initialize video chat when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleBtn = document.getElementById('videoChatToggle');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', toggleVideoChat);
+            }
+        });
+
+        function toggleVideoChat() {
+            if (videoChatActive) {
+                stopVideoChat();
+            } else {
+                startVideoChat();
+            }
+        }
+
+        function startVideoChat() {
+            const container = document.getElementById('videoChatContainer');
+            const toggleBtn = document.getElementById('videoChatToggle');
+            
+            if (!container || !toggleBtn) return;
+
+            // Get player count from multiplayer game
+            const playerCount = multiplayerGame ? multiplayerGame.players.length : 2;
+            
+            // Update video grid layout
+            updateVideoGridLayout(playerCount);
+            
+            // Request camera/microphone permissions
+            navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+                .then(stream => {
+                    localStream = stream;
+                    
+                    // Set local video
+                    const localVideoBox = videoBoxes[0];
+                    if (localVideoBox) {
+                        const video = localVideoBox.querySelector('video');
+                        if (video) {
+                            video.srcObject = stream;
+                        }
+                    }
+                    
+                    // Show video chat
+                    container.style.display = 'block';
+                    toggleBtn.textContent = '🔴';
+                    toggleBtn.classList.add('active');
+                    videoChatActive = true;
+                    
+                    console.log('Video chat started with', playerCount, 'players');
+                })
+                .catch(error => {
+                    console.error('Error accessing camera/microphone:', error);
+                    showNotification('Camera/microphone access denied', 'error');
+                });
+        }
+
+        function stopVideoChat() {
+            const container = document.getElementById('videoChatContainer');
+            const toggleBtn = document.getElementById('videoChatToggle');
+            
+            if (!container || !toggleBtn) return;
+
+            // Stop all media tracks
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+                localStream = null;
+            }
+            
+            // Hide video chat
+            container.style.display = 'none';
+            toggleBtn.textContent = '📹';
+            toggleBtn.classList.remove('active');
+            videoChatActive = false;
+            
+            // Clear video boxes
+            videoBoxes = [];
+            currentPlayerCount = 0;
+        }
+
+        function updateVideoGridLayout(playerCount) {
+            const grid = document.getElementById('videoGrid');
+            if (!grid) return;
+
+            // Clear existing video boxes
+            grid.innerHTML = '';
+            videoBoxes = [];
+            
+            // Add appropriate CSS class
+            grid.className = `video-grid grid-${playerCount}`;
+            
+            // Create video boxes for each player
+            for (let i = 0; i < playerCount; i++) {
+                const videoBox = createVideoBox(i, `Player ${i + 1}`, i === 0);
+                grid.appendChild(videoBox);
+                videoBoxes.push(videoBox);
+            }
+            
+            currentPlayerCount = playerCount;
+        }
+
+        function createVideoBox(playerIndex, playerName, isLocal = false) {
+            const videoBox = document.createElement('div');
+            videoBox.className = 'video-box';
+            
+            if (isLocal) {
+                // Local video
+                const video = document.createElement('video');
+                video.autoplay = true;
+                video.muted = true;
+                videoBox.appendChild(video);
+            } else {
+                // Placeholder for remote video
+                const placeholder = document.createElement('div');
+                placeholder.className = 'video-placeholder';
+                placeholder.innerHTML = `
+                    <div class="icon">👤</div>
+                    <div>${playerName}</div>
+                    <div>Waiting...</div>
+                `;
+                videoBox.appendChild(placeholder);
+            }
+            
+            // Add label
+            const label = document.createElement('div');
+            label.className = 'video-label';
+            label.textContent = playerName;
+            videoBox.appendChild(label);
+            
+            return videoBox;
+        }
+
+        function toggleVideo() {
+            if (!localStream) return;
+            
+            const videoTrack = localStream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                isVideoEnabled = videoTrack.enabled;
+                
+                const btn = document.querySelector('.video-control-btn');
+                if (btn) {
+                    btn.textContent = isVideoEnabled ? '🔴' : '📹';
+                }
+            }
+        }
+
+        function toggleAudio() {
+            if (!localStream) return;
+            
+            const audioTrack = localStream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                isAudioEnabled = audioTrack.enabled;
+                
+                const btn = document.querySelectorAll('.video-control-btn')[1];
+                if (btn) {
+                    btn.textContent = isAudioEnabled ? '🔊' : '🔇';
+                }
+            }
+        }
+
+        function minimizeVideoChat() {
+            const container = document.getElementById('videoChatContainer');
+            const btn = document.querySelectorAll('.video-control-btn')[2];
+            
+            if (!container || !btn) return;
+            
+            isMinimized = !isMinimized;
+            
+            if (isMinimized) {
+                container.style.height = '50px';
+                container.style.overflow = 'hidden';
+                btn.textContent = '+';
+            } else {
+                container.style.height = 'auto';
+                container.style.overflow = 'visible';
+                btn.textContent = '−';
+            }
+        }
+
+        // Update video chat when game state changes
+        function updateVideoChatForGameState() {
+            if (videoChatActive && multiplayerGame) {
+                const playerCount = multiplayerGame.players.length;
+                if (playerCount !== currentPlayerCount) {
+                    updateVideoGridLayout(playerCount);
+                    
+                    // Re-establish local video stream
+                    if (localStream && videoBoxes[0]) {
+                        const video = videoBoxes[0].querySelector('video');
+                        if (video) {
+                            video.srcObject = localStream;
+                        }
+                    }
+                }
+            }
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,868 @@
+/* --- General Layout & Typography --- */
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    background: transparent;
+    color: #f3f6fa;
+}
+
+/* --- Compact Multiplayer UI Box --- */
+#multiplayer-ui {
+    position: fixed !important;
+    top: 16px !important;
+    right: 16px !important;
+    width: 210px !important;
+    min-width: 0 !important;
+    max-width: 220px !important;
+    background: rgba(0, 0, 0, 0.9) !important;
+    border: 2px solid #ffd700 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 10px #0005 !important;
+    padding: 10px 10px 8px 10px !important;
+    z-index: 1000 !important;
+    display: block !important;
+    box-sizing: border-box !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+#multiplayer-ui h3 {
+    margin: 0 0 8px 0 !important;
+    color: #ffd700 !important;
+    font-size: 1.1em !important;
+    text-align: center !important;
+}
+#multiplayer-ui #players-list {
+    margin: 0 0 6px 0 !important;
+    padding: 0 !important;
+}
+#multiplayer-ui .player-info {
+    margin-bottom: 6px !important;
+    padding: 4px 3px !important;
+    border-radius: 5px !important;
+    font-size: 0.95em !important;
+    background: transparent !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+}
+#multiplayer-ui .player-avatar {
+    width: 20px !important;
+    height: 20px !important;
+    border-radius: 50% !important;
+    background: #3498db !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 0.8em !important;
+    margin-right: 6px !important;
+}
+#multiplayer-ui .player-details {
+    flex: 1 1 0 !important;
+    font-size: 0.92em !important;
+    min-width: 0 !important;
+}
+#multiplayer-ui .player-token {
+    font-size: 0.8em !important;
+    opacity: 0.8 !important;
+    margin-left: 2px !important;
+}
+#multiplayer-ui .current-player {
+    border: 1.5px solid #ffd700 !important;
+    background: rgba(255, 215, 0, 0.08) !important;
+}
+#multiplayer-ui #game-controls {
+    margin-top: 6px !important;
+    text-align: center !important;
+}
+#multiplayer-ui .btn {
+    padding: 6px 10px !important;
+    font-size: 0.95em !important;
+    border-radius: 5px !important;
+    margin: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+#multiplayer-status {
+    top: 2px !important;
+    right: 2px !important;
+    font-size: 10px !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    z-index: 10001 !important;
+}
+  
+  /* --- Multiplayer UI Background --- */
+  #multiplayer-ui {
+      background: rgba(0, 0, 0, 0.9) !important;
+  }
+  
+  #multiplayer-players {
+      background: rgba(0, 0, 0, 0.9) !important;
+  }
+  
+  #connection-status {
+      background: rgba(0, 0, 0, 0.9) !important;
+  }
+  
+  /* --- Aggressive Background Removal for Top of Screen --- */
+  div[style*="position: fixed"][style*="top: 10px"]:not(#multiplayer-ui):not(#multiplayer-players):not(#connection-status),
+  div[style*="position: fixed"][style*="top: 20px"]:not(#multiplayer-ui):not(#multiplayer-players):not(#connection-status),
+  div[style*="position: fixed"][style*="top: 60px"]:not(#multiplayer-ui):not(#multiplayer-players):not(#connection-status) {
+      background: transparent !important;
+  }
+  
+  /* Remove any potential white/light backgrounds from fixed elements */
+  div[style*="background"][style*="position: fixed"]:not(#multiplayer-ui):not(#multiplayer-players):not(#connection-status) {
+      background: transparent !important;
+  }
+  
+  /* Ensure no elements at the top have backgrounds */
+  *[style*="top: 0"]:not(#multiplayer-ui):not(#multiplayer-players):not(#connection-status),
+  *[style*="top: 10px"]:not(#multiplayer-ui):not(#multiplayer-players):not(#connection-status),
+  *[style*="top: 20px"]:not(#multiplayer-ui):not(#multiplayer-players):not(#connection-status) {
+      background: transparent !important;
+  }
+  
+  /* --- Money Display --- */
+  .money-display {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(40,40,40,0.9);
+    color: #fff;
+    padding: 15px 20px;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: bold;
+    box-shadow: 0 2px 10px #0005;
+    z-index: 2002;
+    transition: all 0.3s;
+  }
+  
+  /* --- Buttons --- */
+  button,
+  .action-button,
+  .end-turn-button,
+  #end-turn-button,
+  #properties-toggle-btn {
+    font-size: 16px;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.2s;
+    background: #4caf50;
+    color: #fff;
+    font-weight: bold;
+  }
+  
+  button:hover,
+  .action-button:hover,
+  .end-turn-button:hover,
+  #end-turn-button:hover,
+  #properties-toggle-btn:hover {
+    background: #357a38;
+    box-shadow: 0 4px 16px #2563eb22;
+    transform: translateY(-2px) scale(1.03);
+  }
+  
+  /* --- Dice & Turn Buttons --- */
+  .dice-button {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    min-width: 100px;
+    max-width: 120px;
+    width: auto;
+    padding: 12px 20px;
+    font-size: 16px;
+    height: auto;
+    line-height: 1.2;
+    z-index: 1000;
+    display: block;
+    background: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    transition: all 0.2s ease;
+  }
+  
+  .dice-button:hover {
+    background: #45a049;
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+  }
+  
+  .dice-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .end-turn-button,
+  #end-turn-button {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    min-width: 90px;
+    max-width: 130px;
+    width: auto;
+    z-index: 2001;
+    display: none;
+  }
+  #properties-toggle-btn {
+    position: fixed;
+    bottom: 14px;
+    right: 12px;
+    border-radius: 6px;
+    z-index: 2002;
+    min-width: 90px;
+    max-width: 130px;
+    width: auto;
+    font-size: 15px;
+    padding: 10px 14px;
+  }
+  
+  /* --- Dice Result Notification --- */
+  .dice-result {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.8);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 16px;
+    z-index: 1001;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+    max-width: 300px;
+    text-align: center;
+    word-wrap: break-word;
+    margin: 0;
+  }
+  .dice-result.show { opacity: 1; }
+  
+  /* --- Token Selection UI --- */
+  .token-selection-ui,
+  #token-selection-ui {
+    position: fixed;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30,30,30,0.98);
+    border-radius: 12px;
+    padding: 18px 10px 10px 10px;
+    z-index: 3000;
+    box-shadow: 0 4px 24px #0008;
+    max-width: 98vw;
+    width: 420px;
+    max-height: 80vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .token-selection-ui h2,
+  #token-selection-ui h2 {
+    margin-bottom: 15px;
+    font-size: 18px;
+    color: #fff;
+    text-align: center;
+  }
+  .token-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .token-button {
+    width: 110px;
+    height: 110px;
+    padding: 10px;
+    background: #333;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .token-button img {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 8px;
+    border-radius: 6px;
+    object-fit: contain;
+  }
+  .token-button[style*="none"] {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+  .token-button:hover,
+  .token-button:not([style*="none"]):hover {
+    background: #444;
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px #0004;
+    border-color: #666;
+  }
+  .token-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+  .token-button .ai-button {
+    margin-top: 5px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    background: #666;
+    color: #fff;
+    font-size: 12px;
+  }
+  .token-button .ai-button.active {
+    background: #4caf50;
+  }
+  .token-button .ai-indicator {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: transparent;
+  }
+  .token-button .ai-indicator.active {
+    background: #4caf50;
+  }
+  .taken-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #fffB;
+    border-radius: 8px;
+    color: #222;
+    font-weight: bold;
+    font-size: 14px;
+    z-index: 2;
+  }
+  
+  /* --- Boards --- */
+  #property-management-board,
+  #other-players-board {
+    position: fixed;
+    top: 120px;
+    right: 20px;
+    width: 178px;
+    background: rgba(40,40,40,0.9);
+    color: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px #0008;
+    z-index: 1000;
+    overflow-y: auto;
+    max-height: 200px;
+    display: none;
+  }
+  .board-visible { display: block !important; }
+  #property-management-board h2,
+  #other-players-board h2 {
+    margin: 0 0 15px;
+    font-size: 20px;
+    text-align: center;
+  }
+  #property-management-board h2 { color: #45a049; }
+  #other-players-board h2 { color: #ff5252; }
+  #property-list, #other-players-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  .property-item, .other-property-item {
+    background: #fff2;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px #0003;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .property-item h3, .other-property-item h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+  .property-item h3 { color: #4caf50; }
+  .other-property-item h3 { color: #ff5252; }
+  .property-item button, .other-property-item button {
+    padding: 10px;
+    font-size: 14px;
+    background: #4caf50;
+    color: #fff;
+    border-radius: 5px;
+    width: 100%;
+  }
+  .property-item button.unmortgage {
+    background: #ff5252;
+  }
+  .property-item button.unmortgage:hover {
+    background: #e53935;
+  }
+  .other-property-item .status-btn {
+    cursor: not-allowed;
+    background: #ccc;
+    color: #555;
+    opacity: 0.7;
+  }
+  .other-property-item p {
+    margin: 0;
+    font-size: 14px;
+    color: #ccc;
+  }
+  
+  /* --- Popups & Overlays --- */
+  .property-popup,
+  .jail-popup,
+  .free-parking-popup,
+  .luxury-tax-popup,
+  .income-tax-popup,
+  .card-popup {
+    background: #fff;
+    color: #222;
+    border-radius: 10px;
+    box-shadow: 0 2px 12px #0001;
+    padding: 20px;
+    max-width: 98vw;
+    margin: auto;
+    animation: fadeIn 0.3s;
+  }
+  .property-popup {
+    background: linear-gradient(135deg, #232a36 60%, #2d3748 100%);
+    color: #f3f6fa;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px #0007;
+    padding: 32px 28px 24px 28px;
+    min-width: 340px;
+    max-width: 95vw;
+    border: 1.5px solid #2d3748;
+  }
+  .property-popup .popup-header,
+  .card-popup .popup-header {
+    font-size: 24px;
+    font-weight: bold;
+    color: #3fa7ff;
+    margin-bottom: 15px;
+    text-align: center;
+    background: none;
+    border: none;
+    padding: 0;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 8px #3fa7ff2e;
+  }
+  .property-popup .popup-header:contains('Chance'),
+  .property-popup .popup-header:contains('Community'),
+  .property-popup .card-prompt,
+  .property-popup .card-prompt + .button-container {
+    background: #fff;
+    color: #222;
+  }
+  .property-popup .card-prompt {
+    border-radius: 8px;
+    padding: 18px 10px;
+    font-size: 18px;
+    box-shadow: 0 2px 12px #0001;
+    margin: 20px 0;
+    text-align: center;
+    line-height: 1.5;
+  }
+  .property-content {
+    margin-top: 10px;
+    font-size: 18px;
+    line-height: 1.5;
+    color: #e0e0e0;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center; 
+    gap: 20px;
+  }
+  .property-video-container {
+    width: 100% !important;
+    max-width: 480px;
+    height: 220px !important;
+    max-height: 40vh;
+    margin: 0 auto 16px auto;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .property-video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .property-details {
+    background: #fff3;
+    border-radius: 10px;
+    padding: 18px 14px;
+    margin-bottom: 18px;
+    border: 1px solid #fff1;
+  }
+  .property-popup.fade-in,
+  .card-popup.show { opacity: 1; transform: scale(1);}
+  .property-popup.hide,
+  .card-popup.hide { opacity: 0; transform: scale(0.7);}
+  @keyframes fadeIn { from { opacity: 0; transform: scale(0.9);} to { opacity: 1; transform: scale(1);} }
+  
+  /* --- Overlay backgrounds --- */
+  .property-overlay,
+  .jail-overlay,
+  .free-parking-overlay,
+  .luxury-tax-overlay,
+  .income-tax-overlay,
+  .card-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .free-parking-overlay,
+  .jail-overlay { background: rgba(0,0,0,0.8);}
+  .card-overlay { background: rgba(20,20,20,0.85);}
+  
+  /* --- Notification --- */
+  .notification,
+  .feedback {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #4caf50;
+    color: #fff;
+    padding: 15px 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 6px #0003;
+    z-index: 1001;
+    opacity: 0;
+    transition: opacity 0.3s, transform 0.3s;
+  }
+  .notification.show,
+  .feedback { opacity: 1; transform: translateX(-50%) translateY(-20px);}
+  .feedback.fade-out { opacity: 0; transition: opacity 0.5s;}
+  
+  /* --- Responsive --- */
+  @media (max-width: 700px) {
+    .money-display {
+      top: 10px !important;
+      left: 10px !important;
+      right: auto !important;
+      width: auto !important;
+      max-width: 90vw !important;
+      font-size: 15px !important;
+      padding: 10px !important;
+      border-radius: 8px !important;
+    }
+    #property-management-board,
+    #other-players-board {
+      width: 90vw !important;
+      left: 50% !important;
+      right: auto !important;
+      transform: translateX(-50%) !important;
+      top: auto !important;
+      bottom: 10px !important;
+      font-size: 16px !important;
+      padding: 10px !important;
+      max-width: 98vw !important;
+    }
+    #property-management-board { top: 10px !important;}
+    #other-players-board { top: 140px !important;}
+    .dice-button {
+      left: 20px !important;
+      right: auto !important;
+      bottom: 20px !important;
+      top: auto !important;
+      transform: none !important;
+      width: 100px !important;
+      max-width: 120px !important;
+      min-width: 100px !important;
+      z-index: 1000 !important;
+      font-size: 16px !important;
+      padding: 12px 20px !important;
+      height: auto !important;
+      border-radius: 8px !important;
+      display: block !important;
+      text-align: center !important;
+      background: #4CAF50 !important;
+      color: white !important;
+      border: none !important;
+      font-weight: bold !important;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+    }
+    #properties-toggle-btn {
+      position: fixed !important;
+      right: 10px !important;
+      left: auto !important;
+      top: auto !important;
+      bottom: 14px !important;
+      transform: none !important;
+      z-index: 3001 !important;
+      width: auto !important;
+      min-width: 90px !important;
+      max-width: 130px !important;
+      font-size: 15px !important;
+      padding: 10px 14px !important;
+      border-radius: 6px !important;
+      text-align: center !important;
+      margin: 0 !important;
+    }
+    .dice-result {
+      left: 50% !important;
+      right: auto !important;
+      bottom: 16px !important;
+      transform: translateX(-50%) !important;
+      font-size: 15px !important;
+      padding: 10px 14px !important;
+      min-width: 90px !important;
+      max-width: 130px !important;
+      width: auto !important;
+      border-radius: 8px !important;
+      z-index: 1002 !important;
+      margin: 0 !important;
+    }
+    /* Token selection UI: smaller, 2 columns, 2 rows */
+    .token-selection-ui,
+    #token-selection-ui {
+      top: 30px !important;
+      left: 50% !important;
+      transform: translateX(-50%) !important;
+      width: 170px !important;
+      max-width: 95vw !important;
+      min-width: 0 !important;
+      padding: 8px 1vw 8px 1vw !important;
+      max-height: 160px !important;
+      overflow-y: auto !important;
+      font-size: 13px !important;
+      border-radius: 10px !important;
+    }
+    .token-grid {
+      display: grid !important;
+      grid-template-columns: repeat(2, 1fr) !important;
+      grid-template-rows: repeat(2, 1fr) !important;
+      gap: 10px !important;
+      width: 100% !important;
+      margin-bottom: 10px !important;
+    }
+    .token-button {
+      width: 90px !important;
+      height: 90px !important;
+      padding: 6px !important;
+    }
+    .token-button img {
+      width: 48px !important;
+      height: 48px !important;
+    }
+    #camera-follow-toggle,
+    #camera-follow-indicator,
+    #properties-toggle-btn {
+      width: 130px !important;
+      min-width: 130px !important;
+      max-width: 130px !important;
+      box-sizing: border-box !important;
+    }
+    #camera-follow-toggle {
+      position: fixed !important;
+      right: 10px !important;
+      left: auto !important;
+      top: auto !important;
+      bottom: 126px !important;
+      transform: none !important;
+      z-index: 3002 !important;
+      font-size: 15px !important;
+      padding: 10px 0 !important;
+      border-radius: 8px !important;
+      text-align: center !important;
+      margin: 0 !important;
+      opacity: 0.95 !important;
+    }
+    #camera-follow-indicator {
+      position: fixed !important;
+      right: 10px !important;
+      left: auto !important;
+      top: auto !important;
+      bottom: 70px !important;
+      transform: none !important;
+      z-index: 3002 !important;
+      font-size: 14px !important;
+      padding: 7px 0 !important;
+      border-radius: 8px !important;
+      text-align: center !important;
+      margin: 0 !important;
+      opacity: 0.92 !important;
+      background: #4caf50 !important;
+      color: #fff !important;
+      font-weight: bold !important;
+      display: none;
+    }
+    #properties-toggle-btn {
+      position: fixed !important;
+      right: 10px !important;
+      left: auto !important;
+      top: auto !important;
+      bottom: 14px !important;
+      transform: none !important;
+      z-index: 3001 !important;
+      font-size: 15px !important;
+      padding: 10px 0 !important;
+      border-radius: 6px !important;
+      text-align: center !important;
+      margin: 0 !important;
+    }
+  }
+  
+  /* --- Miscellaneous --- */
+  .property-options {
+    position: fixed;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    padding: 20px;
+    background: #fffE;
+    border-radius: 10px;
+    box-shadow: 0 0 10px #0008;
+    z-index: 1001;
+    text-align: center;
+    transition: opacity 0.3s;
+  }
+  .property-options button {
+    margin: 10px;
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 5px;
+    background: #4caf50;
+    color: #fff;
+  }
+  .property-options button:hover { background: #45a049; }
+  .instructions {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s, opacity 0.4s;
+    opacity: 0;
+    margin: 15px 0;
+    line-height: 1.5;
+  }
+  .instructions.expanded {
+    max-height: 200px;
+    opacity: 1;
+    transition: max-height 0.6s, opacity 0.6s;
+  }
+  .enhanced-icon {
+    font-size: 24px;
+    color: gold;
+    margin-top: 10px;
+    text-align: center;
+  }
+  #instructions-modal { pointer-events: none;}
+  #instructions-modal.show { display: flex; pointer-events: auto;}
+  /* Add any additional unique styles below as needed */
+  
+  @media (max-width: 900px) {
+    .dice-button {
+      position: fixed !important;
+      left: 20px !important;
+      bottom: 20px !important;
+      right: auto !important;
+      top: auto !important;
+      display: block !important;
+      z-index: 1000 !important;
+      width: 100px !important;
+      max-width: 120px !important;
+      min-width: 100px !important;
+      font-size: 16px !important;
+      padding: 12px 20px !important;
+      height: auto !important;
+      border-radius: 8px !important;
+      background: #4CAF50 !important;
+      color: white !important;
+      border: none !important;
+      font-weight: bold !important;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+    }
+    #properties-toggle-btn {
+      position: fixed !important;
+      right: 12px !important;
+      bottom: 18px !important;
+      left: auto !important;
+      top: auto !important;
+      display: block !important;
+      z-index: 3000 !important;
+    }
+  
+      .money-display {
+      position: fixed !important;
+      top: 8px !important;
+      left: 8px !important;
+      right: auto !important;
+      width: auto !important;
+      max-width: 90vw !important;
+      font-size: 15px !important;
+      padding: 8px 10px !important;
+      border-radius: 8px !important;
+      box-sizing: border-box !important;
+      z-index: 3001 !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+  }
+  
+  .property-popup img[src*="waterworks"] {
+    object-position: center 35% !important;
+  }
+  
+  .ai-action-popup {
+      position: fixed;
+      top: 320px;
+      right: 24px;
+      z-index: 2001;
+      background: #232a36;
+      color: #fff;
+      padding: 14px 22px;
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 500;
+      box-shadow: 0 2px 12px #0003;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s, transform 0.3s;
+      max-width: 320px;
+      width: max-content;
+      min-width: 180px;
+      text-align: center;
+  }
+  
+  @media (max-width: 900px) {
+    .ai-action-popup {
+      top: 250px;
+      right: 8px;
+      left: auto;
+      max-width: 95vw;
+      font-size: 15px;
+      padding: 10px 8px;
+      border-radius: 7px;
+    }
+  }
