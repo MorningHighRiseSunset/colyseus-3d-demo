@@ -2,7 +2,15 @@
 const socket = io('https://colyseus-3d-demo.onrender.com');
 socket.on('gameStarted', ({ hostName, roomId }) => {
   // Redirect all players to gameplay.html with roomId, playerName, and playerId
-  window.location.href = `gameplay.html?roomId=${roomId}&playerName=${encodeURIComponent(playerName)}&playerId=${playerId}`;
+    // Save session info for gameplay.html fallback
+    const sessionState = {
+      roomId,
+      playerId,
+      playerName
+    };
+    sessionStorage.setItem('metropoly_game_state', JSON.stringify(sessionState));
+    // Redirect all players to gameplay.html with roomId, playerName, and playerId
+    window.location.href = `gameplay.html?roomId=${roomId}&playerName=${encodeURIComponent(playerName)}&playerId=${playerId}`;
 });
 
 const urlParams = new URLSearchParams(window.location.search);
