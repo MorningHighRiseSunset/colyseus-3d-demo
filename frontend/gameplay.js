@@ -142,6 +142,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         roomId: currentRoomId,
         playerId: currentPlayerId,
         playerName
+
     });
 
     // Listen for player list updates
@@ -240,8 +241,8 @@ window.rollDice = function() {
 window.addEventListener('DOMContentLoaded', () => {
     // Check for room/player in URL (use correct param names)
     const urlParams = new URLSearchParams(window.location.search);
-    let roomId = urlParams.get('roomId');
-    let playerId = urlParams.get('playerId');
+    let roomId = urlParams.get('roomId') || urlParams.get('room');
+    let playerId = urlParams.get('playerId') || urlParams.get('player');
     let playerName = urlParams.get('playerName');
 
     if (!roomId || !playerId || roomId === 'undefined' || playerId === 'undefined') {
@@ -251,6 +252,7 @@ window.addEventListener('DOMContentLoaded', () => {
         return;
     }
     setupSocketIOMultiplayer(roomId, playerId, playerName);
+    setTimeout(setupMultiplayerReadyUI, 1000);
 });
 
 // ===== VIDEO CHAT SYSTEM =====
