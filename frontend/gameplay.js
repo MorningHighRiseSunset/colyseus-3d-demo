@@ -194,6 +194,11 @@ function renderPlayersList() {
         details.appendChild(nameDiv);
         details.appendChild(moneyDiv);
         info.appendChild(details);
+        // Show chosen token
+        const tokenSpan = document.createElement('span');
+        tokenSpan.className = 'player-token';
+        tokenSpan.textContent = p.token || '';
+        info.appendChild(tokenSpan);
         playerListUI.appendChild(info);
     });
 }
@@ -215,6 +220,45 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     socket.on('playerList', (list) => {
         playerList = list;
         renderPlayersList();
+    });
+
+    // Show token selection events
+    socket.on('playerSelectedToken', ({ playerId: pid, token }) => {
+        const p = playerList.find(p => p.id === pid);
+        if (p) {
+            p.token = token;
+            renderPlayersList();
+        }
+    });
+
+    // Handle turn to pick next token
+    socket.on('nextTurnToPick', ({ playerId: pid }) => {
+        // Disable all token buttons
+        document.querySelectorAll('.token-button').forEach(btn => {
+            btn.disabled = true;
+        });
+        // Enable only current picker
+        if (pid === currentPlayerId) {
+            document.querySelectorAll(`.token-button:not(.picked)`).forEach(btn => {
+                btn.disabled = false;
+            });
+        }
+    });
+
+    // Handle game start broadcast
+    socket.on('gameStarted', ({ hostName }) => {
+        // Notify players
+        alert(`Game started by ${hostName}`);
+        // Hide ready/start buttons
+        const readyBtn = document.getElementById('readyUpBtn');
+        const startBtn = document.getElementById('startGameBtn');
+        if (readyBtn) readyBtn.style.display = 'none';
+        if (startBtn) startBtn.style.display = 'none';
+        // If host, show roll dice
+        if (playerList[0]?.id === currentPlayerId) {
+            const diceBtn = document.querySelector('.dice-button');
+            if (diceBtn) diceBtn.style.display = '';
+        }
     });
 
     socket.on('tokenPositions', (positions) => {
@@ -6004,6 +6048,14 @@ function selectToken(tokenName) {
     // Update video chat if it's active
     if (typeof updateVideoChatForGameState === 'function') {
         updateVideoChatForGameState();
+    }
+    // Emit token selection to server
+    if (socket && currentRoomId && currentPlayerId) {
+        socket.emit('selectToken', {
+            roomId: currentRoomId,
+            playerId: currentPlayerId,
+            token: tokenName
+        });
     }
 }
 
