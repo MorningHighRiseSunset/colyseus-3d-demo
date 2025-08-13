@@ -4168,10 +4168,8 @@ function createPlayerTokenSelectionUI(playerIndex) {
     }
 
     availableTokens.forEach((token, index) => {
-        if (window.loadedTokenModels && window.loadedTokenModels[token.name]) {
-            const tokenButton = createTokenButton(token, index);
-            tokenGrid.appendChild(tokenButton);
-        }
+        const tokenButton = createTokenButton(token, index);
+        tokenGrid.appendChild(tokenButton);
     });
 
     const startButton = document.createElement("button");
@@ -4884,7 +4882,7 @@ function createTokenButton(token, index) {
 
     // Create token image
     const tokenImg = document.createElement("img");
-    tokenImg.src = getTokenImageUrl(token.name);
+    tokenImg.src = token.img;
     tokenImg.alt = token.displayName;
     tokenImg.style.width = "60px";
     tokenImg.style.height = "50px";
