@@ -1,4 +1,4 @@
-// Restore setupMultiplayerReadyUI for multiplayer modal
+// --- Ready-Up UI Logic ---
 function setupMultiplayerReadyUI() {
     const readyBtn = document.getElementById('readyUpBtn');
     const startBtn = document.getElementById('startGameBtn');
@@ -9,6 +9,7 @@ function setupMultiplayerReadyUI() {
     readyBtn.onclick = () => {
         isReady = !isReady;
         readyBtn.textContent = isReady ? 'Unready' : 'Ready Up';
+        readyBtn.classList.toggle('ready-anim', isReady);
         if (socket && currentRoomId && currentPlayerId) {
             socket.emit('playerReady', {
                 roomId: currentRoomId,
@@ -26,13 +27,11 @@ function setupMultiplayerReadyUI() {
             });
         }
     };
-    // Listen for ready states
     if (socket) {
         socket.on('playerReadyStates', (readyStates) => {
             tokenReadyStatus.innerHTML = Object.entries(readyStates).map(([name, ready]) => {
-                return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> ${name}: ${ready ? 'Ready' : 'Not Ready'}`;
+                return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> <span class="player-name">${name}</span>: <span class="ready-status ${ready ? 'ready' : 'not-ready'}">${ready ? 'Ready' : 'Not Ready'}</span>`;
             }).join('<br>');
-            // Show start button only if host and all ready
             const allReady = Object.values(readyStates).every(Boolean);
             const isHost = playerList[0]?.id === currentPlayerId;
             startBtn.style.display = (isHost && allReady) ? '' : 'none';
@@ -40,6 +39,7 @@ function setupMultiplayerReadyUI() {
         });
     }
 }
+
 const DEBUG = false;
 import * as THREE from './libs/three.module.js';
 import {
@@ -171,66 +171,34 @@ let socket = null;
 let playerList = [];
 let playerListUI = null;
 
+// --- Multiplayer Initialization ---
 function setupSocketIOMultiplayer(roomId, playerId, playerName) {
-    // Connect to backend
     socket = io('https://colyseus-3d-demo.onrender.com');
     currentRoomId = roomId || 'defaultRoom';
     currentPlayerId = playerId || socket.id;
     playerName = playerName || `Player-${Math.floor(Math.random()*1000)}`;
     isMultiplayerMode = true;
 
-    // Join the room
     socket.emit('joinMetropoly', {
         roomId: currentRoomId,
         playerId: currentPlayerId,
         playerName
-
     });
 
-    // Listen for player list updates
     socket.on('playerList', (list) => {
         playerList = list;
         updatePlayerListUI();
     });
 
-    // Listen for token position updates
     socket.on('tokenPositions', (positions) => {
         Object.entries(positions).forEach(([pid, pos]) => {
             const idx = playerList.findIndex(p => p.id === pid);
             if (idx !== -1 && players[idx]) {
                 players[idx].currentPosition = pos;
-                moveToken(idx, pos, true); // true = sync from server
+                moveToken(idx, pos, true);
             }
         });
     });
-
-    // Override moveToken to emit movement
-    const originalMoveToken = window.moveToken;
-    window.moveToken = function(playerIdx, newPosition, fromServer) {
-        originalMoveToken(playerIdx, newPosition);
-        if (isMultiplayerMode && socket && !fromServer) {
-            socket.emit('moveToken', {
-                roomId: currentRoomId,
-                playerId: currentPlayerId,
-                newPosition
-            });
-        }
-    };
-
-    // Override rollDice to sync dice rolls
-    const originalRollDice = window.rollDice;
-    window.rollDice = function() {
-        if (isMultiplayerMode && socket) {
-            // Only allow dice roll if it's your turn
-            if (playerList[currentPlayerIndex]?.id === currentPlayerId) {
-                originalRollDice();
-            } else {
-                alert('Wait for your turn!');
-            }
-        } else {
-            originalRollDice();
-        }
-    };
 }
 
 // --- Token Selection Tooltips ---
@@ -299,7 +267,7 @@ function patchRollDice() {
     };
 }
 
-// --- Patch player list UI for token tooltips ---
+// --- Player List UI ---
 function updatePlayerListUI() {
     if (!playerListUI) {
         playerListUI = document.createElement('div');
@@ -317,33 +285,47 @@ function updatePlayerListUI() {
     playerListUI.innerHTML = '<b>Players:</b><br>' + playerList.map(p => `<span style="display:inline-block;margin-bottom:4px;" title="${p.token ? p.token : 'No token selected'}">${p.name}</span>`).join('<br>');
 }
 
-// Override moveToken to emit movement
-const originalMoveToken = window.moveToken;
-window.moveToken = function(playerIdx, newPosition, fromServer) {
-    originalMoveToken(playerIdx, newPosition);
-    if (isMultiplayerMode && socket && !fromServer) {
-        socket.emit('moveToken', {
-            roomId: currentRoomId,
-            playerId: currentPlayerId,
-            newPosition
-        });
-    }
-};
-
-// Override rollDice to sync dice rolls
-const originalRollDice = window.rollDice;
-window.rollDice = function() {
-    if (isMultiplayerMode && socket) {
-        // Only allow dice roll if it's your turn
-        if (playerList[currentPlayerIndex]?.id === currentPlayerId) {
-            originalRollDice();
-        } else {
-            alert('Wait for your turn!');
-        }
+function overrideMoveTokenForMultiplayer() {
+    if (typeof window.moveToken === 'function') {
+        const originalMoveToken = window.moveToken;
+        window.moveToken = function(playerIdx, newPosition, fromServer) {
+            originalMoveToken(playerIdx, newPosition);
+            if (isMultiplayerMode && socket && !fromServer) {
+                socket.emit('moveToken', {
+                    roomId: currentRoomId,
+                    playerId: currentPlayerId,
+                    newPosition
+                });
+            }
+        };
     } else {
-        originalRollDice();
+        console.warn('window.moveToken is not defined yet.');
     }
-};
+}
+// Call this after your game logic is loaded
+setTimeout(overrideMoveTokenForMultiplayer, 1000);
+
+function overrideRollDiceForMultiplayer() {
+    if (typeof window.rollDice === 'function') {
+        const originalRollDice = window.rollDice;
+        window.rollDice = function() {
+            if (isMultiplayerMode && socket) {
+                // Only allow dice roll if it's your turn
+                if (playerList[currentPlayerIndex]?.id === currentPlayerId) {
+                    originalRollDice();
+                } else {
+                    alert('Wait for your turn!');
+                }
+            } else {
+                originalRollDice();
+            }
+        };
+    } else {
+        console.warn('window.rollDice is not defined yet.');
+    }
+}
+// Call this after your game logic is loaded
+setTimeout(overrideRollDiceForMultiplayer, 1000);
 
 // Initialize multiplayer on load
 window.addEventListener('DOMContentLoaded', () => {
@@ -1372,14 +1354,24 @@ let availableTokens = [
     { name: "nike", displayName: "Tennis Shoe", img: "Images/nike.png" }
 ];
 
-// Improved token selection modal UI for multiplayer
+// --- Improved Token Selection Modal Logic ---
 function showTokenSelectionModal() {
     let modal = document.getElementById('token-selection-ui');
-    if (!modal) return;
+    if (!modal) {
+        console.error('Token selection modal not found!');
+        return;
+    }
     modal.style.display = 'block';
     const grid = document.getElementById('tokenGrid');
-    if (!grid) return;
+    if (!grid) {
+        console.error('Token grid not found!');
+        return;
+    }
     grid.innerHTML = '';
+    if (!availableTokens || availableTokens.length === 0) {
+        grid.innerHTML = '<span style="color:red">No tokens available!</span>';
+        return;
+    }
     availableTokens.forEach(token => {
         const btn = document.createElement('button');
         btn.className = 'token-btn';
@@ -1396,13 +1388,16 @@ function showTokenSelectionModal() {
         btn.style.height = '120px';
         // Token image
         const img = document.createElement('img');
-        // Use the same image logic as oldlobby.js
         img.src = token.img || `Images/${token.name.replace(/ /g, '')}.png`;
         img.alt = token.displayName;
         img.style.width = '60px';
         img.style.height = '60px';
         img.style.objectFit = 'contain';
         img.style.marginBottom = '8px';
+        img.onerror = function() {
+            img.style.display = 'none';
+            btn.appendChild(document.createTextNode('Image not found'));
+        };
         btn.appendChild(img);
         // Token name
         const name = document.createElement('span');
@@ -1422,6 +1417,16 @@ function showTokenSelectionModal() {
         };
         grid.appendChild(btn);
     });
+}
+
+// --- Improved Start Game Button Logic ---
+function updateStartButtonVisibility() {
+    const startBtn = document.getElementById('startGameBtn');
+    if (!startBtn) return;
+    // Only show if host and all players have selected tokens and pressed ready up
+    const allReady = playerList.length > 1 && playerList.every(p => p.token && p.ready);
+    const isHost = playerList[0]?.id === currentPlayerId;
+    startBtn.style.display = (isHost && allReady) ? '' : 'none';
 }
 
 function startTurn() {
@@ -1549,29 +1554,6 @@ function toggleAI(token, button) {
     }
 }
 
-function updateStartButtonVisibility() {
-    const startButton = tokenSelectionUI.querySelector('.action-button');
-    const arrowUp = startButton.querySelector('.arrow-flash:nth-child(2)');
-    const arrowDown = startButton.querySelector('.arrow-flash:nth-child(3)');
-    const count = humanPlayerCount + aiPlayers.size;
-
-    startButton.style.display = "block"; // Always show the button
-
-    if (count >= 2 && count <= 4) {
-        startButton.disabled = false;
-        startButton.style.opacity = "1";
-        startButton.classList.add("flash-active");
-        if (arrowUp) arrowUp.style.display = "block";
-        if (arrowDown) arrowDown.style.display = "block";
-    } else {
-        startButton.disabled = true;
-        startButton.style.opacity = "0.7";
-        startButton.classList.remove("flash-active");
-        if (arrowUp) arrowUp.style.display = "none";
-        if (arrowDown) arrowDown.style.display = "none";
-    }
-}
-
 function validatePlayerTokens() {
     players.forEach((player, index) => {
         if (!player.selectedToken && player.tokenName) {
@@ -1677,19 +1659,11 @@ function handleRentPayment(player, property) {
         // Check if we're in multiplayer mode
         const isMultiplayer = window.location.search.includes('room=') && window.location.search.includes('player=');
         const isCurrentPlayer = isMultiplayer ? 
-            (window.multiplayerGame && (window.multiplayerGame.playerId === player.id || window.multiplayerGame.playerId === player.id?.toString())) : 
-            (player === players[currentPlayerIndex]);
+            (player === players[currentPlayerIndex]) : false;
         
         // Show feedback to the current player
         showFeedback(`${player.name} paid $${rentAmount} rent to ${property.owner.name}`);
         
-        // In multiplayer, show notification to other players
-        if (isMultiplayer && !isCurrentPlayer && window.multiplayerGame) {
-            window.multiplayerGame.showNotification(
-                `${player.name} paid $${rentAmount} rent to ${property.owner.name}`,
-                'info'
-            );
-        }
         
         updateMoneyDisplay();
         closePropertyUI();
@@ -3368,17 +3342,6 @@ function closePropertyUI() {
             overlay.parentElement.removeChild(overlay);
         }
         resumeHelicopterAudio();
-        
-        // In multiplayer, show notification when property UI is closed
-        const isMultiplayer = window.location.search.includes('room=') && window.location.search.includes('player=');
-        if (isMultiplayer && window.multiplayerGame && players[currentPlayerIndex]) {
-            const currentPlayer = players[currentPlayerIndex];
-            window.multiplayerGame.showNotification(
-                `${currentPlayer.name} closed property menu`,
-                'info'
-            );
-        }
-        
         endTurn(); // End the turn when property UI is closed
     }, 300);
 }
@@ -3492,9 +3455,7 @@ function buyProperty(player, property, callback) {
 
     // Check if we're in multiplayer mode
     const isMultiplayer = window.location.search.includes('room=') && window.location.search.includes('player=');
-    const isCurrentPlayer = isMultiplayer ? 
-        (window.multiplayerGame && window.multiplayerGame.playerId === player.id) : 
-        (player === players[currentPlayerIndex]);
+    // Remove the incomplete isCurrentPlayer line
 
     if (player.money >= property.price) {
         player.money -= property.price;
@@ -3503,15 +3464,7 @@ function buyProperty(player, property, callback) {
 
         // Show feedback to the current player
         showFeedback(`${player.name} bought ${property.name} for $${property.price}`);
-        
-        // In multiplayer, show notification to other players
-        if (isMultiplayer && !isCurrentPlayer && window.multiplayerGame) {
-            window.multiplayerGame.showNotification(
-                `${player.name} bought ${property.name} for $${property.price}`,
-                'info'
-            );
-        }
-        
+    
         updateMoneyDisplay();
         updateBoards();
 
@@ -5642,117 +5595,7 @@ function finishMove(player, newPosition, passedGo) {
 
     const landingSpace = placeNames[newPosition] || "Unknown Space";
     const property = properties.find(p => p.name === landingSpace);
-
-    // Check if we're in multiplayer mode
-    const isMultiplayer = window.location.search.includes('room=') && window.location.search.includes('player=');
-    const isCurrentPlayer = isMultiplayer ? 
-        (window.multiplayerGame && (
-            window.multiplayerGame.playerId === player.id || 
-            window.multiplayerGame.playerId === player.id?.toString() ||
-            window.multiplayerGame.playerId?.toString() === player.id?.toString()
-        )) : 
-        (player === players[currentPlayerIndex]);
-
-    console.log(`finishMove debug - isMultiplayer: ${isMultiplayer}, isCurrentPlayer: ${isCurrentPlayer}, player.id: ${player.id}, window.multiplayerGame?.playerId: ${window.multiplayerGame?.playerId}`);
-    console.log(`window.currentPlayerId:`, window.currentPlayerId);
-    console.log(`player.id type:`, typeof player.id);
-    console.log(`window.multiplayerGame?.playerId type:`, typeof window.multiplayerGame?.playerId);
-
-    if (isCurrentPlayerAI()) {
-        // AI action handling
-        setTimeout(() => {
-            switch (landingSpace) {
-                case "Chance":
-                case "Community Cards":
-                    console.log(`AI landed on ${landingSpace}.`);
-                    drawCard(landingSpace);
-                    break;
-                case "Income Tax":
-                    handleIncomeTax(player);
-                    break;
-                case "Luxury Tax":
-                    handleLuxuryTax(player);
-                    break;
-                case "GO TO JAIL":
-                    console.log("AI landed on GO TO JAIL. Sending to Jail.");
-                    goToJail(player);
-                    setTimeout(() => endTurn(), 1500);
-                    return;
-                case "JAIL":
-                    console.log("AI landed on Jail. Just visiting.");
-                    setTimeout(() => endTurn(), 1500);
-                    break;
-                case "FREE PARKING":
-                    console.log("AI landed on Free Parking. Taking a break.");
-                    setTimeout(() => endTurn(), 1500);
-                    break;
-                default:
-                    if (property) {
-                        handleAIPropertyDecision(property);
-                    }
-            }
-        }, 1500);
-    } else {
-        // Human player action handling
-        hasMovedToken = true; // <-- Fix: set for human players
-        switch (landingSpace) {
-            case "Chance":
-                drawCard("Chance");
-                break;
-            case "Community Cards":
-                drawCard("Community Cards");
-                break;
-            case "Income Tax":
-                handleIncomeTax(player);
-                break;
-            case "Luxury Tax":
-                handleLuxuryTax(player);
-                break;
-            case "GO TO JAIL":
-                console.log("Player landed on GO TO JAIL.");
-                showGoToJailUI(player);
-                return;
-            case "JAIL":
-                showJailUI(player);
-                return;
-            case "FREE PARKING":
-                showFreeParkingUI(player);
-                return;
-            default:
-                if (property && !player.inJail) {
-                    // In multiplayer, only show UI to the current player
-                    if (isMultiplayer) {
-                        if (isCurrentPlayer) {
-                            console.log(`Showing property UI for ${property.name} at position ${newPosition}`);
-                            showPropertyUI(newPosition);
-                        } else {
-                            // Show notification to other players
-                            if (window.multiplayerGame) {
-                                window.multiplayerGame.showNotification(
-                                    `${player.name} landed on ${property.name}`,
-                                    'info'
-                                );
-                            }
-                            hasHandledProperty = true;
-                        }
-                    } else {
-                        // Single player mode
-                        console.log(`Showing property UI for ${property.name} at position ${newPosition}`);
-                        showPropertyUI(newPosition);
-                    }
-                    
-                    // Fallback: If multiplayer check failed but we're in multiplayer mode, show UI anyway
-                    if (isMultiplayer && !isCurrentPlayer && window.currentPlayerId === player.id) {
-                        console.log(`Fallback: Showing property UI for ${property.name} at position ${newPosition}`);
-                        showPropertyUI(newPosition);
-                    }
-                } else {
-                    hasHandledProperty = true; // If no property or in jail, mark as handled
-                }
-        }
-    }
-
-    updateMoneyDisplay();
+    
 }
 
 function showGoToJailUI(player) {
@@ -6166,39 +6009,6 @@ function handleAIJailTurn(player) {
     endTurn();
 }
 
-function isCurrentPlayerAI() {
-    // Check if we're in multiplayer mode
-    const isMultiplayer = window.location.search.includes('room=') && window.location.search.includes('player=');
-    
-    if (isMultiplayer) {
-        // In multiplayer mode, check if the current player is AI
-        if (window.multiplayerGame && window.multiplayerGame.playerId) {
-            const currentPlayer = window.players ? window.players.find(p => 
-                p.id === window.multiplayerGame.playerId || 
-                p.id === window.multiplayerGame.playerId.toString() ||
-                p.id?.toString() === window.multiplayerGame.playerId?.toString()
-            ) : null;
-            if (currentPlayer) {
-                const isAI = currentPlayer.isAI || aiPlayers.has(currentPlayer.tokenName);
-                console.log(`isCurrentPlayerAI multiplayer debug - currentPlayer:`, currentPlayer, `isAI: ${isAI}`);
-                return isAI;
-            }
-        }
-        console.log(`isCurrentPlayerAI multiplayer debug - no current player found`);
-        return false;
-    } else {
-        // Single player mode
-        const currentPlayer = players[currentPlayerIndex];
-        if (!currentPlayer) {
-            return false;
-        }
-        // Check both the `isAI` flag and the `aiPlayers` set
-        const isAI = currentPlayer.isAI || aiPlayers.has(currentPlayer.tokenName);
-        console.log(`isCurrentPlayerAI single player debug - currentPlayer:`, currentPlayer, `isAI: ${isAI}`);
-        return isAI;
-    }
-}
-
 function makeAIBuyDecision(player, property) {
     if (!player || !property) {
         console.error("Invalid player or property in makeAIBuyDecision");
@@ -6344,16 +6154,22 @@ function showAIPopup(message, duration = 1800) {
 
 
 function getTokenImageUrl(tokenName) {
-        const imageUrls = [
-            { name: 'rolls royce', image: 'Images/image-removebg-preview.png' },
-            { name: 'helicopter', image: 'Images/image-removebg-preview (1).png' },
-            { name: 'hat', image: 'Images/image-removebg-preview (6).png' },
-            { name: 'football', image: 'Images/image-removebg-preview (7).png' },
-            { name: 'burger', image: 'Images/image-removebg-preview (9).png' },
-            { name: 'nike', image: 'Images/image-removebg-preview (10).png' },
-            { name: 'woman', image: 'Images/image-removebg-preview (8).png' }
-        ];
-    return imageUrls[tokenName] || "";
+    const imageUrls = [
+        { name: 'rolls royce', image: 'Images/image-removebg-preview.png' },
+        { name: 'helicopter', image: 'Images/image-removebg-preview (1).png' },
+        { name: 'hat', image: 'Images/image-removebg-preview (6).png' },
+        { name: 'football', image: 'Images/image-removebg-preview (7).png' },
+        { name: 'burger', image: 'Images/image-removebg-preview (9).png' },
+        { name: 'nike', image: 'Images/image-removebg-preview (10).png' },
+        { name: 'woman', image: 'Images/image-removebg-preview (8).png' }
+    ];
+    const found = imageUrls.find(obj => obj.name === tokenName);
+    return found ? found.image : "";
+}
+
+function isCurrentPlayerAI() {
+    const currentPlayer = players[currentPlayerIndex];
+    return currentPlayer && currentPlayer.isAI;
 }
 
 function selectToken(tokenName) {
@@ -6490,11 +6306,6 @@ function init() {
         // Only create token selection UI if not in multiplayer mode
         if (!window.isMultiplayerMode) {
             createPlayerTokenSelectionUI(currentPlayerIndex);
-        }
-        
-        // Initialize multiplayer if needed
-        if (isMultiplayerMode) {
-            initializeMultiplayerGame();
         }
     });
 
@@ -9526,65 +9337,6 @@ function checkMultiplayerMode() {
     }
 }
 
-function initializeMultiplayerGame() {
-    if (!isMultiplayerMode) return;
-    
-    console.log('Initializing multiplayer game...');
-    
-    // MultiplayerGame logic is handled by backend/index.js; no need to load multiplayer.js
-    startMultiplayerGame();
-}
-
-function startMultiplayerGame() {
-    if (!window.MultiplayerGame) {
-        console.error('MultiplayerGame class not found');
-        return;
-    }
-    
-    try {
-        multiplayerGame = new window.MultiplayerGame(currentRoomId, currentPlayerId);
-        window.multiplayerGame = multiplayerGame; // Set it on window object
-        console.log('Multiplayer game started successfully');
-    } catch (error) {
-        console.error('Failed to start multiplayer game:', error);
-    }
-}
-
-// Override game functions for multiplayer
-function overrideGameFunctionsForMultiplayer() {
-    if (!isMultiplayerMode) return;
-    
-    // Override rollDice function
-    const originalRollDice = window.rollDice;
-    window.rollDice = function() {
-        if (multiplayerGame && multiplayerGame.isMyTurn) {
-            multiplayerGame.rollDice();
-        } else {
-            console.log('Not your turn or multiplayer not ready');
-        }
-    };
-    
-    // Override endTurn function
-    const originalEndTurn = window.endTurn;
-    window.endTurn = function() {
-        if (multiplayerGame) {
-            multiplayerGame.endTurn();
-        } else {
-            originalEndTurn();
-        }
-    };
-    
-    // Override buyProperty function
-    const originalBuyProperty = window.buyProperty;
-    window.buyProperty = function(player, property, callback) {
-        if (multiplayerGame && isMultiplayerMode) {
-            multiplayerGame.buyProperty(property.name, property.price);
-            if (callback) callback();
-        } else {
-            originalBuyProperty(player, property, callback);
-        }
-    };
-}
 
 if (socket && socket.on) {
     socket.on('gameStarted', () => {

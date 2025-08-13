@@ -380,14 +380,13 @@
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script type="module" src="gameplay.js"></script>
     <script>
-        // Initialize multiplayer game
-        let multiplayerGame;
-        
+        // Modern multiplayer game initialization
         document.addEventListener('DOMContentLoaded', () => {
             // Get room and player info from URL parameters
             const urlParams = new URLSearchParams(window.location.search);
-            let roomId = urlParams.get('room');
-            let playerId = urlParams.get('player');
+            let roomId = urlParams.get('roomId') || urlParams.get('room');
+            let playerId = urlParams.get('playerId') || urlParams.get('player');
+            let playerName = urlParams.get('playerName');
 
             // Fallback to sessionStorage if missing
             if (!roomId || !playerId || roomId === 'undefined' || playerId === 'undefined') {
@@ -398,6 +397,7 @@
                         if (gameState.roomId && gameState.playerId) {
                             roomId = gameState.roomId;
                             playerId = gameState.playerId;
+                            playerName = gameState.playerName;
                             console.log('[GAME INIT] Recovered roomId and playerId from sessionStorage:', roomId, playerId);
                         }
                     }
@@ -415,50 +415,13 @@
 
             // Set multiplayer flag immediately to prevent token selection UI
             window.isMultiplayerMode = true;
-
-            // Wait for MultiplayerGame class to be available before initializing
-            waitForMultiplayerGame();
-
-            function waitForMultiplayerGame() {
-                if (window.MultiplayerGame) {
-                    console.log('MultiplayerGame class loaded, initializing...');
-                    multiplayerGame = new MultiplayerGame(roomId, playerId);
-                    window.multiplayerGame = multiplayerGame; // Set it on window object
-                    console.log('window.multiplayerGame set:', window.multiplayerGame);
-                    console.log('window.multiplayerGame.playerId:', window.multiplayerGame?.playerId);
-                    // Notify lobby for socket handoff
-                    window.parent && window.parent.postMessage('game_socket_connected', '*');
-                    waitForGameLoad();
-                } else {
-                    console.log('Waiting for MultiplayerGame class to load...');
-                    setTimeout(waitForMultiplayerGame, 100);
-                }
+            // Initialize multiplayer logic from gameplay.js
+            if (window.setupSocketIOMultiplayer) {
+                window.setupSocketIOMultiplayer(roomId, playerId, playerName);
             }
-            
-            function waitForGameLoad() {
-                // Check if the main game is ready - wait for ES6 modules to load
-                if (window.init && window.scene && window.players && window.createTokens) {
-                    console.log('Game modules loaded successfully!');
-                    
-                    // Wait a moment for multiplayer to initialize, then start the game
-                    setTimeout(() => {
-                        if (multiplayerGame) {
-                            console.log('Starting multiplayer game...');
-                            multiplayerGame.setupGame();
-                        }
-                    }, 500);
-                } else {
-                    console.log('Waiting for game modules to load...');
-                    // Wait a bit and try again
-                    setTimeout(waitForGameLoad, 200);
-                }
-            }
-            
-            // Also listen for the script loaded event
-            document.addEventListener('scriptLoaded', () => {
-                console.log('Script loaded event received, checking modules...');
-                setTimeout(waitForGameLoad, 100);
-            });
+            setTimeout(() => {
+                if (window.setupMultiplayerReadyUI) window.setupMultiplayerReadyUI();
+            }, 1000);
         });
         
         function leaveGame() {
