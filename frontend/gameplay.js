@@ -466,17 +466,6 @@ const images = [
     "https://upload.wikimedia.org/wikipedia/commons/c/c1/Wynn_2_%282%29.jpg", // Wynn Las Vegas
     "Images/unnamed (1).png",
     "https://shrinerschildrensopen.com/wp-content/uploads/2022/10/ShrinersChildrens-18-hole-2022.jpg", // Shriners Children's Open
-    "Images/bachelor-party.jpg", // Bachelor & Bachelorette Parties
-    "Images/Las+Vegas+Elopement+Wedding+Champagne+Pop.webp", // Las Vegas Little White Wedding Chapel
-    "Images/thesphere.jpg", // Sphere
-    "Images/welcome-to-caesars-palace.jpg", // Caesars Palace
-    "Images/hq720.jpg", // Santa Fe Hotel and Casino
-    "Images/house-of-blues.jpg", // House of Blues
-    "Images/cosmopolitan.jpg", // Cosmopolitan
-    "Images/monorail.jpg", // Las Vegas Monorail (position 38)
-    "Images/speed-vegas.jpg", // Speed Vegas Off Roading (position 39)
-    "Images/chance-card.jpg", // Chance (position 40)
-    "Images/golden-knights.jpg" // Las Vegas Golden Knights (position 41)
 ];
 
 const ticketProperties = [
@@ -4882,7 +4871,7 @@ function createTokenButton(token, index) {
 
     // Create token image
     const tokenImg = document.createElement("img");
-    tokenImg.src = token.img;
+    tokenImg.src = getTokenImageUrl(token.name);
     tokenImg.alt = token.displayName;
     tokenImg.style.width = "60px";
     tokenImg.style.height = "50px";
