@@ -1411,15 +1411,6 @@ const communityChestCards = [
 ];
 
 // Available tokens for selection (DO NOT CHANGE THE IMAGE PATHS OR NAMES)
-const availableTokens = [
-    { name: 'rolls royce', displayName: 'Rolls Royce', image: 'Images/image-removebg-preview.png' },
-    { name: 'helicopter', displayName: 'Helicopter', image: 'Images/image-removebg-preview (1).png' },
-    { name: 'hat', displayName: 'Top Hat', image: 'Images/image-removebg-preview (6).png' },
-    { name: 'football', displayName: 'Football', image: 'Images/image-removebg-preview (7).png' },
-    { name: 'burger', displayName: 'Burger', image: 'Images/image-removebg-preview (9).png' },
-    { name: 'nike', displayName: 'Tennis Shoe', image: 'Images/image-removebg-preview (10).png' },
-    { name: 'woman', displayName: 'Woman', image: 'Images/image-removebg-preview (8).png' }
-];
 // DO NOT CHANGE THE IMAGE FILE NAMES OR PATHS ABOVE!
 
 // --- Improved Start Game Button Logic ---
@@ -4011,8 +4002,8 @@ function initializePlayers() {
 
 // Legacy token UI removed
 function createPlayerTokenSelectionUI(playerIndex) {
-    if (initialSelectionComplete) return;
-    if (isMultiplayerMode) return; // Disable legacy UI in multiplayer
+    // Legacy UI removed – token selection is now driven entirely by sockets
+    return;
     // Disable legacy token UI in multiplayer mode
     if (isMultiplayerMode) return;
 
@@ -9187,8 +9178,8 @@ window.moveToken = moveToken;
 window.getBoardSquarePosition = getBoardSquarePosition;
 window.updateMoneyDisplay = updateMoneyDisplay;
 window.createTokens = createTokens;
-window.createPlayerTokenSelectionUI = createPlayerTokenSelectionUI;
-window.initPlayerTokenSelection = initPlayerTokenSelection;
+    // window.createPlayerTokenSelectionUI removed
+    // window.initPlayerTokenSelection removed
 window.createDiceButton = createDiceButton;
 window.startTurn = startTurn;
 window.startPlayerTurn = startPlayerTurn;
@@ -9283,4 +9274,42 @@ if (socket && socket.on) {
 // Call override functions when multiplayer is ready
 if (isMultiplayerMode) {
     setTimeout(overrideGameFunctionsForMultiplayer, 1000);
+}
+// --- Multiplayer Token & Ready Hooks ---
+function setupTokenButtonSocket() {
+    document.addEventListener('click', (e) => {
+        const btn = e.target.closest('.token-button');
+        if (!btn || btn.disabled) return;
+        const token = btn.getAttribute('data-token-name');
+        if (!token) return;
+        socket.emit('selectToken', {
+            roomId: currentRoomId,
+            playerId: currentPlayerId,
+            token
+        });
+        btn.classList.add('picked');
+        btn.disabled = true;
+    });
+}
+
+// Initialize token/socket hooks once
+setupTokenButtonSocket();
+
+// Listen for all players’ ready states and re-render list
+socket.on('playerReadyStates', (states) => {
+    renderPlayersList();
+});
+
+// Hook up readyUpBtn to emit ready event
+const readyBtnEl = document.getElementById('readyUpBtn');
+if (readyBtnEl) {
+    readyBtnEl.addEventListener('click', () => {
+        socket.emit('playerReady', {
+            roomId: currentRoomId,
+            playerId: currentPlayerId,
+            playerName
+        });
+        readyBtnEl.disabled = true;
+        readyBtnEl.textContent = 'Ready';
+    });
 }
