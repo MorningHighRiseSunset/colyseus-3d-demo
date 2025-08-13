@@ -1,45 +1,3 @@
-// --- Ready-Up UI Logic ---
-function setupMultiplayerReadyUI() {
-    const readyBtn = document.getElementById('readyUpBtn');
-    const startBtn = document.getElementById('startGameBtn');
-    const tokenReadyStatus = document.getElementById('tokenReadyStatus');
-    if (!readyBtn || !startBtn) return;
-
-    let isReady = false;
-    readyBtn.onclick = () => {
-        isReady = !isReady;
-        readyBtn.textContent = isReady ? 'Unready' : 'Ready Up';
-        readyBtn.classList.toggle('ready-anim', isReady);
-        if (socket && currentRoomId && currentPlayerId) {
-            socket.emit('playerReady', {
-                roomId: currentRoomId,
-                playerId: currentPlayerId,
-                playerName: playerList.find(p => p.id === currentPlayerId)?.name || 'Player'
-            });
-        }
-    };
-    startBtn.onclick = () => {
-        if (socket && currentRoomId && currentPlayerId) {
-            socket.emit('startGame', {
-                roomId: currentRoomId,
-                playerId: currentPlayerId,
-                playerName: playerList.find(p => p.id === currentPlayerId)?.name || 'Player'
-            });
-        }
-    };
-    if (socket) {
-        socket.on('playerReadyStates', (readyStates) => {
-            tokenReadyStatus.innerHTML = Object.entries(readyStates).map(([name, ready]) => {
-                return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> <span class="player-name">${name}</span>: <span class="ready-status ${ready ? 'ready' : 'not-ready'}">${ready ? 'Ready' : 'Not Ready'}</span>`;
-            }).join('<br>');
-            const allReady = Object.values(readyStates).every(Boolean);
-            const isHost = playerList[0]?.id === currentPlayerId;
-            startBtn.style.display = (isHost && allReady) ? '' : 'none';
-            readyBtn.style.display = (isHost && allReady) ? 'none' : '';
-        });
-    }
-}
-
 const DEBUG = false;
 import * as THREE from './libs/three.module.js';
 import {
@@ -165,185 +123,9 @@ let isPopupVisible = false;
 // ===== MULTIPLAYER SYSTEM =====
 // Multiplayer state variables
 let isMultiplayerMode = false;
+let multiplayerGame = null;
 let currentPlayerId = null;
 let currentRoomId = null;
-let socket = null;
-let playerList = [];
-let playerListUI = null;
-
-// --- Multiplayer Initialization ---
-function setupSocketIOMultiplayer(roomId, playerId, playerName) {
-    socket = io('https://colyseus-3d-demo.onrender.com');
-    currentRoomId = roomId || 'defaultRoom';
-    currentPlayerId = playerId || socket.id;
-    playerName = playerName || `Player-${Math.floor(Math.random()*1000)}`;
-    isMultiplayerMode = true;
-
-    socket.emit('joinMetropoly', {
-        roomId: currentRoomId,
-        playerId: currentPlayerId,
-        playerName
-    });
-
-    socket.on('playerList', (list) => {
-        playerList = list;
-        updatePlayerListUI();
-    });
-
-    socket.on('tokenPositions', (positions) => {
-        Object.entries(positions).forEach(([pid, pos]) => {
-            const idx = playerList.findIndex(p => p.id === pid);
-            if (idx !== -1 && players[idx]) {
-                players[idx].currentPosition = pos;
-                moveToken(idx, pos, true);
-            }
-        });
-    });
-}
-
-// --- Token Selection Tooltips ---
-function addTokenTooltips() {
-    const tokenButtons = document.querySelectorAll('.token-button');
-    tokenButtons.forEach(btn => {
-        const tokenName = btn.getAttribute('data-token-name');
-        if (tokenName) {
-            btn.title = `Select the ${tokenName} token`;
-        }
-    });
-}
-// Call this after rendering token selection UI
-setTimeout(addTokenTooltips, 1200);
-
-// --- Animate Dice Roll ---
-function animateDiceRoll() {
-    let diceBtn = document.querySelector('.dice-button');
-    if (diceBtn) {
-        diceBtn.classList.add('dice-anim');
-        setTimeout(() => diceBtn.classList.remove('dice-anim'), 700);
-    }
-    let diceResult = document.querySelector('.dice-result');
-    if (diceResult) {
-        diceResult.classList.add('show');
-        setTimeout(() => diceResult.classList.remove('show'), 1200);
-    }
-}
-
-// --- Patch ready-up button for animated feedback ---
-function setupReadyUpButton() {
-    const readyBtn = document.getElementById('readyUpBtn');
-    if (readyBtn) {
-        let isReady = false;
-        readyBtn.onclick = () => {
-            isReady = !isReady;
-            readyBtn.textContent = isReady ? 'Unready' : 'Ready Up';
-            readyBtn.classList.toggle('ready-anim', isReady);
-            if (socket && currentRoomId && currentPlayerId) {
-                socket.emit('playerReady', {
-                    roomId: currentRoomId,
-                    playerId: currentPlayerId,
-                    playerName: playerList.find(p => p.id === currentPlayerId)?.name || 'Player'
-                });
-            }
-        };
-    }
-}
-
-// --- Patch dice roll logic for animation ---
-function patchRollDice() {
-    const originalRollDice = window.rollDice;
-    window.rollDice = function() {
-        if (isMultiplayerMode && socket) {
-            // Only allow dice roll if it's your turn
-            if (playerList[currentPlayerIndex]?.id === currentPlayerId) {
-                animateDiceRoll();
-                originalRollDice();
-            } else {
-                alert('Wait for your turn!');
-            }
-        } else {
-            animateDiceRoll();
-            originalRollDice();
-        }
-    };
-}
-
-// --- Player List UI ---
-function updatePlayerListUI() {
-    if (!playerListUI) {
-        playerListUI = document.createElement('div');
-        playerListUI.id = 'player-list-ui';
-        playerListUI.style.position = 'absolute';
-        playerListUI.style.top = '10px';
-        playerListUI.style.right = '10px';
-        playerListUI.style.background = 'rgba(0,0,0,0.7)';
-        playerListUI.style.color = '#fff';
-        playerListUI.style.padding = '10px';
-        playerListUI.style.borderRadius = '8px';
-        playerListUI.style.zIndex = '1000';
-        document.body.appendChild(playerListUI);
-    }
-    playerListUI.innerHTML = '<b>Players:</b><br>' + playerList.map(p => `<span style="display:inline-block;margin-bottom:4px;" title="${p.token ? p.token : 'No token selected'}">${p.name}</span>`).join('<br>');
-}
-
-function overrideMoveTokenForMultiplayer() {
-    if (typeof window.moveToken === 'function') {
-        const originalMoveToken = window.moveToken;
-        window.moveToken = function(playerIdx, newPosition, fromServer) {
-            originalMoveToken(playerIdx, newPosition);
-            if (isMultiplayerMode && socket && !fromServer) {
-                socket.emit('moveToken', {
-                    roomId: currentRoomId,
-                    playerId: currentPlayerId,
-                    newPosition
-                });
-            }
-        };
-    } else {
-        console.warn('window.moveToken is not defined yet.');
-    }
-}
-// Call this after your game logic is loaded
-setTimeout(overrideMoveTokenForMultiplayer, 1000);
-
-function overrideRollDiceForMultiplayer() {
-    if (typeof window.rollDice === 'function') {
-        const originalRollDice = window.rollDice;
-        window.rollDice = function() {
-            if (isMultiplayerMode && socket) {
-                // Only allow dice roll if it's your turn
-                if (playerList[currentPlayerIndex]?.id === currentPlayerId) {
-                    originalRollDice();
-                } else {
-                    alert('Wait for your turn!');
-                }
-            } else {
-                originalRollDice();
-            }
-        };
-    } else {
-        console.warn('window.rollDice is not defined yet.');
-    }
-}
-// Call this after your game logic is loaded
-setTimeout(overrideRollDiceForMultiplayer, 1000);
-
-// Initialize multiplayer on load
-window.addEventListener('DOMContentLoaded', () => {
-    // Check for room/player in URL (use correct param names)
-    const urlParams = new URLSearchParams(window.location.search);
-    let roomId = urlParams.get('roomId') || urlParams.get('room');
-    let playerId = urlParams.get('playerId') || urlParams.get('player');
-    let playerName = urlParams.get('playerName');
-
-    if (!roomId || !playerId || roomId === 'undefined' || playerId === 'undefined') {
-        // If missing, redirect to game.html (queue)
-        alert('Missing game session info. Returning to queue.');
-        window.location.href = 'game.html';
-        return;
-    }
-    setupSocketIOMultiplayer(roomId, playerId, playerName);
-    setTimeout(setupMultiplayerReadyUI, 1000);
-});
 
 // ===== VIDEO CHAT SYSTEM =====
 // Video Chat State Variables - Declare at top level
@@ -1344,90 +1126,35 @@ const communityChestCards = [
 ];
 
 // filepath: c:\Users\DELL\Metropoly\script.js
-let availableTokens = [
-    { name: "woman", displayName: "Woman", img: "Images/woman.png" },
-    { name: "rolls royce", displayName: "Rolls Royce", img: "Images/rollsroyce.png" },
-    { name: "helicopter", displayName: "Helicopter", img: "Images/helicopter.png" },
-    { name: "hat", displayName: "Top Hat", img: "Images/hat.png" },
-    { name: "football", displayName: "Football", img: "Images/football.png" },
-    { name: "burger", displayName: "Burger", img: "Images/burger.png" },
-    { name: "nike", displayName: "Tennis Shoe", img: "Images/nike.png" }
+let availableTokens = [{
+        name: "woman",
+        displayName: "Woman"
+    },
+    {
+        name: "rolls royce",
+        displayName: "Rolls Royce"
+    },
+    {
+        name: "helicopter",
+        displayName: "Helicopter"
+    },
+    {
+        name: "hat",
+        displayName: "Top Hat"
+    },
+    {
+        name: "football",
+        displayName: "Football"
+    },
+    {
+        name: "burger",
+        displayName: "Burger"
+    },
+    {
+        name: "nike",
+        displayName: "Tennis Shoe"
+    }
 ];
-
-// --- Improved Token Selection Modal Logic ---
-function showTokenSelectionModal() {
-    let modal = document.getElementById('token-selection-ui');
-    if (!modal) {
-        console.error('Token selection modal not found!');
-        return;
-    }
-    modal.style.display = 'block';
-    const grid = document.getElementById('tokenGrid');
-    if (!grid) {
-        console.error('Token grid not found!');
-        return;
-    }
-    grid.innerHTML = '';
-    if (!availableTokens || availableTokens.length === 0) {
-        grid.innerHTML = '<span style="color:red">No tokens available!</span>';
-        return;
-    }
-    availableTokens.forEach(token => {
-        const btn = document.createElement('button');
-        btn.className = 'token-btn';
-        btn.style.display = 'flex';
-        btn.style.flexDirection = 'column';
-        btn.style.alignItems = 'center';
-        btn.style.margin = '8px';
-        btn.style.background = '#222';
-        btn.style.border = '2px solid #444';
-        btn.style.borderRadius = '10px';
-        btn.style.padding = '10px 12px';
-        btn.style.cursor = 'pointer';
-        btn.style.width = '90px';
-        btn.style.height = '120px';
-        // Token image
-        const img = document.createElement('img');
-        img.src = token.img || `Images/${token.name.replace(/ /g, '')}.png`;
-        img.alt = token.displayName;
-        img.style.width = '60px';
-        img.style.height = '60px';
-        img.style.objectFit = 'contain';
-        img.style.marginBottom = '8px';
-        img.onerror = function() {
-            img.style.display = 'none';
-            btn.appendChild(document.createTextNode('Image not found'));
-        };
-        btn.appendChild(img);
-        // Token name
-        const name = document.createElement('span');
-        name.textContent = token.displayName;
-        name.style.color = '#fff';
-        name.style.fontWeight = 'bold';
-        name.style.fontSize = '15px';
-        btn.appendChild(name);
-        // Select button
-        btn.onclick = () => {
-            socket.emit('selectToken', {
-                roomId: currentRoomId,
-                playerId: currentPlayerId,
-                token: token.name
-            });
-            btn.style.background = '#4caf50';
-        };
-        grid.appendChild(btn);
-    });
-}
-
-// --- Improved Start Game Button Logic ---
-function updateStartButtonVisibility() {
-    const startBtn = document.getElementById('startGameBtn');
-    if (!startBtn) return;
-    // Only show if host and all players have selected tokens and pressed ready up
-    const allReady = playerList.length > 1 && playerList.every(p => p.token && p.ready);
-    const isHost = playerList[0]?.id === currentPlayerId;
-    startBtn.style.display = (isHost && allReady) ? '' : 'none';
-}
 
 function startTurn() {
     console.log(`Starting turn for Player ${currentPlayerIndex + 1} (${players[currentPlayerIndex].name})`);
@@ -1554,6 +1281,29 @@ function toggleAI(token, button) {
     }
 }
 
+function updateStartButtonVisibility() {
+    const startButton = tokenSelectionUI.querySelector('.action-button');
+    const arrowUp = startButton.querySelector('.arrow-flash:nth-child(2)');
+    const arrowDown = startButton.querySelector('.arrow-flash:nth-child(3)');
+    const count = humanPlayerCount + aiPlayers.size;
+
+    startButton.style.display = "block"; // Always show the button
+
+    if (count >= 2 && count <= 4) {
+        startButton.disabled = false;
+        startButton.style.opacity = "1";
+        startButton.classList.add("flash-active");
+        if (arrowUp) arrowUp.style.display = "block";
+        if (arrowDown) arrowDown.style.display = "block";
+    } else {
+        startButton.disabled = true;
+        startButton.style.opacity = "0.7";
+        startButton.classList.remove("flash-active");
+        if (arrowUp) arrowUp.style.display = "none";
+        if (arrowDown) arrowDown.style.display = "none";
+    }
+}
+
 function validatePlayerTokens() {
     players.forEach((player, index) => {
         if (!player.selectedToken && player.tokenName) {
@@ -1659,11 +1409,19 @@ function handleRentPayment(player, property) {
         // Check if we're in multiplayer mode
         const isMultiplayer = window.location.search.includes('room=') && window.location.search.includes('player=');
         const isCurrentPlayer = isMultiplayer ? 
-            (player === players[currentPlayerIndex]) : false;
+            (window.multiplayerGame && (window.multiplayerGame.playerId === player.id || window.multiplayerGame.playerId === player.id?.toString())) : 
+            (player === players[currentPlayerIndex]);
         
         // Show feedback to the current player
         showFeedback(`${player.name} paid $${rentAmount} rent to ${property.owner.name}`);
         
+        // In multiplayer, show notification to other players
+        if (isMultiplayer && !isCurrentPlayer && window.multiplayerGame) {
+            window.multiplayerGame.showNotification(
+                `${player.name} paid $${rentAmount} rent to ${property.owner.name}`,
+                'info'
+            );
+        }
         
         updateMoneyDisplay();
         closePropertyUI();
@@ -3342,6 +3100,17 @@ function closePropertyUI() {
             overlay.parentElement.removeChild(overlay);
         }
         resumeHelicopterAudio();
+        
+        // In multiplayer, show notification when property UI is closed
+        const isMultiplayer = window.location.search.includes('room=') && window.location.search.includes('player=');
+        if (isMultiplayer && window.multiplayerGame && players[currentPlayerIndex]) {
+            const currentPlayer = players[currentPlayerIndex];
+            window.multiplayerGame.showNotification(
+                `${currentPlayer.name} closed property menu`,
+                'info'
+            );
+        }
+        
         endTurn(); // End the turn when property UI is closed
     }, 300);
 }
@@ -3455,7 +3224,9 @@ function buyProperty(player, property, callback) {
 
     // Check if we're in multiplayer mode
     const isMultiplayer = window.location.search.includes('room=') && window.location.search.includes('player=');
-    // Remove the incomplete isCurrentPlayer line
+    const isCurrentPlayer = isMultiplayer ? 
+        (window.multiplayerGame && window.multiplayerGame.playerId === player.id) : 
+        (player === players[currentPlayerIndex]);
 
     if (player.money >= property.price) {
         player.money -= property.price;
@@ -3464,7 +3235,15 @@ function buyProperty(player, property, callback) {
 
         // Show feedback to the current player
         showFeedback(`${player.name} bought ${property.name} for $${property.price}`);
-    
+        
+        // In multiplayer, show notification to other players
+        if (isMultiplayer && !isCurrentPlayer && window.multiplayerGame) {
+            window.multiplayerGame.showNotification(
+                `${player.name} bought ${property.name} for $${property.price}`,
+                'info'
+            );
+        }
+        
         updateMoneyDisplay();
         updateBoards();
 
@@ -4676,13 +4455,21 @@ function updateFollowCamera(token) {
 }
 
 function moveToken(startPos, endPos, token, callback) {
+    // Validate parameters
+    if (
+        typeof startPos !== 'object' || typeof endPos !== 'object' ||
+        typeof startPos.x !== 'number' || typeof startPos.z !== 'number' ||
+        typeof endPos.x !== 'number' || typeof endPos.z !== 'number' ||
+        typeof token !== 'object' || !token.userData || !token.userData.tokenName
+    ) {
+        console.error("Invalid parameters passed to moveToken", { startPos, endPos, token, callback });
+        console.trace();
+        return;
+    }
+
     currentlyMovingToken = token;
     isTokenMoving = true;
     selectedToken = token;
-    if (!token || !startPos || !endPos || typeof startPos.x !== 'number' || typeof endPos.x !== 'number') {
-        console.error("Invalid parameters passed to moveToken", { token, startPos, endPos });
-        return;
-    }
 
     // Stop idle animation for all tokens before moving
     const tokenName = token.userData.tokenName;
@@ -4690,13 +4477,11 @@ function moveToken(startPos, endPos, token, callback) {
     else if (tokenName === "burger") stopBurgerIdle();
     else if (tokenName === "football") stopFootballIdle();
     else if (tokenName === "nike") stopNikeIdle();
-    else if (tokenName === "woman") {
-        // Optionally stop idleAction if needed, but usually handled by playWalkAnimation
-    }
+    else if (tokenName === "woman") { /* handled by playWalkAnimation */ }
     else if (tokenName === "rolls royce") stopRollsRoyceIdle();
     else if (tokenName === "helicopter") stopHelicopterHover();
 
-    // Determine the animation based on the token type
+    // Movement logic for each token type
     if (tokenName === "nike") {
         const nikeHeight = 0.7;
         const adjustedStartPos = { ...startPos, y: startPos.y + nikeHeight };
@@ -4816,11 +4601,15 @@ function moveToken(startPos, endPos, token, callback) {
     }
 }
 
+
 function finalizeMove(token, endPos, callback) {
     const baseHeight = endPos.y;
     let finalHeight = getTokenHeight(token.userData.tokenName, baseHeight);
     if (token.userData.tokenName === "nike") finalHeight += 0.5;
-    else if (token.userData.tokenName === "burger") finalHeight += 0.2;
+    else if (token.userData.tokenName === "burger") finalHeight += 0.7;
+    else if (token.userData.tokenName === "speed boat") finalHeight += 0.5;
+    else if (token.userData.tokenName === "rolls royce") finalHeight += 0.3;
+    else if (token.userData.tokenName === "football") finalHeight += 1.0;
     token.position.set(endPos.x, finalHeight, endPos.z);
     isTokenMoving = false;
     currentlyMovingToken = null;
@@ -4829,6 +4618,8 @@ function finalizeMove(token, endPos, callback) {
     const tokenName = token.userData.tokenName;
     if (tokenName === "hat") startHatIdle(token);
     else if (tokenName === "burger") startBurgerIdle(token);
+    else if (tokenName === "football") startFootballIdle(token);
+    else if (tokenName === "nike") startNikeIdle(token);
     // Rolls Royce and helicopter handled in their own movement functions
     // Woman uses built-in GLTF idle
 
@@ -5566,7 +5357,117 @@ function finishMove(player, newPosition, passedGo) {
 
     const landingSpace = placeNames[newPosition] || "Unknown Space";
     const property = properties.find(p => p.name === landingSpace);
-    
+
+    // Check if we're in multiplayer mode
+    const isMultiplayer = window.location.search.includes('room=') && window.location.search.includes('player=');
+    const isCurrentPlayer = isMultiplayer ? 
+        (window.multiplayerGame && (
+            window.multiplayerGame.playerId === player.id || 
+            window.multiplayerGame.playerId === player.id?.toString() ||
+            window.multiplayerGame.playerId?.toString() === player.id?.toString()
+        )) : 
+        (player === players[currentPlayerIndex]);
+
+    console.log(`finishMove debug - isMultiplayer: ${isMultiplayer}, isCurrentPlayer: ${isCurrentPlayer}, player.id: ${player.id}, window.multiplayerGame?.playerId: ${window.multiplayerGame?.playerId}`);
+    console.log(`window.currentPlayerId:`, window.currentPlayerId);
+    console.log(`player.id type:`, typeof player.id);
+    console.log(`window.multiplayerGame?.playerId type:`, typeof window.multiplayerGame?.playerId);
+
+    if (isCurrentPlayerAI()) {
+        // AI action handling
+        setTimeout(() => {
+            switch (landingSpace) {
+                case "Chance":
+                case "Community Cards":
+                    console.log(`AI landed on ${landingSpace}.`);
+                    drawCard(landingSpace);
+                    break;
+                case "Income Tax":
+                    handleIncomeTax(player);
+                    break;
+                case "Luxury Tax":
+                    handleLuxuryTax(player);
+                    break;
+                case "GO TO JAIL":
+                    console.log("AI landed on GO TO JAIL. Sending to Jail.");
+                    goToJail(player);
+                    setTimeout(() => endTurn(), 1500);
+                    return;
+                case "JAIL":
+                    console.log("AI landed on Jail. Just visiting.");
+                    setTimeout(() => endTurn(), 1500);
+                    break;
+                case "FREE PARKING":
+                    console.log("AI landed on Free Parking. Taking a break.");
+                    setTimeout(() => endTurn(), 1500);
+                    break;
+                default:
+                    if (property) {
+                        handleAIPropertyDecision(property);
+                    }
+            }
+        }, 1500);
+    } else {
+        // Human player action handling
+        hasMovedToken = true; // <-- Fix: set for human players
+        switch (landingSpace) {
+            case "Chance":
+                drawCard("Chance");
+                break;
+            case "Community Cards":
+                drawCard("Community Cards");
+                break;
+            case "Income Tax":
+                handleIncomeTax(player);
+                break;
+            case "Luxury Tax":
+                handleLuxuryTax(player);
+                break;
+            case "GO TO JAIL":
+                console.log("Player landed on GO TO JAIL.");
+                showGoToJailUI(player);
+                return;
+            case "JAIL":
+                showJailUI(player);
+                return;
+            case "FREE PARKING":
+                showFreeParkingUI(player);
+                return;
+            default:
+                if (property && !player.inJail) {
+                    // In multiplayer, only show UI to the current player
+                    if (isMultiplayer) {
+                        if (isCurrentPlayer) {
+                            console.log(`Showing property UI for ${property.name} at position ${newPosition}`);
+                            showPropertyUI(newPosition);
+                        } else {
+                            // Show notification to other players
+                            if (window.multiplayerGame) {
+                                window.multiplayerGame.showNotification(
+                                    `${player.name} landed on ${property.name}`,
+                                    'info'
+                                );
+                            }
+                            hasHandledProperty = true;
+                        }
+                    } else {
+                        // Single player mode
+                        console.log(`Showing property UI for ${property.name} at position ${newPosition}`);
+                        showPropertyUI(newPosition);
+                    }
+                    
+                    // Fallback: If multiplayer check failed but we're in multiplayer mode, show UI anyway
+                    if (isMultiplayer && !isCurrentPlayer && window.currentPlayerId === player.id) {
+                        console.log(`Fallback: Showing property UI for ${property.name} at position ${newPosition}`);
+                        showPropertyUI(newPosition);
+                    }
+                } else {
+                    hasHandledProperty = true; // If no property or in jail, mark as handled
+                }
+        }
+    }
+
+    updateMoneyDisplay();
 }
 
 function showGoToJailUI(player) {
@@ -5980,6 +5881,39 @@ function handleAIJailTurn(player) {
     endTurn();
 }
 
+function isCurrentPlayerAI() {
+    // Check if we're in multiplayer mode
+    const isMultiplayer = window.location.search.includes('room=') && window.location.search.includes('player=');
+    
+    if (isMultiplayer) {
+        // In multiplayer mode, check if the current player is AI
+        if (window.multiplayerGame && window.multiplayerGame.playerId) {
+            const currentPlayer = window.players ? window.players.find(p => 
+                p.id === window.multiplayerGame.playerId || 
+                p.id === window.multiplayerGame.playerId.toString() ||
+                p.id?.toString() === window.multiplayerGame.playerId?.toString()
+            ) : null;
+            if (currentPlayer) {
+                const isAI = currentPlayer.isAI || aiPlayers.has(currentPlayer.tokenName);
+                console.log(`isCurrentPlayerAI multiplayer debug - currentPlayer:`, currentPlayer, `isAI: ${isAI}`);
+                return isAI;
+            }
+        }
+        console.log(`isCurrentPlayerAI multiplayer debug - no current player found`);
+        return false;
+    } else {
+        // Single player mode
+        const currentPlayer = players[currentPlayerIndex];
+        if (!currentPlayer) {
+            return false;
+        }
+        // Check both the `isAI` flag and the `aiPlayers` set
+        const isAI = currentPlayer.isAI || aiPlayers.has(currentPlayer.tokenName);
+        console.log(`isCurrentPlayerAI single player debug - currentPlayer:`, currentPlayer, `isAI: ${isAI}`);
+        return isAI;
+    }
+}
+
 function makeAIBuyDecision(player, property) {
     if (!player || !property) {
         console.error("Invalid player or property in makeAIBuyDecision");
@@ -6125,22 +6059,18 @@ function showAIPopup(message, duration = 1800) {
 
 
 function getTokenImageUrl(tokenName) {
-    const imageUrls = [
-        { name: 'rolls royce', image: 'Images/image-removebg-preview.png' },
-        { name: 'helicopter', image: 'Images/image-removebg-preview (1).png' },
-        { name: 'hat', image: 'Images/image-removebg-preview (6).png' },
-        { name: 'football', image: 'Images/image-removebg-preview (7).png' },
-        { name: 'burger', image: 'Images/image-removebg-preview (9).png' },
-        { name: 'nike', image: 'Images/image-removebg-preview (10).png' },
-        { name: 'woman', image: 'Images/image-removebg-preview (8).png' }
-    ];
-    const found = imageUrls.find(obj => obj.name === tokenName);
-    return found ? found.image : "";
-}
-
-function isCurrentPlayerAI() {
-    const currentPlayer = players[currentPlayerIndex];
-    return currentPlayer && currentPlayer.isAI;
+    const imageUrls = {
+        "hat": "Images/image-removebg-preview (6).png",
+        "woman": "Images/image-removebg-preview (8).png",
+        "rolls royce": "Images/image-removebg-preview.png",
+        "speed boat": "Images/image-removebg-preview (3).png",
+        "football": "Images/image-removebg-preview (7).png",
+        // FIXED: Use correct folder and image name for helicopter
+        "helicopter": "Images/image-removebg-preview (1).png",
+        "burger": "Images/image-removebg-preview (9).png",
+        "nike": "Images/image-removebg-preview (10).png"
+    };
+    return imageUrls[tokenName] || "";
 }
 
 function selectToken(tokenName) {
@@ -6277,6 +6207,11 @@ function init() {
         // Only create token selection UI if not in multiplayer mode
         if (!window.isMultiplayerMode) {
             createPlayerTokenSelectionUI(currentPlayerIndex);
+        }
+        
+        // Initialize multiplayer if needed
+        if (isMultiplayerMode) {
+            initializeMultiplayerGame();
         }
     });
 
@@ -9308,33 +9243,77 @@ function checkMultiplayerMode() {
     }
 }
 
+function initializeMultiplayerGame() {
+    if (!isMultiplayerMode) return;
+    
+    console.log('Initializing multiplayer game...');
+    
+    // Load multiplayer.js script if not already loaded
+    if (!window.MultiplayerGame) {
+        const script = document.createElement('script');
+        script.src = 'multiplayer.js';
+        script.onload = () => {
+            console.log('Multiplayer script loaded');
+            startMultiplayerGame();
+        };
+        script.onerror = (error) => {
+            console.error('Failed to load multiplayer script:', error);
+        };
+        document.head.appendChild(script);
+    } else {
+        startMultiplayerGame();
+    }
+}
 
-if (socket && socket.on) {
-    socket.on('gameStarted', () => {
-        let diceBtn = document.querySelector('.dice-button');
-        if (!diceBtn) {
-            diceBtn = document.createElement('button');
-            diceBtn.className = 'dice-button';
-            diceBtn.textContent = 'Roll Dice';
-            diceBtn.style.position = 'absolute';
-            diceBtn.style.bottom = '40px';
-            diceBtn.style.left = '50%';
-            diceBtn.style.transform = 'translateX(-50%)';
-            diceBtn.style.fontSize = '22px';
-            diceBtn.style.padding = '16px 32px';
-            diceBtn.style.background = '#4caf50';
-            diceBtn.style.color = '#fff';
-            diceBtn.style.border = 'none';
-            diceBtn.style.borderRadius = '12px';
-            diceBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
-            diceBtn.style.zIndex = '1002';
-            diceBtn.onclick = () => {
-                window.rollDice && window.rollDice();
-            };
-            document.body.appendChild(diceBtn);
+function startMultiplayerGame() {
+    if (!window.MultiplayerGame) {
+        console.error('MultiplayerGame class not found');
+        return;
+    }
+    
+    try {
+        multiplayerGame = new window.MultiplayerGame(currentRoomId, currentPlayerId);
+        window.multiplayerGame = multiplayerGame; // Set it on window object
+        console.log('Multiplayer game started successfully');
+    } catch (error) {
+        console.error('Failed to start multiplayer game:', error);
+    }
+}
+
+// Override game functions for multiplayer
+function overrideGameFunctionsForMultiplayer() {
+    if (!isMultiplayerMode) return;
+    
+    // Override rollDice function
+    const originalRollDice = window.rollDice;
+    window.rollDice = function() {
+        if (multiplayerGame && multiplayerGame.isMyTurn) {
+            multiplayerGame.rollDice();
+        } else {
+            console.log('Not your turn or multiplayer not ready');
         }
-        diceBtn.style.display = 'block';
-    });
+    };
+    
+    // Override endTurn function
+    const originalEndTurn = window.endTurn;
+    window.endTurn = function() {
+        if (multiplayerGame) {
+            multiplayerGame.endTurn();
+        } else {
+            originalEndTurn();
+        }
+    };
+    
+    // Override buyProperty function
+    const originalBuyProperty = window.buyProperty;
+    window.buyProperty = function(player, property, callback) {
+        if (multiplayerGame && isMultiplayerMode) {
+            multiplayerGame.buyProperty(property.name, property.price);
+            if (callback) callback();
+        } else {
+            originalBuyProperty(player, property, callback);
+        }
+    };
 }
 
 // Call override functions when multiplayer is ready

@@ -3,7 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Vegas Metropoly - Multiplayer</title>
-    <link rel="stylesheet" href="gameplay.css">
+    <link rel="stylesheet" href="styles.css">
     <style>
         
         #multiplayer-ui h3 {
@@ -178,14 +178,13 @@
 
         .video-chat-container {
             position: fixed;
-            top: 50%;
+            top: 140px;
             right: 20px;
             width: 320px;
             background: rgba(0, 0, 0, 0.9);
             border-radius: 10px;
             z-index: 1003;
             border: 1px solid rgba(255, 215, 0, 0.3);
-            transform: translateY(-50%);
         }
 
         .video-chat-header {
@@ -334,7 +333,8 @@
     </style>
 </head>
 <body>
-
+    <div id="connection-status" class="status-disconnected">Disconnected</div>
+    
     <div id="multiplayer-ui">
         <h3>Players</h3>
         <div id="players-list"></div>
@@ -342,27 +342,17 @@
             <button class="btn btn-danger" onclick="leaveGame()">Leave Game</button>
         </div>
     </div>
-
-    <!-- Token Selection Modal -->
-    <div id="token-selection-ui" class="token-selection-ui" style="display:none;">
-        <h2>Select Your Token</h2>
-        <div class="token-grid" id="tokenGrid"></div>
-        <div id="tokenReadyStatus" style="margin: 10px 0; text-align:center;"></div>
-        <div style="display:flex; gap:16px; justify-content:center;">
-            <button class="btn" id="readyUpBtn">Ready Up</button>
-        </div>
-    </div>
-
+    
     <div id="turn-indicator">
         <h2>🎲 It's Your Turn! 🎲</h2>
         <p>Roll the dice to continue</p>
     </div>
-
+    
     <div id="notification" class="notification"></div>
-
+    
     <!-- Video Chat System -->
     <button id="videoChatToggle" class="video-chat-toggle-btn">📹</button>
-
+    
     <div id="videoChatContainer" class="video-chat-container" style="display: none;">
         <div class="video-chat-header">
             <h3>Video Chat</h3>
@@ -376,51 +366,71 @@
         </div>
     </div>
     
-    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
-    <script type="module" src="gameplay.js"></script>
+    <script src="vegasScene.js"></script>
+    <script type="module" src="script.js"></script>
+    <script type="module" src="multiplayer.js"></script>
     <script>
-        // Modern multiplayer game initialization
+        // Initialize multiplayer game
+        let multiplayerGame;
+        
         document.addEventListener('DOMContentLoaded', () => {
             // Get room and player info from URL parameters
             const urlParams = new URLSearchParams(window.location.search);
-            let roomId = urlParams.get('roomId') || urlParams.get('room');
-            let playerId = urlParams.get('playerId') || urlParams.get('player');
-            let playerName = urlParams.get('playerName');
-
-            // Fallback to sessionStorage if missing
-            if (!roomId || !playerId || roomId === 'undefined' || playerId === 'undefined') {
-                try {
-                    const storedState = sessionStorage.getItem('metropoly_game_state');
-                    if (storedState) {
-                        const gameState = JSON.parse(storedState);
-                        if (gameState.roomId && gameState.playerId) {
-                            roomId = gameState.roomId;
-                            playerId = gameState.playerId;
-                            playerName = gameState.playerName;
-                            console.log('[GAME INIT] Recovered roomId and playerId from sessionStorage:', roomId, playerId);
-                        }
-                    }
-                } catch (error) {
-                    console.error('[GAME INIT] Failed to recover state from sessionStorage:', error);
-                }
+            let roomId = urlParams.get('room');
+            let playerId = urlParams.get('player');
+            
+            // For testing: if no parameters, use default test values
+            if (!roomId || !playerId) {
+                console.log('No room/player parameters found, using test values for development');
+                roomId = roomId || 'test-room-123';
+                playerId = playerId || 'test-player-1';
+                // Don't redirect - just use test values
             }
-
-            // If still missing, show error and redirect
-            if (!roomId || !playerId || roomId === 'undefined' || playerId === 'undefined') {
-                alert('Invalid game session. Please return to the lobby.');
-                window.location.href = 'lobby.html';
-                return;
-            }
-
+            
             // Set multiplayer flag immediately to prevent token selection UI
             window.isMultiplayerMode = true;
-            // Initialize multiplayer logic from gameplay.js
-            if (window.setupSocketIOMultiplayer) {
-                window.setupSocketIOMultiplayer(roomId, playerId, playerName);
+            
+            // Wait for MultiplayerGame class to be available before initializing
+            waitForMultiplayerGame();
+            
+            function waitForMultiplayerGame() {
+                if (window.MultiplayerGame) {
+                    console.log('MultiplayerGame class loaded, initializing...');
+                    multiplayerGame = new MultiplayerGame(roomId, playerId);
+                    window.multiplayerGame = multiplayerGame; // Set it on window object
+                    console.log('window.multiplayerGame set:', window.multiplayerGame);
+                    console.log('window.multiplayerGame.playerId:', window.multiplayerGame?.playerId);
+                    waitForGameLoad();
+                } else {
+                    console.log('Waiting for MultiplayerGame class to load...');
+                    setTimeout(waitForMultiplayerGame, 100);
+                }
             }
-            setTimeout(() => {
-                if (window.setupMultiplayerReadyUI) window.setupMultiplayerReadyUI();
-            }, 1000);
+            
+            function waitForGameLoad() {
+                // Check if the main game is ready - wait for ES6 modules to load
+                if (window.init && window.scene && window.players && window.createTokens) {
+                    console.log('Game modules loaded successfully!');
+                    
+                    // Wait a moment for multiplayer to initialize, then start the game
+                    setTimeout(() => {
+                        if (multiplayerGame) {
+                            console.log('Starting multiplayer game...');
+                            multiplayerGame.setupGame();
+                        }
+                    }, 500);
+                } else {
+                    console.log('Waiting for game modules to load...');
+                    // Wait a bit and try again
+                    setTimeout(waitForGameLoad, 200);
+                }
+            }
+            
+            // Also listen for the script loaded event
+            document.addEventListener('scriptLoaded', () => {
+                console.log('Script loaded event received, checking modules...');
+                setTimeout(waitForGameLoad, 100);
+            });
         });
         
         function leaveGame() {
