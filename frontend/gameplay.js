@@ -4769,6 +4769,13 @@ function createTokenButton(token, index) {
     tokenContent.style.width = "100%";
     tokenContent.style.height = "100%";
 
+    // Populate content container
+    tokenContent.appendChild(tokenImg);
+    tokenContent.appendChild(tokenName);
+    tokenContent.appendChild(aiButton);
+    tokenContent.appendChild(aiIndicator);
+    tokenButton.appendChild(tokenContent);
+
     // Create token image
     const tokenImg = document.createElement("img");
     tokenImg.src = getTokenImageUrl(token.name);
@@ -4824,11 +4831,6 @@ function createTokenButton(token, index) {
     aiIndicator.style.height = "10px";
     aiIndicator.style.borderRadius = "50%";
     aiIndicator.style.backgroundColor = aiPlayers.has(token.name) ? "#4CAF50" : "transparent";
-    // Append token image and controls
-    tokenButton.appendChild(tokenImg);
-    tokenButton.appendChild(tokenName);
-    tokenButton.appendChild(aiButton);
-    tokenButton.appendChild(aiIndicator);
 
     // Handle AI button click
     aiButton.onclick = (e) => {
@@ -6049,7 +6051,7 @@ function getTokenImageUrl(tokenName) {
         { name: 'woman', image: 'Images/image-removebg-preview (8).png' }
     ];
     const found = imageUrls.find(obj => obj.name === tokenName);
-    return found ? found.image : "";
+    return found ? ('./' + found.image) : "";
 }
 
 function isCurrentPlayerAI() {
