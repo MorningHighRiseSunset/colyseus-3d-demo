@@ -191,11 +191,22 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     });
 
     socket.on('tokenPositions', (positions) => {
-        Object.entries(positions).forEach(([pid, pos]) => {
+        Object.entries(positions).forEach(([pid, newPos]) => {
             const idx = playerList.findIndex(p => p.id === pid);
             if (idx !== -1 && players[idx]) {
-                players[idx].currentPosition = pos;
-                moveToken(idx, pos, true);
+                const player = players[idx];
+                const oldIndex = player.currentPosition;
+                const startPos = getBoardSquarePosition(oldIndex);
+                const endPos = getBoardSquarePosition(newPos);
+                const token = player.selectedToken;
+                if (token) {
+                    moveToken(startPos, endPos, token, () => {
+                        player.currentPosition = newPos;
+                    });
+                } else {
+                    // No token model yet, just update position
+                    player.currentPosition = newPos;
+                }
             }
         });
     });
@@ -6280,6 +6291,7 @@ function init() {
     }); // Position in the middle of the board
 
     createTokens(() => {
+        console.log('Token selection callback');
         // Only create token selection UI if not in multiplayer mode
         if (!window.isMultiplayerMode) {
             createPlayerTokenSelectionUI(currentPlayerIndex);
