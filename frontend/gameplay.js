@@ -4778,7 +4778,7 @@ function createTokenButton(token, index) {
 
     // Create token image
     const tokenImg = document.createElement("img");
-    tokenImg.src = getTokenImageUrl(token.name);
+    tokenImg.src = token.image; // use image path directly
     tokenImg.alt = token.displayName;
     tokenImg.style.width = "60px";
     tokenImg.style.height = "50px";
@@ -6040,19 +6040,6 @@ function showAIPopup(message, duration = 1800) {
 }
 
 
-function getTokenImageUrl(tokenName) {
-    const imageUrls = [
-        { name: 'rolls royce', image: 'Images/image-removebg-preview.png' },
-        { name: 'helicopter', image: 'Images/image-removebg-preview (1).png' },
-        { name: 'hat', image: 'Images/image-removebg-preview (6).png' },
-        { name: 'football', image: 'Images/image-removebg-preview (7).png' },
-        { name: 'burger', image: 'Images/image-removebg-preview (9).png' },
-        { name: 'nike', image: 'Images/image-removebg-preview (10).png' },
-        { name: 'woman', image: 'Images/image-removebg-preview (8).png' }
-    ];
-    const found = imageUrls.find(obj => obj.name === tokenName);
-    return found ? ('./' + found.image) : "";
-}
 
 function isCurrentPlayerAI() {
     const currentPlayer = players[currentPlayerIndex];
