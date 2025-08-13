@@ -145,21 +145,23 @@
         }
 
         /* Video Chat Styles */
-                 .video-chat-toggle-btn {
-             position: fixed;
-             bottom: 120px;
-             right: 50px;
-             width: 50px;
-             height: 50px;
-             border-radius: 50%;
-             border: none;
-             background: #27ae60;
-             color: white;
-             font-size: 20px;
-             cursor: pointer;
-             z-index: 2003;
-             transition: all 0.3s;
-         }
+        .video-chat-toggle-btn {
+            position: fixed;
+            bottom: 160px;
+            right: 50px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: #27ae60;
+            color: white;
+            font-size: 20px;
+            line-height: 50px;
+            text-align: center;
+            cursor: pointer;
+            z-index: 2003;
+            transition: all 0.3s;
+        }
 
         .video-chat-toggle-btn:hover {
             transform: scale(1.1);
@@ -336,8 +338,7 @@
 <body>
 
     <div id="multiplayer-ui">
-        <h3>Players</h3>
-        <div id="players-list"></div>
+        <div id="players-list"></div> <!-- Heading removed to avoid duplicate Players -->
         <div id="game-controls">
             <button class="btn btn-danger" onclick="leaveGame()">Leave Game</button>
         </div>
@@ -381,6 +382,8 @@
     <script>
         // Modern multiplayer game initialization
         document.addEventListener('DOMContentLoaded', () => {
+            // Preload tokens and render selection UI
+            if (window.createTokens) window.createTokens();
             // Get room and player info from URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             let roomId = urlParams.get('roomId') || urlParams.get('room');
@@ -477,7 +480,7 @@
             if (!container || !toggleBtn) return;
 
             // Get player count from multiplayer game
-            const playerCount = multiplayerGame ? multiplayerGame.players.length : 2;
+            const playerCount = (typeof players !== 'undefined') ? players.length : 2;
             
             // Update video grid layout
             updateVideoGridLayout(playerCount);

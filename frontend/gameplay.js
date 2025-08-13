@@ -187,7 +187,6 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
 
     socket.on('playerList', (list) => {
         playerList = list;
-        updatePlayerListUI();
     });
 
     socket.on('tokenPositions', (positions) => {
@@ -222,8 +221,56 @@ function addTokenTooltips() {
         }
     });
 }
-// Call this after rendering token selection UI
-setTimeout(addTokenTooltips, 1200);
+// --- Token Selection UI ---
+function renderTokenSelectionUI() {
+   const container = document.getElementById('token-selection-ui');
+   const grid = document.getElementById('tokenGrid');
+   if (!container || !grid) return;
+   // Show container and clear grid
+   container.style.display = 'flex';
+   grid.innerHTML = '';
+   // Populate tokens
+   tokenList.forEach(info => {
+       const btn = document.createElement('button');
+       btn.className = 'token-button';
+       btn.textContent = info.name;
+       btn.setAttribute('data-token-name', info.name);
+       btn.onclick = () => {
+           const idx = playerList.findIndex(p => p.id === currentPlayerId);
+           if (idx !== -1) {
+               const model = window.loadedTokenModels[info.name];
+               players[idx].selectedToken = model;
+               playerList[idx].selectedToken = model;
+           }
+           container.style.display = 'none';
+           if (typeof finalizePlayerSelection === 'function') finalizePlayerSelection();
+           else if (typeof startGame === 'function') startGame();
+       };
+       grid.appendChild(btn);
+   });
+}
+function renderTokenSelectionUI() {
+    const container = document.getElementById('token-selection-ui');
+    if (!container) return;
+    container.style.display = 'block';
+    container.innerHTML = '<h2>Select Your Token</h2>';
+    tokenList.forEach(info => {
+        const btn = document.createElement('button');
+        btn.className = 'token-button';
+        btn.textContent = info.name;
+        btn.onclick = () => {
+            // set selectedToken for current player
+            const idx = playerList.findIndex(p => p.id === currentPlayerId);
+            if (idx !== -1) {
+                players[idx].selectedToken = window.loadedTokenModels[info.name];
+                playerList[idx].selectedToken = window.loadedTokenModels[info.name];
+            }
+            container.style.display = 'none';
+            startGame();  // proceed after selection
+        };
+        container.appendChild(btn);
+    });
+}
 
 // --- Animate Dice Roll ---
 function animateDiceRoll() {
@@ -278,43 +325,7 @@ function patchRollDice() {
     };
 }
 
-// --- Player List UI ---
-function updatePlayerListUI() {
-    if (!playerListUI) {
-        playerListUI = document.createElement('div');
-        playerListUI.id = 'player-list-ui';
-        playerListUI.style.position = 'absolute';
-        playerListUI.style.top = '10px';
-        playerListUI.style.right = '10px';
-        playerListUI.style.background = 'rgba(0,0,0,0.7)';
-        playerListUI.style.color = '#fff';
-        playerListUI.style.padding = '10px';
-        playerListUI.style.borderRadius = '8px';
-        playerListUI.style.zIndex = '1000';
-        document.body.appendChild(playerListUI);
-    }
-    playerListUI.innerHTML = '<b>Players:</b><br>' + playerList.map(p => `<span style="display:inline-block;margin-bottom:4px;" title="${p.token ? p.token : 'No token selected'}">${p.name}</span>`).join('<br>');
-}
 
-function overrideMoveTokenForMultiplayer() {
-    if (typeof window.moveToken === 'function') {
-        const originalMoveToken = window.moveToken;
-        window.moveToken = function(playerIdx, newPosition, fromServer) {
-            originalMoveToken(playerIdx, newPosition);
-            if (isMultiplayerMode && socket && !fromServer) {
-                socket.emit('moveToken', {
-                    roomId: currentRoomId,
-                    playerId: currentPlayerId,
-                    newPosition
-                });
-            }
-        };
-    } else {
-        console.warn('window.moveToken is not defined yet.');
-    }
-}
-// Call this after your game logic is loaded
-setTimeout(overrideMoveTokenForMultiplayer, 1000);
 
 function overrideRollDiceForMultiplayer() {
     if (typeof window.rollDice === 'function') {
@@ -2120,16 +2131,16 @@ function createTokens(onAllLoaded) {
 
             window.loadedTokenModels[tokenInfo.name] = model;
             loadedCount++;
-            if (loadedCount === tokenList.length && typeof onAllLoaded === 'function') {
+            if (loadedCount === tokenList.length) {
                 console.log('All tokens loaded successfully');
-                onAllLoaded();
+                renderTokenSelectionUI();
             }
         }, undefined, (err) => {
             console.error(`Error loading model for ${tokenInfo.name}:`, err);
             console.error(`Failed path: ${tokenInfo.path}`);
             loadedCount++;
-            if (loadedCount === tokenList.length && typeof onAllLoaded === 'function') {
-                onAllLoaded();
+            if (loadedCount === tokenList.length) {
+                renderTokenSelectionUI();
             }
         });
     });
@@ -6227,7 +6238,8 @@ function init() {
         btn.id = 'camera-follow-toggle';
         btn.innerText = 'Follow Token (F)';
         btn.style.position = 'fixed';
-        btn.style.bottom = '80px';
+        btn.style.bottom = '160px';
+        btn.style.textAlign = 'center';
         btn.style.right = '16px';
         btn.style.zIndex = '2002';
         btn.style.background = '#222';
