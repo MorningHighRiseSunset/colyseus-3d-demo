@@ -6227,9 +6227,8 @@ function init() {
         btn.id = 'camera-follow-toggle';
         btn.innerText = 'Follow Token (F)';
         btn.style.position = 'fixed';
-        btn.style.top = '80px';
-        btn.style.left = '50%';
-        btn.style.transform = 'translateX(-50%)';
+        btn.style.bottom = '80px';
+        btn.style.right = '16px';
         btn.style.zIndex = '2002';
         btn.style.background = '#222';
         btn.style.color = '#fff';
@@ -6247,9 +6246,8 @@ function init() {
         indicator.id = 'camera-follow-indicator';
         indicator.innerText = 'FOLLOWING TOKEN';
         indicator.style.position = 'fixed';
-        indicator.style.top = '120px';
-        indicator.style.left = '50%';
-        indicator.style.transform = 'translateX(-50%)';
+        indicator.style.bottom = '120px';
+        indicator.style.right = '16px';
         indicator.style.zIndex = '2002';
         indicator.style.background = '#4caf50';
         indicator.style.color = '#fff';
@@ -8062,6 +8060,11 @@ function setupPropertiesToggleButton() {
 
     document.body.appendChild(btn);
 
+// position properties toggle button at bottom right
+    btn.style.position = 'fixed';
+    btn.style.bottom = '16px';
+    btn.style.right = '16px';
+    btn.style.zIndex = '2002';
     btn.addEventListener('click', function() {
         const myBoard = document.getElementById('property-management-board');
         const otherBoard = document.getElementById('other-players-board');
