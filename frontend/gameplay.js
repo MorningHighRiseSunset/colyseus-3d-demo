@@ -6344,17 +6344,15 @@ function showAIPopup(message, duration = 1800) {
 
 
 function getTokenImageUrl(tokenName) {
-    const imageUrls = {
-        "hat": "Images/image-removebg-preview (6).png",
-        "woman": "Images/image-removebg-preview (8).png",
-        "rolls royce": "Images/image-removebg-preview.png",
-        "speed boat": "Images/image-removebg-preview (3).png",
-        "football": "Images/image-removebg-preview (7).png",
-        // FIXED: Use correct folder and image name for helicopter
-        "helicopter": "Images/image-removebg-preview (1).png",
-        "burger": "Images/image-removebg-preview (9).png",
-        "nike": "Images/image-removebg-preview (10).png"
-    };
+        const imageUrls = [
+            { name: 'rolls royce', image: 'Images/image-removebg-preview.png' },
+            { name: 'helicopter', image: 'Images/image-removebg-preview (1).png' },
+            { name: 'hat', image: 'Images/image-removebg-preview (6).png' },
+            { name: 'football', image: 'Images/image-removebg-preview (7).png' },
+            { name: 'burger', image: 'Images/image-removebg-preview (9).png' },
+            { name: 'nike', image: 'Images/image-removebg-preview (10).png' },
+            { name: 'woman', image: 'Images/image-removebg-preview (8).png' }
+        ];
     return imageUrls[tokenName] || "";
 }
 
