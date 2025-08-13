@@ -1304,16 +1304,17 @@ const communityChestCards = [
     "Collect $100 for a lucky slot machine spin.", // Increased from $50
 ];
 
-// filepath: c:\Users\DELL\Metropoly\script.js
-let availableTokens = [
-    { name: "woman", displayName: "Woman", img: "Images/woman.png" },
-    { name: "rolls royce", displayName: "Rolls Royce", img: "Images/rollsroyce.png" },
-    { name: "helicopter", displayName: "Helicopter", img: "Images/helicopter.png" },
-    { name: "hat", displayName: "Top Hat", img: "Images/hat.png" },
-    { name: "football", displayName: "Football", img: "Images/football.png" },
-    { name: "burger", displayName: "Burger", img: "Images/burger.png" },
-    { name: "nike", displayName: "Tennis Shoe", img: "Images/nike.png" }
+// Available tokens for selection (DO NOT CHANGE THE IMAGE PATHS OR NAMES)
+const availableTokens = [
+    { name: 'rolls royce', displayName: 'Rolls Royce', img: 'Images/image-removebg-preview.png' },
+    { name: 'helicopter', displayName: 'Helicopter', img: 'Images/image-removebg-preview (1).png' },
+    { name: 'hat', displayName: 'Top Hat', img: 'Images/image-removebg-preview (6).png' },
+    { name: 'football', displayName: 'Football', img: 'Images/image-removebg-preview (7).png' },
+    { name: 'burger', displayName: 'Burger', img: 'Images/image-removebg-preview (9).png' },
+    { name: 'nike', displayName: 'Tennis Shoe', img: 'Images/image-removebg-preview (10).png' },
+    { name: 'woman', displayName: 'Woman', img: 'Images/image-removebg-preview (8).png' }
 ];
+// DO NOT CHANGE THE IMAGE FILE NAMES OR PATHS ABOVE!
 
 // --- Improved Token Selection Modal Logic ---
 function renderTokenSelectionUI() {
@@ -1984,116 +1985,6 @@ function showTokenSpinner(tokenName) {
 function hideTokenSpinner(tokenName) {
     const spinner = document.getElementById(`spinner-${tokenName}`);
     if (spinner) spinner.remove();
-}
-
-
-
-// 2. Replace your createTokens function with this:
-function createTokens(onAllLoaded) {
-    // Prevent multiple calls
-    if (window.tokensAlreadyLoaded) {
-        console.log('Tokens already loaded, skipping...');
-        if (onAllLoaded) onAllLoaded();
-        return;
-    }
-    
-    const loader = new GLTFLoader();
-    window.loadedTokenModels = {};
-    window.tokensAlreadyLoaded = true;
-
-    const tokenList = [
-        { name: 'rolls royce', path: 'Models/RollsRoyce/rollsRoyceCarAnim.glb', scale: [0.9, 0.9, 0.9] },
-        { name: 'helicopter', path: 'Models/Helicopter/helicopter.glb', scale: [0.01, 0.01, 0.01] },
-        { name: 'hat', path: 'Models/TopHat/tophat.glb', scale: [0.5, 0.5, 0.5] },
-        { name: 'football', path: 'Models/Football/football.glb', scale: [0.1, 0.1, 0.1] },
-        { name: 'burger', path: 'Models/Cheeseburger/cheeseburger.glb', scale: [3.5, 3.5, 3.5] },
-        { name: 'nike', path: 'Models/Shoe/shoe.glb', scale: [1.5, 1.5, 1.5] },
-        { name: 'woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.02, 0.02, 0.02] }
-    ];
-
-    let loadedCount = 0;
-
-    tokenList.forEach(tokenInfo => {
-        console.log(`Loading token: ${tokenInfo.name} from ${tokenInfo.path}`);
-        loader.load(tokenInfo.path, (gltf) => {
-            const model = gltf.scene;
-            // Fix transparency issues for woman model
-            if (tokenInfo.name === 'woman') {
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        // Handle transparency properly for woman model
-                        if (child.material.map && child.material.map.image) {
-                            // If there's a texture with alpha channel, enable transparency
-                            child.material.transparent = true;
-                            child.material.alphaTest = 0.1;
-                            child.material.depthWrite = true;
-                            child.material.side = THREE.DoubleSide;
-                        } else {
-                            // For non-transparent materials
-                            child.material.transparent = false;
-                            child.material.depthWrite = true;
-                            child.material.side = THREE.FrontSide;
-                            child.material.alphaTest = 0;
-                        }
-                        // Ensure material updates
-                        child.material.needsUpdate = true;
-                    }
-                });
-            }
-            model.scale.set(...tokenInfo.scale);
-            model.visible = false;
-            model.userData.isToken = true;
-            model.userData.tokenName = tokenInfo.name;
-            model.position.set(22.5, 3.0, 22.5);
-            scene.add(model);
-
-            // Animation setup for tokens with animations
-            if (tokenInfo.name === "woman") {
-                // Idle animation
-                const idleMixer = new THREE.AnimationMixer(model);
-                const idleAction = idleMixer.clipAction(gltf.animations[0]);
-                idleAction.clampWhenFinished = true;
-                idleAction.loop = THREE.LoopRepeat;
-                idleAction.play();
-                model.userData.idleMixer = idleMixer;
-                model.userData.idleAction = idleAction;
-
-                // Load walk animation from separate file
-                loader.load('Models/WhiteGirlWalk/WhiteGirlWalk.glb', function (walkGltf) {
-                    const walkMixer = new THREE.AnimationMixer(model);
-                    const walkAction = walkMixer.clipAction(walkGltf.animations[0]);
-                    walkAction.clampWhenFinished = true;
-                    walkAction.loop = THREE.LoopRepeat;
-                    model.userData.walkMixer = walkMixer;
-                    model.userData.walkAction = walkAction;
-                }, undefined, function (error) {
-                    console.error('Error loading woman walk animation:', error);
-                });
-            } else if (gltf.animations && gltf.animations.length > 0) {
-                model.userData.mixer = new THREE.AnimationMixer(model);
-                model.userData.actions = [];
-                gltf.animations.forEach(anim => {
-                    const action = model.userData.mixer.clipAction(anim);
-                    action.play();
-                    model.userData.actions.push(action);
-                });
-            }
-
-            window.loadedTokenModels[tokenInfo.name] = model;
-            loadedCount++;
-            if (loadedCount === tokenList.length) {
-                console.log('All tokens loaded successfully');
-                renderTokenSelectionUI();
-            }
-        }, undefined, (err) => {
-            console.error(`Error loading model for ${tokenInfo.name}:`, err);
-            console.error(`Failed path: ${tokenInfo.path}`);
-            loadedCount++;
-            if (loadedCount === tokenList.length) {
-                renderTokenSelectionUI();
-            }
-        });
-    });
 }
 
 function hopWithNikeEffect(startPos, endPos, token, callback) {
