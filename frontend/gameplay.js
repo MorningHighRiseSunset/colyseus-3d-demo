@@ -220,6 +220,17 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     socket.on('playerList', (list) => {
         playerList = list;
         renderPlayersList();
+        // Show “Start Game” only for host (first player)
+        const hostId = playerList[0]?.id;
+        // Toggle both button variants if present
+        const startBtn1 = document.getElementById('startGameBtn');
+        const startBtn2 = document.getElementById('start-game');
+        [startBtn1, startBtn2].forEach(btn => {
+            if (btn) {
+                btn.style.display = (hostId === currentPlayerId) ? '' : 'none';
+                btn.disabled = hostId !== currentPlayerId;
+            }
+        });
     });
 
     // Show token selection events
@@ -228,21 +239,27 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         if (p) {
             p.token = token;
             renderPlayersList();
+            // Mark token as picked in UI and disable it
+            document.querySelectorAll(`.token-button[data-token-name="${token}"]`).forEach(btn => {
+                btn.classList.add('picked');
+                btn.disabled = true;
+            });
         }
     });
 
     // Handle turn to pick next token
+    let isPicker = false;
     socket.on('nextTurnToPick', ({ playerId: pid }) => {
-        // Disable all token buttons
-        document.querySelectorAll('.token-button').forEach(btn => {
-            btn.disabled = true;
+        const modal = document.getElementById('token-selection-ui');
+        if (!modal) return;
+        // Track picker status
+        isPicker = (pid === currentPlayerId);
+        const tokenBtns = modal.querySelectorAll('.token-button');
+        // Show modal for all, but only enable for current player
+        modal.style.display = '';
+        tokenBtns.forEach(btn => {
+            btn.disabled = !isPicker || btn.classList.contains('picked');
         });
-        // Enable only current picker
-        if (pid === currentPlayerId) {
-            document.querySelectorAll(`.token-button:not(.picked)`).forEach(btn => {
-                btn.disabled = false;
-            });
-        }
     });
 
     // Handle game start broadcast
@@ -254,10 +271,27 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         const startBtn = document.getElementById('startGameBtn');
         if (readyBtn) readyBtn.style.display = 'none';
         if (startBtn) startBtn.style.display = 'none';
+        // Hide token selection modal
+        const modal = document.getElementById('token-selection-ui');
+        if (modal) modal.style.display = 'none';
         // If host, show roll dice
         if (playerList[0]?.id === currentPlayerId) {
             const diceBtn = document.querySelector('.dice-button');
             if (diceBtn) diceBtn.style.display = '';
+        }
+    });
+
+    // Host Start Game action (bind both IDs)
+    [ 'startGameBtn', 'start-game' ].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('click', () => {
+                socket.emit('startGame', {
+                    roomId: currentRoomId,
+                    playerId: currentPlayerId,
+                    playerName
+                });
+            });
         }
     });
 
@@ -3977,6 +4011,9 @@ function initializePlayers() {
 
 function createPlayerTokenSelectionUI(playerIndex) {
     if (initialSelectionComplete) return;
+    if (isMultiplayerMode) return; // Disable legacy UI in multiplayer
+    // Disable legacy token UI in multiplayer mode
+    if (isMultiplayerMode) return;
 
     // SAFETY: Remove any stray play/start game button from previous page
     const playBtn = document.getElementById('play-button');
@@ -3985,6 +4022,8 @@ function createPlayerTokenSelectionUI(playerIndex) {
     if (startBtn) startBtn.remove();
 
     tokenSelectionUI = document.createElement("div");
+    tokenSelectionUI.id = "token-selection-ui"; // match HTML modal id
+    tokenSelectionUI.className = "token-selection-ui";
     tokenSelectionUI.style.position = "fixed";
     tokenSelectionUI.style.top = "10px";
     tokenSelectionUI.style.left = "20px";
@@ -4700,6 +4739,7 @@ function finalizeMove(token, endPos, callback) {
 
 function createTokenButton(token, index) {
     const tokenButton = document.createElement("div");
+    tokenButton.setAttribute("data-token-name", token.name); // allow identification
     tokenButton.className = "token-button";
 
     // Style the button
@@ -9165,9 +9205,30 @@ window.finishMove = finishMove;
 window.handlePropertyLanding = handlePropertyLanding;
 
 function createTokens(callback) {
-    // TODO: Implement token loading logic here
-    console.log('createTokens called (placeholder)');
-    if (typeof callback === 'function') callback();
+    const tokenNames = ['RollsRoyce','Helicopter','Shoe','Football','Cheeseburger','TopHat'];
+    const grid = document.getElementById('tokenGrid');
+    grid.innerHTML = '';
+    // Hide ready until token picked
+    const readyStatus = document.getElementById('tokenReadyStatus');
+    readyStatus.textContent = '';
+    const readyBtn = document.getElementById('readyUpBtn');
+    if (readyBtn) readyBtn.style.display = 'none';
+    tokenNames.forEach(name => {
+        const btn = document.createElement('button');
+        btn.className = 'token-button';
+        btn.setAttribute('data-token-name', name);
+        btn.innerText = name;
+        btn.disabled = true; // enabled by nextTurnToPick
+        btn.addEventListener('click', () => {
+            socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
+            btn.classList.add('picked');
+            btn.disabled = true;
+            readyStatus.textContent = `Token ${name} selected for ${playerName}`;
+            if (readyBtn) readyBtn.style.display = '';
+        });
+        grid.appendChild(btn);
+    });
+    if (callback) callback();
 }
 
 // Signal that the script has loaded
