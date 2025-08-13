@@ -221,56 +221,6 @@ function addTokenTooltips() {
         }
     });
 }
-// --- Token Selection UI ---
-function renderTokenSelectionUI() {
-   const container = document.getElementById('token-selection-ui');
-   const grid = document.getElementById('tokenGrid');
-   if (!container || !grid) return;
-   // Show container and clear grid
-   container.style.display = 'flex';
-   grid.innerHTML = '';
-   // Populate tokens
-   tokenList.forEach(info => {
-       const btn = document.createElement('button');
-       btn.className = 'token-button';
-       btn.textContent = info.name;
-       btn.setAttribute('data-token-name', info.name);
-       btn.onclick = () => {
-           const idx = playerList.findIndex(p => p.id === currentPlayerId);
-           if (idx !== -1) {
-               const model = window.loadedTokenModels[info.name];
-               players[idx].selectedToken = model;
-               playerList[idx].selectedToken = model;
-           }
-           container.style.display = 'none';
-           if (typeof finalizePlayerSelection === 'function') finalizePlayerSelection();
-           else if (typeof startGame === 'function') startGame();
-       };
-       grid.appendChild(btn);
-   });
-}
-function renderTokenSelectionUI() {
-    const container = document.getElementById('token-selection-ui');
-    if (!container) return;
-    container.style.display = 'block';
-    container.innerHTML = '<h2>Select Your Token</h2>';
-    tokenList.forEach(info => {
-        const btn = document.createElement('button');
-        btn.className = 'token-button';
-        btn.textContent = info.name;
-        btn.onclick = () => {
-            // set selectedToken for current player
-            const idx = playerList.findIndex(p => p.id === currentPlayerId);
-            if (idx !== -1) {
-                players[idx].selectedToken = window.loadedTokenModels[info.name];
-                playerList[idx].selectedToken = window.loadedTokenModels[info.name];
-            }
-            container.style.display = 'none';
-            startGame();  // proceed after selection
-        };
-        container.appendChild(btn);
-    });
-}
 
 // --- Animate Dice Roll ---
 function animateDiceRoll() {
@@ -1366,7 +1316,7 @@ let availableTokens = [
 ];
 
 // --- Improved Token Selection Modal Logic ---
-function showTokenSelectionModal() {
+function renderTokenSelectionUI() {
     let modal = document.getElementById('token-selection-ui');
     if (!modal) {
         console.error('Token selection modal not found!');
