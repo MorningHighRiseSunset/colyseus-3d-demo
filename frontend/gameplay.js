@@ -4740,14 +4740,6 @@ function finalizeMove(token, endPos, callback) {
 
 function createTokenButton(token, index) {
     const tokenButton = document.createElement("div");
-    const img = document.createElement("img");
-    img.src = token.image || token.img;
-    img.alt = token.displayName || token.name;
-    img.style.width = '60px';
-    img.style.height = '60px';
-    img.style.objectFit = 'contain';
-    img.style.marginBottom = '8px';
-    tokenButton.appendChild(img);
     tokenButton.setAttribute("data-token-name", token.name); // allow identification
     tokenButton.className = "token-button";
 
@@ -4788,6 +4780,11 @@ function createTokenButton(token, index) {
     tokenImg.style.objectFit = "contain";
 
     // Check if token is already owned
+    // Append image and UI elements to button
+    tokenButton.appendChild(tokenImg);
+    tokenButton.appendChild(tokenName);
+    tokenButton.appendChild(aiButton);
+    tokenButton.appendChild(aiIndicator);
     const owner = players.find(player => player.tokenName === token.name);
     if (owner) {
         tokenImg.style.filter = "grayscale(100%) blur(1px)";
@@ -4827,6 +4824,11 @@ function createTokenButton(token, index) {
     aiIndicator.style.height = "10px";
     aiIndicator.style.borderRadius = "50%";
     aiIndicator.style.backgroundColor = aiPlayers.has(token.name) ? "#4CAF50" : "transparent";
+    // Append token image and controls
+    tokenButton.appendChild(tokenImg);
+    tokenButton.appendChild(tokenName);
+    tokenButton.appendChild(aiButton);
+    tokenButton.appendChild(aiIndicator);
 
     // Handle AI button click
     aiButton.onclick = (e) => {
