@@ -9084,6 +9084,12 @@ window.initVideoChat = initVideoChat;
 window.finishMove = finishMove;
 window.handlePropertyLanding = handlePropertyLanding;
 
+function createTokens(callback) {
+    // TODO: Implement token loading logic here
+    console.log('createTokens called (placeholder)');
+    if (typeof callback === 'function') callback();
+}
+
 // Signal that the script has loaded
 console.log('Script.js loaded and exports set');
 document.dispatchEvent(new CustomEvent('scriptLoaded'));
