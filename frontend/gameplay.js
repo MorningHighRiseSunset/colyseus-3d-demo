@@ -4138,7 +4138,7 @@ function createPlayerTokenSelectionUI(playerIndex) {
     tokenSelectionUI.style.maxHeight = "400px";
 
     const title = document.createElement("h2");
-    title.textContent = "Select Tokens and AI Players";
+    title.textContent = "Select Tokens";
     title.className = "flash-title";
     title.style.marginBottom = "15px";
     title.style.fontSize = "18px";
