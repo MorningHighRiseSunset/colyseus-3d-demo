@@ -170,6 +170,33 @@ let currentRoomId = null;
 let socket = null;
 let playerList = [];
 let playerListUI = null;
+// Render multiplayer players list UI
+function renderPlayersList() {
+    playerListUI = document.getElementById('players-list');
+    if (!playerListUI) {
+        console.warn('players-list element not found');
+        return;
+    }
+    playerListUI.innerHTML = '';
+    playerList.forEach(p => {
+        const info = document.createElement('div');
+        info.className = 'player-info' + (p.id === currentPlayerId ? ' current-player' : '');
+        const avatar = document.createElement('div');
+        avatar.className = 'player-avatar';
+        avatar.textContent = p.name.charAt(0).toUpperCase();
+        info.appendChild(avatar);
+        const details = document.createElement('div');
+        details.className = 'player-details';
+        const nameDiv = document.createElement('div');
+        nameDiv.textContent = p.name;
+        const moneyDiv = document.createElement('div');
+        moneyDiv.textContent = `$${p.money}`;
+        details.appendChild(nameDiv);
+        details.appendChild(moneyDiv);
+        info.appendChild(details);
+        playerListUI.appendChild(info);
+    });
+}
 
 // --- Multiplayer Initialization ---
 function setupSocketIOMultiplayer(roomId, playerId, playerName) {
@@ -187,6 +214,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
 
     socket.on('playerList', (list) => {
         playerList = list;
+        renderPlayersList();
     });
 
     socket.on('tokenPositions', (positions) => {
