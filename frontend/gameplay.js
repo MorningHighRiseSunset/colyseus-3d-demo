@@ -1,3 +1,45 @@
+// Restore setupMultiplayerReadyUI for multiplayer modal
+function setupMultiplayerReadyUI() {
+    const readyBtn = document.getElementById('readyUpBtn');
+    const startBtn = document.getElementById('startGameBtn');
+    const tokenReadyStatus = document.getElementById('tokenReadyStatus');
+    if (!readyBtn || !startBtn) return;
+
+    let isReady = false;
+    readyBtn.onclick = () => {
+        isReady = !isReady;
+        readyBtn.textContent = isReady ? 'Unready' : 'Ready Up';
+        if (socket && currentRoomId && currentPlayerId) {
+            socket.emit('playerReady', {
+                roomId: currentRoomId,
+                playerId: currentPlayerId,
+                playerName: playerList.find(p => p.id === currentPlayerId)?.name || 'Player'
+            });
+        }
+    };
+    startBtn.onclick = () => {
+        if (socket && currentRoomId && currentPlayerId) {
+            socket.emit('startGame', {
+                roomId: currentRoomId,
+                playerId: currentPlayerId,
+                playerName: playerList.find(p => p.id === currentPlayerId)?.name || 'Player'
+            });
+        }
+    };
+    // Listen for ready states
+    if (socket) {
+        socket.on('playerReadyStates', (readyStates) => {
+            tokenReadyStatus.innerHTML = Object.entries(readyStates).map(([name, ready]) => {
+                return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> ${name}: ${ready ? 'Ready' : 'Not Ready'}`;
+            }).join('<br>');
+            // Show start button only if host and all ready
+            const allReady = Object.values(readyStates).every(Boolean);
+            const isHost = playerList[0]?.id === currentPlayerId;
+            startBtn.style.display = (isHost && allReady) ? '' : 'none';
+            readyBtn.style.display = (isHost && allReady) ? 'none' : '';
+        });
+    }
+}
 const DEBUG = false;
 import * as THREE from './libs/three.module.js';
 import {
@@ -191,7 +233,73 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     };
 }
 
-// Helper to update player list UI
+// --- Token Selection Tooltips ---
+function addTokenTooltips() {
+    const tokenButtons = document.querySelectorAll('.token-button');
+    tokenButtons.forEach(btn => {
+        const tokenName = btn.getAttribute('data-token-name');
+        if (tokenName) {
+            btn.title = `Select the ${tokenName} token`;
+        }
+    });
+}
+// Call this after rendering token selection UI
+setTimeout(addTokenTooltips, 1200);
+
+// --- Animate Dice Roll ---
+function animateDiceRoll() {
+    let diceBtn = document.querySelector('.dice-button');
+    if (diceBtn) {
+        diceBtn.classList.add('dice-anim');
+        setTimeout(() => diceBtn.classList.remove('dice-anim'), 700);
+    }
+    let diceResult = document.querySelector('.dice-result');
+    if (diceResult) {
+        diceResult.classList.add('show');
+        setTimeout(() => diceResult.classList.remove('show'), 1200);
+    }
+}
+
+// --- Patch ready-up button for animated feedback ---
+function setupReadyUpButton() {
+    const readyBtn = document.getElementById('readyUpBtn');
+    if (readyBtn) {
+        let isReady = false;
+        readyBtn.onclick = () => {
+            isReady = !isReady;
+            readyBtn.textContent = isReady ? 'Unready' : 'Ready Up';
+            readyBtn.classList.toggle('ready-anim', isReady);
+            if (socket && currentRoomId && currentPlayerId) {
+                socket.emit('playerReady', {
+                    roomId: currentRoomId,
+                    playerId: currentPlayerId,
+                    playerName: playerList.find(p => p.id === currentPlayerId)?.name || 'Player'
+                });
+            }
+        };
+    }
+}
+
+// --- Patch dice roll logic for animation ---
+function patchRollDice() {
+    const originalRollDice = window.rollDice;
+    window.rollDice = function() {
+        if (isMultiplayerMode && socket) {
+            // Only allow dice roll if it's your turn
+            if (playerList[currentPlayerIndex]?.id === currentPlayerId) {
+                animateDiceRoll();
+                originalRollDice();
+            } else {
+                alert('Wait for your turn!');
+            }
+        } else {
+            animateDiceRoll();
+            originalRollDice();
+        }
+    };
+}
+
+// --- Patch player list UI for token tooltips ---
 function updatePlayerListUI() {
     if (!playerListUI) {
         playerListUI = document.createElement('div');
@@ -206,7 +314,7 @@ function updatePlayerListUI() {
         playerListUI.style.zIndex = '1000';
         document.body.appendChild(playerListUI);
     }
-    playerListUI.innerHTML = '<b>Players:</b><br>' + playerList.map(p => `<span>${p.name}</span>`).join('<br>');
+    playerListUI.innerHTML = '<b>Players:</b><br>' + playerList.map(p => `<span style="display:inline-block;margin-bottom:4px;" title="${p.token ? p.token : 'No token selected'}">${p.name}</span>`).join('<br>');
 }
 
 // Override moveToken to emit movement
@@ -1254,35 +1362,67 @@ const communityChestCards = [
 ];
 
 // filepath: c:\Users\DELL\Metropoly\script.js
-let availableTokens = [{
-        name: "woman",
-        displayName: "Woman"
-    },
-    {
-        name: "rolls royce",
-        displayName: "Rolls Royce"
-    },
-    {
-        name: "helicopter",
-        displayName: "Helicopter"
-    },
-    {
-        name: "hat",
-        displayName: "Top Hat"
-    },
-    {
-        name: "football",
-        displayName: "Football"
-    },
-    {
-        name: "burger",
-        displayName: "Burger"
-    },
-    {
-        name: "nike",
-        displayName: "Tennis Shoe"
-    }
+let availableTokens = [
+    { name: "woman", displayName: "Woman", img: "Images/woman.png" },
+    { name: "rolls royce", displayName: "Rolls Royce", img: "Images/rollsroyce.png" },
+    { name: "helicopter", displayName: "Helicopter", img: "Images/helicopter.png" },
+    { name: "hat", displayName: "Top Hat", img: "Images/hat.png" },
+    { name: "football", displayName: "Football", img: "Images/football.png" },
+    { name: "burger", displayName: "Burger", img: "Images/burger.png" },
+    { name: "nike", displayName: "Tennis Shoe", img: "Images/nike.png" }
 ];
+
+// Improved token selection modal UI for multiplayer
+function showTokenSelectionModal() {
+    let modal = document.getElementById('token-selection-ui');
+    if (!modal) return;
+    modal.style.display = 'block';
+    const grid = document.getElementById('tokenGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    availableTokens.forEach(token => {
+        const btn = document.createElement('button');
+        btn.className = 'token-btn';
+        btn.style.display = 'flex';
+        btn.style.flexDirection = 'column';
+        btn.style.alignItems = 'center';
+        btn.style.margin = '8px';
+        btn.style.background = '#222';
+        btn.style.border = '2px solid #444';
+        btn.style.borderRadius = '10px';
+        btn.style.padding = '10px 12px';
+        btn.style.cursor = 'pointer';
+        btn.style.width = '90px';
+        btn.style.height = '120px';
+        // Token image
+        const img = document.createElement('img');
+        // Use the same image logic as oldlobby.js
+        img.src = token.img || `Images/${token.name.replace(/ /g, '')}.png`;
+        img.alt = token.displayName;
+        img.style.width = '60px';
+        img.style.height = '60px';
+        img.style.objectFit = 'contain';
+        img.style.marginBottom = '8px';
+        btn.appendChild(img);
+        // Token name
+        const name = document.createElement('span');
+        name.textContent = token.displayName;
+        name.style.color = '#fff';
+        name.style.fontWeight = 'bold';
+        name.style.fontSize = '15px';
+        btn.appendChild(name);
+        // Select button
+        btn.onclick = () => {
+            socket.emit('selectToken', {
+                roomId: currentRoomId,
+                playerId: currentPlayerId,
+                token: token.name
+            });
+            btn.style.background = '#4caf50';
+        };
+        grid.appendChild(btn);
+    });
+}
 
 function startTurn() {
     console.log(`Starting turn for Player ${currentPlayerIndex + 1} (${players[currentPlayerIndex].name})`);
@@ -9393,21 +9533,8 @@ function initializeMultiplayerGame() {
     
     console.log('Initializing multiplayer game...');
     
-    // Load multiplayer.js script if not already loaded
-    if (!window.MultiplayerGame) {
-        const script = document.createElement('script');
-        script.src = 'multiplayer.js';
-        script.onload = () => {
-            console.log('Multiplayer script loaded');
-            startMultiplayerGame();
-        };
-        script.onerror = (error) => {
-            console.error('Failed to load multiplayer script:', error);
-        };
-        document.head.appendChild(script);
-    } else {
-        startMultiplayerGame();
-    }
+    // MultiplayerGame logic is handled by backend/index.js; no need to load multiplayer.js
+    startMultiplayerGame();
 }
 
 function startMultiplayerGame() {
@@ -9459,6 +9586,34 @@ function overrideGameFunctionsForMultiplayer() {
             originalBuyProperty(player, property, callback);
         }
     };
+}
+
+if (socket && socket.on) {
+    socket.on('gameStarted', () => {
+        let diceBtn = document.querySelector('.dice-button');
+        if (!diceBtn) {
+            diceBtn = document.createElement('button');
+            diceBtn.className = 'dice-button';
+            diceBtn.textContent = 'Roll Dice';
+            diceBtn.style.position = 'absolute';
+            diceBtn.style.bottom = '40px';
+            diceBtn.style.left = '50%';
+            diceBtn.style.transform = 'translateX(-50%)';
+            diceBtn.style.fontSize = '22px';
+            diceBtn.style.padding = '16px 32px';
+            diceBtn.style.background = '#4caf50';
+            diceBtn.style.color = '#fff';
+            diceBtn.style.border = 'none';
+            diceBtn.style.borderRadius = '12px';
+            diceBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
+            diceBtn.style.zIndex = '1002';
+            diceBtn.onclick = () => {
+                window.rollDice && window.rollDice();
+            };
+            document.body.appendChild(diceBtn);
+        }
+        diceBtn.style.display = 'block';
+    });
 }
 
 // Call override functions when multiplayer is ready

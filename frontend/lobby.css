@@ -44,3 +44,35 @@ body {
 .room-list div:hover {
   background: rgba(255,255,255,0.2);
 }
+.room-entry {
+  background: rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 14px 12px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: background 0.2s;
+}
+.room-entry:hover {
+  background: rgba(255,255,255,0.22);
+}
+.room-id {
+  font-size: 1.1em;
+  color: #ffd700;
+  margin-right: 10px;
+}
+.player-count {
+  font-size: 0.98em;
+  color: #fff;
+  margin-right: 10px;
+}
+.player-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #00c6ff;
+  display: inline-block;
+  margin-right: 8px;
+}

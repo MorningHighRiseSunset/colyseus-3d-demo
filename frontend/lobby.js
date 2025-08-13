@@ -22,11 +22,26 @@ socket.on('roomCreated', (roomId) => {
   window.location.href = `game.html?roomId=${roomId}&playerName=${encodeURIComponent(playerName)}`;
 });
 
+// --- Enhanced Room List Rendering ---
 socket.on('roomList', (rooms) => {
   roomList.innerHTML = '';
-  rooms.forEach(roomId => {
+  rooms.forEach(room => {
+    // room can be an object: { id, playerCount }
+    let roomId, playerCount;
+    if (typeof room === 'object') {
+      roomId = room.id;
+      playerCount = room.playerCount || 1;
+    } else {
+      roomId = room;
+      playerCount = 1;
+    }
     const div = document.createElement('div');
-    div.innerHTML = `<span class="player-dot"></span>Room: ${roomId}`;
+    div.className = 'room-entry';
+    div.innerHTML = `
+      <span class="player-dot"></span>
+      <span class="room-id">Room: <b>${roomId}</b></span>
+      <span class="player-count">Players: ${playerCount}</span>
+    `;
     const joinBtn = document.createElement('button');
     joinBtn.textContent = 'Join';
     joinBtn.className = 'btn';
@@ -38,6 +53,16 @@ socket.on('roomList', (rooms) => {
     roomList.appendChild(div);
   });
 });
+
+// --- Add Refresh Button ---
+const refreshBtn = document.createElement('button');
+refreshBtn.textContent = 'Refresh Rooms';
+refreshBtn.className = 'btn';
+refreshBtn.style.marginBottom = '12px';
+refreshBtn.onclick = () => {
+  socket.emit('getRooms');
+};
+roomList.parentNode.insertBefore(refreshBtn, roomList);
 
 // Request room list every 5 seconds
 setInterval(() => {
