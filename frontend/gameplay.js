@@ -4010,7 +4010,6 @@ function initializePlayers() {
 }
 
 // Legacy token UI removed
-return;
 function createPlayerTokenSelectionUI(playerIndex) {
     if (initialSelectionComplete) return;
     if (isMultiplayerMode) return; // Disable legacy UI in multiplayer
