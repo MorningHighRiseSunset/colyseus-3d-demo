@@ -1412,13 +1412,13 @@ const communityChestCards = [
 
 // Available tokens for selection (DO NOT CHANGE THE IMAGE PATHS OR NAMES)
 const availableTokens = [
-    { name: 'rolls royce', displayName: 'Rolls Royce', img: 'Images/image-removebg-preview.png' },
-    { name: 'helicopter', displayName: 'Helicopter', img: 'Images/image-removebg-preview (1).png' },
-    { name: 'hat', displayName: 'Top Hat', img: 'Images/image-removebg-preview (6).png' },
-    { name: 'football', displayName: 'Football', img: 'Images/image-removebg-preview (7).png' },
-    { name: 'burger', displayName: 'Burger', img: 'Images/image-removebg-preview (9).png' },
-    { name: 'nike', displayName: 'Tennis Shoe', img: 'Images/image-removebg-preview (10).png' },
-    { name: 'woman', displayName: 'Woman', img: 'Images/image-removebg-preview (8).png' }
+    { name: 'rolls royce', displayName: 'Rolls Royce', image: 'Images/image-removebg-preview.png' },
+    { name: 'helicopter', displayName: 'Helicopter', image: 'Images/image-removebg-preview (1).png' },
+    { name: 'hat', displayName: 'Top Hat', image: 'Images/image-removebg-preview (6).png' },
+    { name: 'football', displayName: 'Football', image: 'Images/image-removebg-preview (7).png' },
+    { name: 'burger', displayName: 'Burger', image: 'Images/image-removebg-preview (9).png' },
+    { name: 'nike', displayName: 'Tennis Shoe', image: 'Images/image-removebg-preview (10).png' },
+    { name: 'woman', displayName: 'Woman', image: 'Images/image-removebg-preview (8).png' }
 ];
 // DO NOT CHANGE THE IMAGE FILE NAMES OR PATHS ABOVE!
 
@@ -1891,7 +1891,7 @@ function initPlayerTokenSelection() {
     if (tokenSelectionUI && document.body.contains(tokenSelectionUI)) {
         document.body.removeChild(tokenSelectionUI);
     }
-    createPlayerTokenSelectionUI(currentPlayerIndex);
+    // createPlayerTokenSelectionUI removed (legacy UI)
 }
 
 // Edit mode functions
@@ -4009,6 +4009,8 @@ function initializePlayers() {
     console.log("Players initialized:", players);
 }
 
+// Legacy token UI removed
+return;
 function createPlayerTokenSelectionUI(playerIndex) {
     if (initialSelectionComplete) return;
     if (isMultiplayerMode) return; // Disable legacy UI in multiplayer
@@ -4739,6 +4741,14 @@ function finalizeMove(token, endPos, callback) {
 
 function createTokenButton(token, index) {
     const tokenButton = document.createElement("div");
+    const img = document.createElement("img");
+    img.src = token.image || token.img;
+    img.alt = token.displayName || token.name;
+    img.style.width = '60px';
+    img.style.height = '60px';
+    img.style.objectFit = 'contain';
+    img.style.marginBottom = '8px';
+    tokenButton.appendChild(img);
     tokenButton.setAttribute("data-token-name", token.name); // allow identification
     tokenButton.className = "token-button";
 
@@ -6187,7 +6197,7 @@ function init() {
         console.log('Token selection callback');
         // Only create token selection UI if not in multiplayer mode
         if (!window.isMultiplayerMode) {
-            createPlayerTokenSelectionUI(currentPlayerIndex);
+            // createPlayerTokenSelectionUI removed (legacy UI)
         }
     });
 
@@ -6246,7 +6256,7 @@ function init() {
     
     // Only create token selection UI if not in multiplayer mode
     if (!window.isMultiplayerMode) {
-        createPlayerTokenSelectionUI(currentPlayerIndex);
+        // createPlayerTokenSelectionUI removed (legacy UI)
     }
     
     createDiceButton();
