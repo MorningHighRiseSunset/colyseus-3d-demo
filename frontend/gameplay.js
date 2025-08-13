@@ -4679,8 +4679,8 @@ function moveToken(startPos, endPos, token, callback) {
     currentlyMovingToken = token;
     isTokenMoving = true;
     selectedToken = token;
-    if (!token || !startPos || !endPos) {
-        console.error("Invalid parameters passed to moveToken");
+    if (!token || !startPos || !endPos || typeof startPos.x !== 'number' || typeof endPos.x !== 'number') {
+        console.error("Invalid parameters passed to moveToken", { token, startPos, endPos });
         return;
     }
 
@@ -4699,15 +4699,8 @@ function moveToken(startPos, endPos, token, callback) {
     // Determine the animation based on the token type
     if (tokenName === "nike") {
         const nikeHeight = 0.7;
-        const adjustedStartPos = {
-            ...startPos,
-            y: startPos.y + nikeHeight
-        };
-        const adjustedEndPos = {
-            ...endPos,
-            y: endPos.y + nikeHeight
-        };
-
+        const adjustedStartPos = { ...startPos, y: startPos.y + nikeHeight };
+        const adjustedEndPos = { ...endPos, y: endPos.y + nikeHeight };
         hopWithNikeEffect(adjustedStartPos, adjustedEndPos, token, () => {
             finalizeMove(token, adjustedEndPos, callback);
         });
@@ -4717,29 +4710,18 @@ function moveToken(startPos, endPos, token, callback) {
         });
     } else if (tokenName === "hat") {
         const hatRestingHeight = getTokenHeight('hat', endPos.y !== undefined ? endPos.y : 2);
-        jumpWithHatEffect({
-                ...startPos,
-                y: hatRestingHeight
-            }, {
-                ...endPos,
-                y: hatRestingHeight
-            },
+        jumpWithHatEffect(
+            { ...startPos, y: hatRestingHeight },
+            { ...endPos, y: hatRestingHeight },
             token,
             () => {
                 finalizeMove(token, endPos, callback);
             }
         );
     } else if (tokenName === "woman") {
-        const womanHeight = 0.3; // Slightly higher during movement to prevent feet clipping
-        const adjustedStartPos = {
-            ...startPos,
-            y: startPos.y + womanHeight
-        };
-        const adjustedEndPos = {
-            ...endPos,
-            y: endPos.y + womanHeight
-        };
-
+        const womanHeight = 0.3;
+        const adjustedStartPos = { ...startPos, y: startPos.y + womanHeight };
+        const adjustedEndPos = { ...endPos, y: endPos.y + womanHeight };
         const duration = 1000;
         const startTime = Date.now();
 
@@ -4771,15 +4753,10 @@ function moveToken(startPos, endPos, token, callback) {
 
         animate();
     } else if (tokenName === "football") {
-        // Football movement is handled elsewhere (throwFootballAnimation)
         finalizeMove(token, endPos, callback);
     } else if (tokenName === "rolls royce") {
-        // Rolls Royce handled by driveWithRollsRoyceEffect or driveRollsRoyceAlongPath
         finalizeMove(token, endPos, callback);
     } else if (tokenName === "helicopter") {
-        // Helicopter should use proper helicopter movement functions
-        // This should be handled by moveHelicopterToNewPosition instead
-        // For now, use a simple movement to avoid helicopter sound issues
         const duration = 1000;
         const startTime = Date.now();
 
@@ -4839,15 +4816,11 @@ function moveToken(startPos, endPos, token, callback) {
     }
 }
 
-
 function finalizeMove(token, endPos, callback) {
     const baseHeight = endPos.y;
     let finalHeight = getTokenHeight(token.userData.tokenName, baseHeight);
     if (token.userData.tokenName === "nike") finalHeight += 0.5;
-    else if (token.userData.tokenName === "burger") finalHeight += 0.7;
-    else if (token.userData.tokenName === "speed boat") finalHeight += 0.5;
-    else if (token.userData.tokenName === "rolls royce") finalHeight += 0.3;
-    else if (token.userData.tokenName === "football") finalHeight += 1.0;
+    else if (token.userData.tokenName === "burger") finalHeight += 0.2;
     token.position.set(endPos.x, finalHeight, endPos.z);
     isTokenMoving = false;
     currentlyMovingToken = null;
@@ -4856,8 +4829,6 @@ function finalizeMove(token, endPos, callback) {
     const tokenName = token.userData.tokenName;
     if (tokenName === "hat") startHatIdle(token);
     else if (tokenName === "burger") startBurgerIdle(token);
-    else if (tokenName === "football") startFootballIdle(token);
-    else if (tokenName === "nike") startNikeIdle(token);
     // Rolls Royce and helicopter handled in their own movement functions
     // Woman uses built-in GLTF idle
 
