@@ -78,9 +78,12 @@ function loadAllTokenModels(scene, onAllLoaded) {
             }
             window.loadedTokenModels[tokenInfo.name] = model;
             loadedCount++;
-            if (loadedCount === tokenList.length && typeof onAllLoaded === 'function') {
+            if (loadedCount === tokenList.length) {
+                window.tokenModelsReady = true;
                 console.log('All tokens loaded successfully');
-                onAllLoaded();
+                if (typeof onAllLoaded === 'function') onAllLoaded();
+                // Fire a custom event for other logic to listen for
+                window.dispatchEvent(new Event('tokenModelsReady'));
             }
         }, undefined, (err) => {
             console.error(`Error loading model for ${tokenInfo.name}:`, err);
@@ -95,13 +98,23 @@ function loadAllTokenModels(scene, onAllLoaded) {
 
 // Example usage: load tokens at startup
 window.addEventListener('DOMContentLoaded', () => {
-    // If you have a global scene variable, pass it here
     if (typeof scene !== 'undefined') {
         loadAllTokenModels(scene);
     } else {
         loadAllTokenModels(null);
     }
 });
+
+// --- Patch: Only assign tokens after models are loaded ---
+function safeAssignSelectedTokensToPlayers() {
+    if (window.tokenModelsReady) {
+        safeAssignSelectedTokensToPlayers('renderPlayersList');
+    } else {
+        window.addEventListener('tokenModelsReady', () => assignSelectedTokensToPlayers(), { once: true });
+    }
+}
+
+// Replace all assignSelectedTokensToPlayers() calls with safeAssignSelectedTokensToPlayers()
 // Assign selectedToken models to all players who have picked a token
 function assignSelectedTokensToPlayers() {
     if (!window.loadedTokenModels) return;
@@ -356,7 +369,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             token: p.token || null
         }));
         renderPlayersList();
-        assignSelectedTokensToPlayers();
+        safeAssignSelectedTokensToPlayers('renderPlayersList');
         // Show “Start Game” only for host (first player)
         const hostId = playerList[0]?.id;
         // Toggle both button variants if present
@@ -384,7 +397,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 }
             }
             // Assign selectedToken for all players if model exists
-            assignSelectedTokensToPlayers();
+            safeAssignSelectedTokensToPlayers('renderPlayersList');
             renderPlayersList();
             // Mark token as picked in UI and disable it
             document.querySelectorAll(`.token-button[data-token-name="${token}"]`).forEach(btn => {
@@ -8573,7 +8586,7 @@ Object.defineProperty(window, 'loadedTokenModels', {
         this._loadedTokenModels = val;
         if (typeof assignSelectedTokensToPlayers === 'function') {
             console.log('[Patch Debug] Calling assignSelectedTokensToPlayers from loadedTokenModels setter');
-            assignSelectedTokensToPlayers();
+            safeAssignSelectedTokensToPlayers('renderPlayersList');
         } else {
             console.warn('[Patch Debug] assignSelectedTokensToPlayers is not a function when loadedTokenModels is set');
         }
