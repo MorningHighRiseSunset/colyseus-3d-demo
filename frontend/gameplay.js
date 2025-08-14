@@ -2,7 +2,7 @@
 function assignSelectedTokensToPlayers() {
     if (!window.loadedTokenModels) return;
     players.forEach(p => {
-        if (p.token && !p.selectedToken && window.loadedTokenModels[p.token]) {
+        if (p.token && window.loadedTokenModels[p.token]) {
             p.selectedToken = window.loadedTokenModels[p.token];
         }
     });
@@ -9325,16 +9325,3 @@ if (socket) {
     });
 }
 
-// Hook up readyUpBtn to emit ready event
-const readyBtnEl = document.getElementById('readyUpBtn');
-if (readyBtnEl) {
-    readyBtnEl.addEventListener('click', () => {
-        socket.emit('playerReady', {
-            roomId: currentRoomId,
-            playerId: currentPlayerId,
-            playerName
-        });
-        readyBtnEl.disabled = true;
-        readyBtnEl.textContent = 'Ready';
-    });
-}
