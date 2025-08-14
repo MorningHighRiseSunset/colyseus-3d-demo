@@ -230,18 +230,16 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
 
     socket.on('playerList', (list) => {
         playerList = list;
-        // Sync main players array with playerList (id, name, token, selectedToken) using playerId
-        playerList.forEach((p) => {
-            const mainPlayer = players.find(pl => pl.id === p.id);
-            if (mainPlayer) {
-                mainPlayer.name = p.name;
-                mainPlayer.token = p.token;
-                // Always assign selectedToken if model is available
-                if (p.token && window.loadedTokenModels && window.loadedTokenModels[p.token]) {
-                    mainPlayer.selectedToken = window.loadedTokenModels[p.token];
-                }
-            }
-        });
+        // Rebuild the main players array from the server's playerList
+        players = playerList.map(p => ({
+            id: p.id,
+            name: p.name,
+            money: p.money || 5000,
+            properties: p.properties || [],
+            selectedToken: (p.token && window.loadedTokenModels && window.loadedTokenModels[p.token]) ? window.loadedTokenModels[p.token] : null,
+            currentPosition: p.currentPosition || 0,
+            token: p.token || null
+        }));
         renderPlayersList();
         assignSelectedTokensToPlayers();
         // Show “Start Game” only for host (first player)
