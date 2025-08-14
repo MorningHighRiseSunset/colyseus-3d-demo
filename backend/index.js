@@ -43,7 +43,11 @@ io.on('connection', (socket) => {
     rooms[roomId].players[playerId] = { name: playerName || 'Player' };
     rooms[roomId].positions[playerId] = 0;
     socket.join(roomId);
-    io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({ id, ...info })));
+    io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({
+      id,
+      ...info,
+      token: rooms[roomId].tokens[id] || null
+    })));
     io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
     // Notify current token-pick turn
     const pickOrder = Object.keys(rooms[roomId].players);
