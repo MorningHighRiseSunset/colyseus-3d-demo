@@ -9299,9 +9299,11 @@ function setupTokenButtonSocket() {
 setupTokenButtonSocket();
 
 // Listen for all players’ ready states and re-render list
-socket.on('playerReadyStates', (states) => {
-    renderPlayersList();
-});
+if (socket) {
+    socket.on('playerReadyStates', (states) => {
+        renderPlayersList();
+    });
+}
 
 // Hook up readyUpBtn to emit ready event
 const readyBtnEl = document.getElementById('readyUpBtn');
