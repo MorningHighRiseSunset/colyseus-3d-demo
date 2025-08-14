@@ -106,11 +106,16 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 // --- Patch: Only assign tokens after models are loaded ---
-function safeAssignSelectedTokensToPlayers() {
+function safeAssignSelectedTokensToPlayers(contextMsg = '') {
     if (window.tokenModelsReady) {
-        safeAssignSelectedTokensToPlayers('renderPlayersList');
+        console.log(`[Token Loader] safeAssignSelectedTokensToPlayers: Models ready. Triggered by: ${contextMsg}`);
+        assignSelectedTokensToPlayers();
     } else {
-        window.addEventListener('tokenModelsReady', () => assignSelectedTokensToPlayers(), { once: true });
+        console.warn(`[Token Loader] safeAssignSelectedTokensToPlayers: Models NOT ready yet. Waiting. Triggered by: ${contextMsg}`);
+        window.addEventListener('tokenModelsReady', () => {
+            console.log(`[Token Loader] safeAssignSelectedTokensToPlayers: Models now ready (event). Triggered by: ${contextMsg}`);
+            assignSelectedTokensToPlayers();
+        }, { once: true });
     }
 }
 
@@ -125,8 +130,9 @@ function assignSelectedTokensToPlayers() {
     if (window.loadedTokenModels && typeof window.loadedTokenModels === 'object') {
         console.log('[Patch Debug] assignSelectedTokensToPlayers: loadedTokenModels keys:', Object.keys(window.loadedTokenModels));
     }
-    window.players.forEach(player => {
+    window.players.forEach((player, idx) => {
         player.selectedToken = null;
+        console.log(`[Patch Debug] Player ${idx}:`, JSON.stringify(player));
         if (player.token && window.loadedTokenModels[player.token]) {
             player.selectedToken = window.loadedTokenModels[player.token].clone();
             console.log(`[Patch Debug] Assigned token '${player.token}' to player '${player.name}'`);
@@ -135,6 +141,7 @@ function assignSelectedTokensToPlayers() {
         }
     });
 }
+
 // --- Ready-Up UI Logic ---
 function setupMultiplayerReadyUI() {
     const readyBtn = document.getElementById('readyUpBtn');
@@ -357,6 +364,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     });
 
     socket.on('playerList', (list) => {
+        console.log('[MP DEBUG] Received playerList from server:', JSON.stringify(list, null, 2));
         playerList = list;
         // Rebuild the main players array from the server's playerList
         players = playerList.map(p => ({
@@ -368,8 +376,9 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             currentPosition: p.currentPosition || 0,
             token: p.token || null
         }));
+        console.log('[MP DEBUG] Updated local players array:', JSON.stringify(players, null, 2));
         renderPlayersList();
-        safeAssignSelectedTokensToPlayers('renderPlayersList');
+        safeAssignSelectedTokensToPlayers('playerList socket event');
         // Show “Start Game” only for host (first player)
         const hostId = playerList[0]?.id;
         // Toggle both button variants if present
@@ -385,6 +394,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
 
     // Show token selection events
     socket.on('playerSelectedToken', ({ playerId: pid, token }) => {
+        console.log(`[MP DEBUG] playerSelectedToken event: playerId=${pid}, token=${token}`);
         const p = playerList.find(p => p.id === pid);
         if (p) {
             p.token = token;
@@ -397,13 +407,15 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 }
             }
             // Assign selectedToken for all players if model exists
-            safeAssignSelectedTokensToPlayers('renderPlayersList');
+            safeAssignSelectedTokensToPlayers('playerSelectedToken socket event');
             renderPlayersList();
             // Mark token as picked in UI and disable it
             document.querySelectorAll(`.token-button[data-token-name="${token}"]`).forEach(btn => {
                 btn.classList.add('picked');
                 btn.disabled = true;
             });
+        } else {
+            console.warn(`[MP DEBUG] playerSelectedToken: No player found for id ${pid}`);
         }
     });
 
@@ -424,16 +436,16 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
 
     // Handle game start broadcast
     socket.on('gameStarted', ({ hostName }) => {
-    // Hide ready/start buttons
-    const readyBtn = document.getElementById('readyUpBtn');
-    const startBtn = document.getElementById('startGameBtn');
-    if (readyBtn) readyBtn.style.display = 'none';
-    if (startBtn) startBtn.style.display = 'none';
-    // Hide token selection modal
-    const modal = document.getElementById('token-selection-ui');
-    if (modal) modal.style.display = 'none';
-    // If host, show roll dice
-    if (playerList[0]?.id === currentPlayerId) {
+        // Hide ready/start buttons
+        const readyBtn = document.getElementById('readyUpBtn');
+        const startBtn = document.getElementById('startGameBtn');
+        if (readyBtn) readyBtn.style.display = 'none';
+        if (startBtn) startBtn.style.display = 'none';
+        // Hide token selection modal
+        const modal = document.getElementById('token-selection-ui');
+        if (modal) modal.style.display = 'none';
+        // If host, show roll dice
+        if (playerList[0]?.id === currentPlayerId) {
             const diceBtn = document.querySelector('.dice-button');
             if (diceBtn) diceBtn.style.display = '';
         }
