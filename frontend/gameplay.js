@@ -1,3 +1,34 @@
+// --- Debug UI for Token Assignment ---
+function showTokenDebugInfo() {
+    let debugDiv = document.getElementById('token-debug-info');
+    if (!debugDiv) {
+        debugDiv = document.createElement('div');
+        debugDiv.id = 'token-debug-info';
+        debugDiv.style.position = 'fixed';
+        debugDiv.style.bottom = '0';
+        debugDiv.style.right = '0';
+        debugDiv.style.background = 'rgba(0,0,0,0.85)';
+        debugDiv.style.color = '#fff';
+        debugDiv.style.fontSize = '14px';
+        debugDiv.style.padding = '10px';
+        debugDiv.style.zIndex = '9999';
+        debugDiv.style.maxWidth = '400px';
+        debugDiv.style.maxHeight = '300px';
+        debugDiv.style.overflowY = 'auto';
+        document.body.appendChild(debugDiv);
+    }
+    const modelKeys = window.loadedTokenModels ? Object.keys(window.loadedTokenModels) : [];
+    const playerTokens = window.players ? window.players.map(p => `${p.name}: ${p.token}`) : [];
+    debugDiv.innerHTML = `
+        <b>Token Debug Info</b><br>
+        <b>Loaded Token Models:</b> ${JSON.stringify(modelKeys)}<br>
+        <b>Players & Tokens:</b><br>
+        ${playerTokens.map(t => `<div>${t}</div>`).join('')}
+    `;
+}
+
+// Update debug info after relevant events
+setInterval(showTokenDebugInfo, 1000);
 // Assign selectedToken models to all players who have picked a token
 function assignSelectedTokensToPlayers() {
     if (!window.loadedTokenModels) return;
