@@ -9215,7 +9215,7 @@ function createTokens(callback) {
             socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
             btn.classList.add('picked');
             btn.disabled = true;
-            readyStatus.textContent = `Token ${name} selected for ${playerName}`;
+            readyStatus.textContent = `Token ${name} selected for ${currentPlayerName}`;
             if (readyBtn) readyBtn.style.display = '';
         });
         grid.appendChild(btn);
