@@ -111,8 +111,18 @@ io.on('connection', (socket) => {
     if (!rooms[roomId]) return;
     // Record chosen token
     rooms[roomId].tokens[playerId] = token;
+    // Also set the token property on the player object for frontend sync
+    if (rooms[roomId].players[playerId]) {
+      rooms[roomId].players[playerId].token = token;
+    }
     // Notify all players
     io.to(roomId).emit('playerSelectedToken', { playerId, token });
+    // Broadcast updated player list with tokens
+    io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({
+      id,
+      ...info,
+      token: rooms[roomId].tokens[id] || info.token || null
+    })));
     // Determine next turn to pick
     const pickOrder = Object.keys(rooms[roomId].players);
     const chosenCount = Object.keys(rooms[roomId].tokens).length;
