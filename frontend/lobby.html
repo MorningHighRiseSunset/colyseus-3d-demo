@@ -8,10 +8,14 @@
 <body>
   <div class="container">
     <h1>Lobby</h1>
-  <input type="text" id="playerName" placeholder="Your Name" style="padding:8px; border-radius:6px; border:none; width:180px; margin-bottom:8px;" />
-  <button id="createRoomBtn" class="btn btn-3d">Create Room</button>
-  <input type="text" id="joinRoomId" placeholder="Enter Room ID" style="padding:8px; border-radius:6px; border:none; width:180px;" />
-  <button id="joinRoomBtn" class="btn btn-3d">Join Room</button>
+  <div style="display: flex; flex-direction: row; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <label for="playerName" style="margin-right:4px; font-weight:500;">Name:</label>
+    <input type="text" id="playerName" placeholder="Your Name" style="padding:8px; border-radius:6px; border:none; width:140px;" />
+    <label for="joinRoomId" style="margin-left:12px; margin-right:4px; font-weight:500;">Room Code:</label>
+    <input type="text" id="joinRoomId" placeholder="Enter Room ID" style="padding:8px; border-radius:6px; border:none; width:120px;" />
+    <button id="joinRoomBtn" class="btn btn-3d" style="margin-left:8px;">Join Room</button>
+  </div>
+  <button id="createRoomBtn" class="btn btn-3d" style="margin-bottom:12px;">Create Room</button>
   <div id="roomList" class="room-list"></div>
   <!-- Player avatars and live count are shown in each room entry -->
   </div>
