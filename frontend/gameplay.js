@@ -33,7 +33,7 @@ function setupMultiplayerReadyUI() {
     };
     if (socket) {
         socket.on('playerReadyStates', (readyStates) => {
-            // Show ready state by playerId
+            // Show ready state by playerId for the status area
             tokenReadyStatus.innerHTML = playerList.map(p => {
                 const ready = readyStates[p.id];
                 return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> <span class="player-name">${p.name}</span>: <span class="ready-status ${ready ? 'ready' : 'not-ready'}">${ready ? 'Ready' : 'Not Ready'}</span>`;
@@ -42,7 +42,7 @@ function setupMultiplayerReadyUI() {
             const allReady = playerList.length > 1 && playerList.every(p => readyStates[p.id]);
             const isHost = playerList[0]?.id === currentPlayerId;
             startBtn.style.display = (isHost && allReady) ? '' : 'none';
-            // Only disable ready button if this player is ready
+            // Ready button is always visible, only disabled if this player is ready
             const iAmReady = readyStates[currentPlayerId];
             readyBtn.disabled = !!iAmReady;
             readyBtn.textContent = iAmReady ? 'Ready' : 'Ready Up';
@@ -261,6 +261,14 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         const p = playerList.find(p => p.id === pid);
         if (p) {
             p.token = token;
+            // Update the main players array as well
+            const mainPlayer = players.find(pl => pl.name === p.name);
+            if (mainPlayer) {
+                mainPlayer.token = token;
+                if (window.loadedTokenModels && window.loadedTokenModels[token]) {
+                    mainPlayer.selectedToken = window.loadedTokenModels[token];
+                }
+            }
             // Assign selectedToken for all players if model exists
             assignSelectedTokensToPlayers();
             renderPlayersList();
