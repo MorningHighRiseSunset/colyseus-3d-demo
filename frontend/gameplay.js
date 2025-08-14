@@ -230,14 +230,15 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
 
     socket.on('playerList', (list) => {
         playerList = list;
-        // Sync main players array with playerList (id, name, token, selectedToken)
-        playerList.forEach((p, i) => {
-            if (players[i]) {
-                players[i].name = p.name;
-                players[i].token = p.token;
-                // Assign selectedToken if model is available
+        // Sync main players array with playerList (id, name, token, selectedToken) using playerId
+        playerList.forEach((p) => {
+            const mainPlayer = players.find(pl => pl.id === p.id);
+            if (mainPlayer) {
+                mainPlayer.name = p.name;
+                mainPlayer.token = p.token;
+                // Always assign selectedToken if model is available
                 if (p.token && window.loadedTokenModels && window.loadedTokenModels[p.token]) {
-                    players[i].selectedToken = window.loadedTokenModels[p.token];
+                    mainPlayer.selectedToken = window.loadedTokenModels[p.token];
                 }
             }
         });
@@ -261,8 +262,8 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         const p = playerList.find(p => p.id === pid);
         if (p) {
             p.token = token;
-            // Update the main players array as well
-            const mainPlayer = players.find(pl => pl.name === p.name);
+            // Update the main players array as well (by id)
+            const mainPlayer = players.find(pl => pl.id === pid);
             if (mainPlayer) {
                 mainPlayer.token = token;
                 if (window.loadedTokenModels && window.loadedTokenModels[token]) {
