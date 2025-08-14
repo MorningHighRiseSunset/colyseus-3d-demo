@@ -1,17 +1,22 @@
 // Assign selectedToken models to all players who have picked a token
 function assignSelectedTokensToPlayers() {
     if (!window.loadedTokenModels) return;
+    if (!window.players || !window.loadedTokenModels) {
         console.warn('[Patch Debug] assignSelectedTokensToPlayers: players or loadedTokenModels missing', window.players, window.loadedTokenModels);
-        if (!window.players || !window.loadedTokenModels) return;
-        window.players.forEach(player => {
-            player.selectedToken = null;
-            if (player.token && window.loadedTokenModels[player.token]) {
-                player.selectedToken = window.loadedTokenModels[player.token].clone();
-                console.log(`[Patch Debug] Assigned token '${player.token}' to player '${player.name}'`);
-            } else {
-                console.warn(`[Patch Debug] No valid token for player '${player.name}'. player.token:`, player.token, 'loadedTokenModels:', window.loadedTokenModels);
-            }
-        });
+        return;
+    }
+    if (window.loadedTokenModels && typeof window.loadedTokenModels === 'object') {
+        console.log('[Patch Debug] assignSelectedTokensToPlayers: loadedTokenModels keys:', Object.keys(window.loadedTokenModels));
+    }
+    window.players.forEach(player => {
+        player.selectedToken = null;
+        if (player.token && window.loadedTokenModels[player.token]) {
+            player.selectedToken = window.loadedTokenModels[player.token].clone();
+            console.log(`[Patch Debug] Assigned token '${player.token}' to player '${player.name}'`);
+        } else {
+            console.warn(`[Patch Debug] No valid token for player '${player.name}'. player.token:`, player.token, 'loadedTokenModels:', window.loadedTokenModels);
+        }
+    });
 }
 // --- Ready-Up UI Logic ---
 function setupMultiplayerReadyUI() {
@@ -8457,9 +8462,16 @@ window.testAllTokens = testAllTokens;
 // --- Patch: Ensure assignSelectedTokensToPlayers is called whenever loadedTokenModels is set ---
 Object.defineProperty(window, 'loadedTokenModels', {
     set: function(val) {
+        console.log('[Patch Debug] window.loadedTokenModels SETTER called. Value:', val);
+        if (val && typeof val === 'object') {
+            console.log('[Patch Debug] loadedTokenModels keys:', Object.keys(val));
+        }
         this._loadedTokenModels = val;
         if (typeof assignSelectedTokensToPlayers === 'function') {
+            console.log('[Patch Debug] Calling assignSelectedTokensToPlayers from loadedTokenModels setter');
             assignSelectedTokensToPlayers();
+        } else {
+            console.warn('[Patch Debug] assignSelectedTokensToPlayers is not a function when loadedTokenModels is set');
         }
     },
     get: function() {
