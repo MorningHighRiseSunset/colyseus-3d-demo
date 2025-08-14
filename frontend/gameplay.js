@@ -96,6 +96,20 @@ function loadAllTokenModels(scene, onAllLoaded) {
     });
 }
 
+function removeCircularReferences() {
+  const seen = new WeakSet();
+  return function(key, value) {
+    if (typeof value === "object" && value !== null) {
+      if (seen.has(value)) return;
+      seen.add(value);
+    }
+    return value;
+  };
+}
+
+// Usage:
+JSON.stringify(yourObject, removeCircularReferences());
+
 // Example usage: load tokens at startup
 window.addEventListener('DOMContentLoaded', () => {
     if (typeof scene !== 'undefined') {
