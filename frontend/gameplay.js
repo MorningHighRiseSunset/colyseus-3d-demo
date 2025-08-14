@@ -4,6 +4,8 @@ function assignSelectedTokensToPlayers() {
     players.forEach(p => {
         if (p.token && window.loadedTokenModels[p.token]) {
             p.selectedToken = window.loadedTokenModels[p.token];
+        } else {
+            p.selectedToken = null;
         }
     });
 }
@@ -7133,25 +7135,12 @@ function moveTokenAlongPath(path, token, callback) {
 // Enhanced moveTokenToNewPosition with collision avoidance
 function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
     const currentPlayer = players[currentPlayerIndex];
-
     if (!currentPlayer.selectedToken) {
         console.error(`No token assigned to ${currentPlayer.name}.`);
         console.log('Debug - Current player:', currentPlayer);
         console.log('Debug - Current player index:', currentPlayerIndex);
         console.log('Debug - Global players array:', players);
-        console.log('Debug - Window players array:', window.players);
-        if (window.players && window.players[currentPlayerIndex]) {
-            console.log('Debug - Window players[currentPlayerIndex].selectedToken:', window.players[currentPlayerIndex].selectedToken);
-        }
-        
-        // Try to get token from window.players array as fallback
-        if (window.players && window.players[currentPlayerIndex] && window.players[currentPlayerIndex].selectedToken) {
-            console.log('Attempting to use token from window.players array as fallback');
-            currentPlayer.selectedToken = window.players[currentPlayerIndex].selectedToken;
-        } else {
-            console.error('No token available in either players array');
-            return;
-        }
+        return;
     }
 
     const oldPosition = currentPlayer.currentPosition;
