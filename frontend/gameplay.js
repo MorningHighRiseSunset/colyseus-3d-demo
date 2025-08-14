@@ -206,6 +206,7 @@ function renderPlayersList() {
 // --- Multiplayer Initialization ---
 function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     socket = io('https://colyseus-3d-demo.onrender.com');
+    setupGameStartedSocketListener();
     currentRoomId = roomId || 'defaultRoom';
     currentPlayerId = playerId || socket.id;
     playerName = playerName || `Player-${Math.floor(Math.random()*1000)}`;
@@ -9243,32 +9244,34 @@ function checkMultiplayerMode() {
 }
 
 
-if (socket && socket.on) {
-    socket.on('gameStarted', () => {
-        let diceBtn = document.querySelector('.dice-button');
-        if (!diceBtn) {
-            diceBtn = document.createElement('button');
-            diceBtn.className = 'dice-button';
-            diceBtn.textContent = 'Roll Dice';
-            diceBtn.style.position = 'absolute';
-            diceBtn.style.bottom = '40px';
-            diceBtn.style.left = '50%';
-            diceBtn.style.transform = 'translateX(-50%)';
-            diceBtn.style.fontSize = '22px';
-            diceBtn.style.padding = '16px 32px';
-            diceBtn.style.background = '#4caf50';
-            diceBtn.style.color = '#fff';
-            diceBtn.style.border = 'none';
-            diceBtn.style.borderRadius = '12px';
-            diceBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
-            diceBtn.style.zIndex = '1002';
-            diceBtn.onclick = () => {
-                window.rollDice && window.rollDice();
-            };
-            document.body.appendChild(diceBtn);
-        }
-        diceBtn.style.display = 'block';
-    });
+function setupGameStartedSocketListener() {
+    if (typeof socket !== 'undefined' && socket && typeof socket.on === 'function') {
+        socket.on('gameStarted', () => {
+            let diceBtn = document.querySelector('.dice-button');
+            if (!diceBtn) {
+                diceBtn = document.createElement('button');
+                diceBtn.className = 'dice-button';
+                diceBtn.textContent = 'Roll Dice';
+                diceBtn.style.position = 'absolute';
+                diceBtn.style.bottom = '40px';
+                diceBtn.style.left = '50%';
+                diceBtn.style.transform = 'translateX(-50%)';
+                diceBtn.style.fontSize = '22px';
+                diceBtn.style.padding = '16px 32px';
+                diceBtn.style.background = '#4caf50';
+                diceBtn.style.color = '#fff';
+                diceBtn.style.border = 'none';
+                diceBtn.style.borderRadius = '12px';
+                diceBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
+                diceBtn.style.zIndex = '1002';
+                diceBtn.onclick = () => {
+                    window.rollDice && window.rollDice();
+                };
+                document.body.appendChild(diceBtn);
+            }
+            diceBtn.style.display = 'block';
+        });
+    }
 }
 
 // Call override functions when multiplayer is ready
