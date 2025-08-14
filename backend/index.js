@@ -82,13 +82,13 @@ io.on('connection', (socket) => {
   });
 
   // --- Ready-up and game start logic ---
-  socket.on('playerReady', ({ roomId, playerId, playerName }) => {
+  socket.on('playerReady', ({ roomId, playerId }) => {
     if (!rooms[roomId]) return;
     rooms[roomId].ready[playerId] = true;
-    // Broadcast all ready states
+    // Broadcast all ready states by playerId
     const readyStates = {};
-    Object.entries(rooms[roomId].players).forEach(([pid, info]) => {
-      readyStates[info.name] = !!rooms[roomId].ready[pid];
+    Object.keys(rooms[roomId].players).forEach(pid => {
+      readyStates[pid] = !!rooms[roomId].ready[pid];
     });
     io.to(roomId).emit('playerReadyStates', readyStates);
   });

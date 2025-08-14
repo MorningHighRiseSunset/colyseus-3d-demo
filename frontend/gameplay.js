@@ -18,8 +18,7 @@ function setupMultiplayerReadyUI() {
         if (socket && currentRoomId && currentPlayerId) {
             socket.emit('playerReady', {
                 roomId: currentRoomId,
-                playerId: currentPlayerId,
-                playerName: playerList.find(p => p.id === currentPlayerId)?.name || 'Player'
+                playerId: currentPlayerId
             });
         }
     };
@@ -34,16 +33,17 @@ function setupMultiplayerReadyUI() {
     };
     if (socket) {
         socket.on('playerReadyStates', (readyStates) => {
-            tokenReadyStatus.innerHTML = Object.entries(readyStates).map(([name, ready]) => {
-                return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> <span class="player-name">${name}</span>: <span class="ready-status ${ready ? 'ready' : 'not-ready'}">${ready ? 'Ready' : 'Not Ready'}</span>`;
+            // Show ready state by playerId
+            tokenReadyStatus.innerHTML = playerList.map(p => {
+                const ready = readyStates[p.id];
+                return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> <span class="player-name">${p.name}</span>: <span class="ready-status ${ready ? 'ready' : 'not-ready'}">${ready ? 'Ready' : 'Not Ready'}</span>`;
             }).join('<br>');
             // Only show start button if all players are ready and you are the host
-            const allReady = Object.values(readyStates).every(Boolean);
+            const allReady = playerList.length > 1 && playerList.every(p => readyStates[p.id]);
             const isHost = playerList[0]?.id === currentPlayerId;
             startBtn.style.display = (isHost && allReady) ? '' : 'none';
             // Only disable ready button if this player is ready
-            const myName = playerList.find(p => p.id === currentPlayerId)?.name || 'Player';
-            const iAmReady = readyStates[myName];
+            const iAmReady = readyStates[currentPlayerId];
             readyBtn.disabled = !!iAmReady;
             readyBtn.textContent = iAmReady ? 'Ready' : 'Ready Up';
         });
