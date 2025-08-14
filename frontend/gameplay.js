@@ -1,3 +1,12 @@
+// Assign selectedToken models to all players who have picked a token
+function assignSelectedTokensToPlayers() {
+    if (!window.loadedTokenModels) return;
+    players.forEach(p => {
+        if (p.token && !p.selectedToken && window.loadedTokenModels[p.token]) {
+            p.selectedToken = window.loadedTokenModels[p.token];
+        }
+    });
+}
 // --- Ready-Up UI Logic ---
 function setupMultiplayerReadyUI() {
     const readyBtn = document.getElementById('readyUpBtn');
@@ -221,6 +230,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     socket.on('playerList', (list) => {
         playerList = list;
         renderPlayersList();
+    assignSelectedTokensToPlayers();
         // Show “Start Game” only for host (first player)
         const hostId = playerList[0]?.id;
         // Toggle both button variants if present
@@ -239,10 +249,8 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         const p = playerList.find(p => p.id === pid);
         if (p) {
             p.token = token;
-            // Also assign selectedToken if this is the current player and token model exists
-            if (pid === currentPlayerId && window.loadedTokenModels && window.loadedTokenModels[token]) {
-                p.selectedToken = window.loadedTokenModels[token];
-            }
+            // Assign selectedToken for all players if model exists
+            assignSelectedTokensToPlayers();
             renderPlayersList();
             // Mark token as picked in UI and disable it
             document.querySelectorAll(`.token-button[data-token-name="${token}"]`).forEach(btn => {
