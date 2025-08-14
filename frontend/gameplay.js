@@ -14,11 +14,7 @@ function setupMultiplayerReadyUI() {
     const tokenReadyStatus = document.getElementById('tokenReadyStatus');
     if (!readyBtn || !startBtn) return;
 
-    let isReady = false;
     readyBtn.onclick = () => {
-        isReady = !isReady;
-        readyBtn.textContent = isReady ? 'Unready' : 'Ready Up';
-        readyBtn.classList.toggle('ready-anim', isReady);
         if (socket && currentRoomId && currentPlayerId) {
             socket.emit('playerReady', {
                 roomId: currentRoomId,
@@ -41,10 +37,15 @@ function setupMultiplayerReadyUI() {
             tokenReadyStatus.innerHTML = Object.entries(readyStates).map(([name, ready]) => {
                 return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> <span class="player-name">${name}</span>: <span class="ready-status ${ready ? 'ready' : 'not-ready'}">${ready ? 'Ready' : 'Not Ready'}</span>`;
             }).join('<br>');
+            // Only show start button if all players are ready and you are the host
             const allReady = Object.values(readyStates).every(Boolean);
             const isHost = playerList[0]?.id === currentPlayerId;
             startBtn.style.display = (isHost && allReady) ? '' : 'none';
-            readyBtn.style.display = (isHost && allReady) ? 'none' : '';
+            // Only disable ready button if this player is ready
+            const myName = playerList.find(p => p.id === currentPlayerId)?.name || 'Player';
+            const iAmReady = readyStates[myName];
+            readyBtn.disabled = !!iAmReady;
+            readyBtn.textContent = iAmReady ? 'Ready' : 'Ready Up';
         });
     }
 }
