@@ -8450,6 +8450,20 @@ window.testWomanModel = testWomanModel;
 window.testRollsRoyce = testRollsRoyce;
 window.testAllTokens = testAllTokens;
 
+// --- Patch: Ensure assignSelectedTokensToPlayers is called whenever loadedTokenModels is set ---
+Object.defineProperty(window, 'loadedTokenModels', {
+    set: function(val) {
+        this._loadedTokenModels = val;
+        if (typeof assignSelectedTokensToPlayers === 'function') {
+            assignSelectedTokensToPlayers();
+        }
+    },
+    get: function() {
+        return this._loadedTokenModels;
+    },
+    configurable: true
+});
+
 // --- Rolls Royce Idle Animation State ---
 function startRollsRoyceIdle(animatedModel, position) {
     if (!animatedModel) return;
