@@ -133,8 +133,6 @@ function safeAssignSelectedTokensToPlayers(contextMsg = '') {
     }
 }
 
-// Replace all assignSelectedTokensToPlayers() calls with safeAssignSelectedTokensToPlayers()
-// Assign selectedToken models to all players who have picked a token
 function assignSelectedTokensToPlayers() {
     if (!window.loadedTokenModels) return;
     if (!window.players || !window.loadedTokenModels) {
