@@ -111,15 +111,6 @@ function allPlayersHaveTokens() {
     return players.every(player => player.token && player.selectedToken);
 }
 
-// Before starting the game or advancing turns:
-if (!allPlayersHaveTokens()) {
-    alert("All players must select a token before starting the game!");
-    return;
-}
-
-// Usage example (uncomment and replace 'yourObject' with your actual object):
-// JSON.stringify(yourObject, removeCircularReferences());
-
 // Example usage: load tokens at startup
 window.addEventListener('DOMContentLoaded', () => {
     if (typeof scene !== 'undefined') {
