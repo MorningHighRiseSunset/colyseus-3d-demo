@@ -7321,7 +7321,7 @@ function moveTokenAlongPath(path, token, callback) {
 // Enhanced moveTokenToNewPosition with collision avoidance
 function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
     const currentPlayer = players[currentPlayerIndex];
-    if (!currentPlayer.selectedToken) {
+    if (!currentPlayer.token) {
         console.error(`No token assigned to ${currentPlayer.name}.`);
         console.log('Debug - Current player:', currentPlayer);
         console.log('Debug - Current player index:', currentPlayerIndex);
@@ -7342,7 +7342,7 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
         });
     }
 
-    const token = currentPlayer.selectedToken;
+    const token = currentPlayer.token;
     const tokenName = token.userData.tokenName;
 
     // Update token position tracking
