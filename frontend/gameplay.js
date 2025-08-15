@@ -381,15 +381,24 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         console.log('[MP DEBUG] Received playerList from server:', JSON.stringify(list, null, 2));
         playerList = list;
         // Rebuild the main players array from the server's playerList
-        players = playerList.map(p => ({
-            id: p.id,
-            name: p.name,
-            money: p.money || 5000,
-            properties: p.properties || [],
-            selectedToken: (p.token && window.loadedTokenModels && window.loadedTokenModels[p.token]) ? window.loadedTokenModels[p.token] : null,
-            currentPosition: p.currentPosition || 0,
-            token: p.token || null
-        }));
+        players = playerList.map(p => {
+            let selectedToken = null;
+            if (p.token && window.loadedTokenModels && window.loadedTokenModels[p.token]) {
+                selectedToken = window.loadedTokenModels[p.token].clone();
+                if (scene && !scene.children.includes(selectedToken)) {
+                    scene.add(selectedToken);
+                }
+            }
+            return {
+                id: p.id,
+                name: p.name,
+                money: p.money || 5000,
+                properties: p.properties || [],
+                selectedToken,
+                currentPosition: p.currentPosition || 0,
+                token: p.token || null
+            };
+        });
         console.log('[MP DEBUG] Updated local players array:', JSON.stringify(players, null, 2));
         renderPlayersList();
         safeAssignSelectedTokensToPlayers('playerList socket event');
@@ -417,7 +426,12 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             if (mainPlayer) {
                 mainPlayer.token = token;
                 if (window.loadedTokenModels && window.loadedTokenModels[token]) {
-                    mainPlayer.selectedToken = window.loadedTokenModels[token];
+                    // Always assign a clone for multiplayer
+                    const newToken = window.loadedTokenModels[token].clone();
+                    mainPlayer.selectedToken = newToken;
+                    if (scene && !scene.children.includes(newToken)) {
+                        scene.add(newToken);
+                    }
                 }
             }
             // Assign selectedToken for all players if model exists
