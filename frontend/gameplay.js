@@ -142,16 +142,16 @@ function assignSelectedTokensToPlayers() {
     if (window.loadedTokenModels && typeof window.loadedTokenModels === 'object') {
         console.log('[Patch Debug] assignSelectedTokensToPlayers: loadedTokenModels keys:', Object.keys(window.loadedTokenModels));
     }
-    window.players.forEach((player, idx) => {
-        player.selectedToken = null;
-        console.log(`[Patch Debug] Player ${idx}:`, JSON.stringify(player));
-        if (player.token && window.loadedTokenModels[player.token]) {
-            player.selectedToken = window.loadedTokenModels[player.token].clone();
-            console.log(`[Patch Debug] Assigned token '${player.token}' to player '${player.name}'`);
-        } else {
-            console.warn(`[Patch Debug] No valid token for player '${player.name}'. player.token:`, player.token, 'loadedTokenModels:', window.loadedTokenModels);
-        }
-    });
+        window.players.forEach((player, idx) => {
+            player.selectedToken = null;
+            console.log(`[Patch Debug] Player ${idx}:`, JSON.stringify(player));
+            if (player.token && window.loadedTokenModels[player.token]) {
+                player.selectedToken = window.loadedTokenModels[player.token].clone();
+                console.log(`[Patch Debug] Assigned token model to player '${player.name}'`);
+            } else {
+                console.warn(`[Patch Debug] No valid token for player '${player.name}'. player.token:`, player.token, 'loadedTokenModels:', window.loadedTokenModels);
+            }
+        });
 }
 
 // --- Ready-Up UI Logic ---
