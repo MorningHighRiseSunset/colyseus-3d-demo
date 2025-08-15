@@ -487,13 +487,31 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 const oldIndex = player.currentPosition;
                 const startPos = getBoardSquarePosition(oldIndex);
                 const endPos = getBoardSquarePosition(newPos);
-                const token = player.selectedToken;
+                let token = player.selectedToken;
+                // --- CHEAT: If token is missing, force-spawn it ---
+                if (!token) {
+                    // Try to assign a token model based on player.token or fallback
+                    if (player.token && window.loadedTokenModels && window.loadedTokenModels[player.token]) {
+                        token = window.loadedTokenModels[player.token].clone();
+                        scene.add(token);
+                        player.selectedToken = token;
+                    } else {
+                        // fallback: pick any available model
+                        const modelNames = Object.keys(window.loadedTokenModels || {});
+                        if (modelNames.length > 0) {
+                            token = window.loadedTokenModels[modelNames[0]].clone();
+                            scene.add(token);
+                            player.selectedToken = token;
+                        }
+                    }
+                }
                 if (token) {
+                    // Always move token to correct position
                     moveToken(startPos, endPos, token, () => {
                         player.currentPosition = newPos;
                     });
                 } else {
-                    // No token model yet, just update position
+                    // No token model at all, just update position
                     player.currentPosition = newPos;
                 }
             }
