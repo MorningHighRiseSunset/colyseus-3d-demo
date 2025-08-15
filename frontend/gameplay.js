@@ -101,7 +101,7 @@ function setupMultiplayerReadyUI() {
     startBtn.onclick = () => {
         // Prevent starting the game until all token models are loaded and assigned
         if (!window.tokenModelsReady) {
-            alert('Please wait, tokens are still loading.');
+            console.warn('Tokens are still loading. Please wait.');
             return;
         }
         // Ensure all players have a selectedToken
@@ -6207,32 +6207,45 @@ function isCurrentPlayerAI() {
 }
 
 function selectToken(tokenName) {
+    let foundToken = null;
     scene.traverse((object) => {
         if (object.userData.isToken && object.userData.tokenName === tokenName) {
-            selectedToken = object;
-            players[currentPlayerIndex].selectedToken = selectedToken;
-            selectedToken.visible = true; // <-- Ensure token is visible!
-            console.log('[TokenAssign] Assigned token to player', players[currentPlayerIndex]);
-            console.log('[TokenAssign] Token object:', selectedToken, '| Visible:', selectedToken.visible, '| In scene:', !!selectedToken.parent, '| Position:', selectedToken.position);
-
-            object.traverse((child) => {
-                if (child.isMesh) {
-                    child.material = child.material.clone();
-                    child.material.emissiveIntensity = 0.5;
-                    child.material.needsUpdate = true;
-                }
-            });
-            // --- Camera zoom in on token selection ---
-            if (camera && controls && selectedToken) {
-                camera.position.set(
-                    selectedToken.position.x + 3,
-                    selectedToken.position.y + 5,
-                    selectedToken.position.z + 3
-                );
-                controls.update();
-            }
+            foundToken = object;
         }
     });
+
+    if (foundToken) {
+        selectedToken = foundToken;
+        players[currentPlayerIndex].selectedToken = selectedToken;
+        selectedToken.visible = true;
+
+        // Register in loadedTokenModels for global access
+        if (!window.loadedTokenModels) window.loadedTokenModels = {};
+        window.loadedTokenModels[tokenName] = selectedToken;
+
+        console.log('[TokenAssign] Assigned token to player', players[currentPlayerIndex]);
+        console.log('[TokenAssign] Token object:', selectedToken, '| Visible:', selectedToken.visible, '| In scene:', !!selectedToken.parent, '| Position:', selectedToken.position);
+
+        selectedToken.traverse((child) => {
+            if (child.isMesh) {
+                child.material = child.material.clone();
+                child.material.emissiveIntensity = 0.5;
+                child.material.needsUpdate = true;
+            }
+        });
+
+        // Camera zoom in on token selection
+        if (camera && controls && selectedToken) {
+            camera.position.set(
+                selectedToken.position.x + 3,
+                selectedToken.position.y + 5,
+                selectedToken.position.z + 3
+            );
+            controls.update();
+        }
+    } else {
+        console.warn('[TokenAssign] Token not found in scene for:', tokenName);
+    }
 
     if (tokenSelectionUI) {
         tokenSelectionUI.style.opacity = "0";
@@ -6243,8 +6256,8 @@ function selectToken(tokenName) {
         }, 500);
     }
 
-    nextPlayer(); // Call next player here
-    
+    nextPlayer();
+
     // Update video chat if it's active
     if (typeof updateVideoChatForGameState === 'function') {
         updateVideoChatForGameState();
