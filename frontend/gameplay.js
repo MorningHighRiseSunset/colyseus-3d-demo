@@ -107,8 +107,8 @@ function removeCircularReferences() {
   };
 }
 
-// Usage:
-JSON.stringify(yourObject, removeCircularReferences());
+// Usage example (uncomment and replace 'yourObject' with your actual object):
+// JSON.stringify(yourObject, removeCircularReferences());
 
 // Example usage: load tokens at startup
 window.addEventListener('DOMContentLoaded', () => {
