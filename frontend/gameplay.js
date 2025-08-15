@@ -171,6 +171,16 @@ function setupMultiplayerReadyUI() {
         }
     };
     startBtn.onclick = () => {
+        // Prevent starting the game until all token models are loaded and assigned
+        if (!window.tokenModelsReady) {
+            alert('Please wait, tokens are still loading.');
+            return;
+        }
+        // Ensure all players have a selectedToken
+        if (!players.every(p => p.selectedToken)) {
+            alert('All players must select a token before starting the game!');
+            return;
+        }
         if (socket && currentRoomId && currentPlayerId) {
             socket.emit('startGame', {
                 roomId: currentRoomId,
