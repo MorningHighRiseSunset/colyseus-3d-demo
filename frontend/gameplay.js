@@ -7294,12 +7294,11 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
     }
 
 
-    const token = currentPlayer.token;
-    let tokenName = undefined;
-    if (token && token.userData && typeof token.userData.tokenName !== 'undefined') {
-        tokenName = token.userData.tokenName;
-    } else {
-        console.error('Token or token.userData.tokenName is undefined for player:', currentPlayer);
+    // Use selectedToken for the 3D model, and token (string) for the name
+    const token = currentPlayer.selectedToken;
+    const tokenName = currentPlayer.token;
+    if (!token) {
+        console.error('No selectedToken (3D model) for player:', currentPlayer);
         return;
     }
 
