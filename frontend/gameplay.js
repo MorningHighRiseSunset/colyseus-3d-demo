@@ -1,98 +1,26 @@
 // --- Robust Token Model Loader (ported from oldscript.js) ---
-function loadAllTokenModels(scene, onAllLoaded) {
-    if (window.tokensAlreadyLoaded) {
-        console.log('Tokens already loaded, skipping...');
-        if (onAllLoaded) onAllLoaded();
+const tokenModels = [
+    { name: 'RollsRoyce', path: 'Models/RollsRoyce/rollsRoyceCarAnim.glb', scale: [0.9, 0.9, 0.9] },
+    { name: 'Helicopter', path: 'Models/Helicopter/helicopter.glb', scale: [0.01, 0.01, 0.01] },
+    { name: 'Hat', path: 'Models/TopHat/tophat.glb', scale: [0.5, 0.5, 0.5] },
+    { name: 'Football', path: 'Models/Football/football.glb', scale: [0.1, 0.1, 0.1] },
+    { name: 'Burger', path: 'Models/Cheeseburger/cheeseburger.glb', scale: [3.5, 3.5, 3.5] },
+    { name: 'Nike', path: 'Models/Shoe/shoe.glb', scale: [1.5, 1.5, 1.5] },
+    { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.02, 0.02, 0.02] }
+];
+
+function loadTokenModelByName(name, scene, onLoaded) {
+    const model = tokenModels.find(m => m.name === name);
+    if (!model) {
+        console.error('Model not found:', name);
         return;
     }
-    const loader = new GLTFLoader();
-    window.loadedTokenModels = {};
-    window.tokensAlreadyLoaded = true;
-    const tokenList = [
-        { name: 'RollsRoyce', path: 'Models/RollsRoyce/rollsRoyceCarAnim.glb', scale: [0.9, 0.9, 0.9] },
-        { name: 'Helicopter', path: 'Models/Helicopter/helicopter.glb', scale: [0.01, 0.01, 0.01] },
-        { name: 'Hat', path: 'Models/TopHat/tophat.glb', scale: [0.5, 0.5, 0.5] },
-        { name: 'Football', path: 'Models/Football/football.glb', scale: [0.1, 0.1, 0.1] },
-        { name: 'Burger', path: 'Models/Cheeseburger/cheeseburger.glb', scale: [3.5, 3.5, 3.5] },
-        { name: 'Nike', path: 'Models/Shoe/shoe.glb', scale: [1.5, 1.5, 1.5] },
-        { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.02, 0.02, 0.02] }
-    ];
-    let loadedCount = 0;
-    tokenList.forEach(tokenInfo => {
-        console.log(`Loading token: ${tokenInfo.name} from ${tokenInfo.path}`);
-        loader.load(tokenInfo.path, (gltf) => {
-            const model = gltf.scene;
-            // Fix transparency issues for woman model
-            if (tokenInfo.name === 'Woman') {
-                model.traverse((child) => {
-                    if (child.isMesh) {
-                        if (child.material.map && child.material.map.image) {
-                            child.material.transparent = true;
-                            child.material.alphaTest = 0.1;
-                            child.material.depthWrite = true;
-                            child.material.side = THREE.DoubleSide;
-                        } else {
-                            child.material.transparent = false;
-                            child.material.depthWrite = true;
-                            child.material.side = THREE.FrontSide;
-                            child.material.alphaTest = 0;
-                        }
-                        child.material.needsUpdate = true;
-                    }
-                });
-            }
-            model.scale.set(...tokenInfo.scale);
-            model.visible = false;
-            model.userData.isToken = true;
-            model.userData.tokenName = tokenInfo.name;
-            model.position.set(22.5, 3.0, 22.5);
-            if (scene) scene.add(model);
-            // Animation setup for tokens with animations
-            if (tokenInfo.name === "Woman") {
-                const idleMixer = new THREE.AnimationMixer(model);
-                const idleAction = idleMixer.clipAction(gltf.animations[0]);
-                idleAction.clampWhenFinished = true;
-                idleAction.loop = THREE.LoopRepeat;
-                idleAction.play();
-                model.userData.idleMixer = idleMixer;
-                model.userData.idleAction = idleAction;
-                // Load walk animation from separate file
-                loader.load('Models/WhiteGirlWalk/WhiteGirlWalk.glb', function (walkGltf) {
-                    const walkMixer = new THREE.AnimationMixer(model);
-                    const walkAction = walkMixer.clipAction(walkGltf.animations[0]);
-                    walkAction.clampWhenFinished = true;
-                    walkAction.loop = THREE.LoopRepeat;
-                    model.userData.walkMixer = walkMixer;
-                    model.userData.walkAction = walkAction;
-                }, undefined, function (error) {
-                    console.error('Error loading woman walk animation:', error);
-                });
-            } else if (gltf.animations && gltf.animations.length > 0) {
-                model.userData.mixer = new THREE.AnimationMixer(model);
-                model.userData.actions = [];
-                gltf.animations.forEach(anim => {
-                    const action = model.userData.mixer.clipAction(anim);
-                    action.play();
-                    model.userData.actions.push(action);
-                });
-            }
-            window.loadedTokenModels[tokenInfo.name] = model;
-            loadedCount++;
-            if (loadedCount === tokenList.length) {
-                window.tokenModelsReady = true;
-                console.log('All tokens loaded successfully');
-                if (typeof onAllLoaded === 'function') onAllLoaded();
-                // Fire a custom event for other logic to listen for
-                window.dispatchEvent(new Event('tokenModelsReady'));
-            }
-        }, undefined, (err) => {
-            console.error(`Error loading model for ${tokenInfo.name}:`, err);
-            console.error(`Failed path: ${tokenInfo.path}`);
-            loadedCount++;
-            if (loadedCount === tokenList.length && typeof onAllLoaded === 'function') {
-                onAllLoaded();
-            }
-        });
+    // Example using THREE.GLTFLoader
+    const loader = new THREE.GLTFLoader();
+    loader.load(model.path, (gltf) => {
+        gltf.scene.scale.set(...model.scale);
+        scene.add(gltf.scene);
+        if (onLoaded) onLoaded(gltf.scene);
     });
 }
 
@@ -111,14 +39,13 @@ function allPlayersHaveTokens() {
     return players.every(player => player.token && player.selectedToken);
 }
 
-// Example usage: load tokens at startup
-window.addEventListener('DOMContentLoaded', () => {
-    if (typeof scene !== 'undefined') {
-        loadAllTokenModels(scene);
-    } else {
-        loadAllTokenModels(null);
-    }
-});
+// Lazy loading: Do NOT load all token models at startup. Models are loaded only when selected in the UI.
+
+// Deprecated: do not preload all models at once. Use loadTokenModelByName for lazy loading.
+function loadAllTokenModels(scene, onAllLoaded) {
+    console.warn('loadAllTokenModels is deprecated. Use loadTokenModelByName for lazy loading.');
+    if (onAllLoaded) onAllLoaded();
+}
 
 // --- Patch: Only assign tokens after models are loaded ---
 function safeAssignSelectedTokensToPlayers(contextMsg = '') {
