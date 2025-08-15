@@ -145,7 +145,8 @@ function assignSelectedTokensToPlayers() {
     }
         window.players.forEach((player, idx) => {
             player.selectedToken = null;
-            console.log(`[Patch Debug] Player ${idx}:`, JSON.stringify(player));
+            const { selectedToken, ...playerData } = player;
+            console.log(`[Patch Debug] Player ${idx}:`, JSON.stringify(playerData), selectedToken ? '[Token model present]' : '[No token]');
             if (player.token && window.loadedTokenModels[player.token]) {
                 player.selectedToken = window.loadedTokenModels[player.token].clone();
                 console.log(`[Patch Debug] Assigned token model to player '${player.name}'`);
