@@ -7293,8 +7293,15 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
         });
     }
 
+
     const token = currentPlayer.token;
-    const tokenName = token.userData.tokenName;
+    let tokenName = undefined;
+    if (token && token.userData && typeof token.userData.tokenName !== 'undefined') {
+        tokenName = token.userData.tokenName;
+    } else {
+        console.error('Token or token.userData.tokenName is undefined for player:', currentPlayer);
+        return;
+    }
 
     // Update token position tracking
     updateTokenPosition(token, oldPosition);
