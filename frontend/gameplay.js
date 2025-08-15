@@ -377,7 +377,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     });
 
     socket.on('playerList', (list) => {
-        console.log('[MP DEBUG] Received playerList from server:', JSON.stringify(list, null, 2));
+        console.log('[MP DEBUG] Received playerList from server:', list);
         playerList = list;
         // Rebuild the main players array from the server's playerList
         players = playerList.map(p => {
@@ -398,7 +398,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 token: p.token || null
             };
         });
-        console.log('[MP DEBUG] Updated local players array:', JSON.stringify(players, null, 2));
+        console.log('[MP DEBUG] Updated local players array:', players);
         renderPlayersList();
         safeAssignSelectedTokensToPlayers('playerList socket event');
         // Show “Start Game” only for host (first player)
@@ -412,6 +412,10 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 btn.disabled = hostId !== currentPlayerId;
             }
         });
+        // Always start with host's turn after player list is set
+        if (typeof startTurn === 'function') {
+            currentPlayerIndex = 0;
+        }
     });
 
     // Show token selection events
@@ -1641,7 +1645,18 @@ function updateStartButtonVisibility() {
 }
 
 function startTurn() {
-    console.log(`Starting turn for Player ${currentPlayerIndex + 1} (${players[currentPlayerIndex].name})`);
+    // Skip players without a selectedToken
+    let attempts = 0;
+    while (attempts < players.length && (!players[currentPlayerIndex] || !players[currentPlayerIndex].selectedToken)) {
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+        attempts++;
+    }
+    const currentPlayer = players[currentPlayerIndex];
+    if (!currentPlayer || !currentPlayer.selectedToken) {
+        alert('No players with tokens to take a turn.');
+        return;
+    }
+    console.log(`Starting turn for Player ${currentPlayerIndex + 1} (${currentPlayer.name})`);
 
     // Reset turn-related flags
     hasDrawnCard = false;
@@ -1651,7 +1666,6 @@ function startTurn() {
         property.hasBeenHandled = false;
     });
 
-    const currentPlayer = players[currentPlayerIndex];
     if (currentPlayer.isAI) {
         executeAITurn(currentPlayer);
     } else {
