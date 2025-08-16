@@ -480,8 +480,10 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 // Always move token to correct position
                 moveToken(startPos, endPos, token, () => {
                     player.currentPosition = newPos;
-                    // Show property UI after token finishes moving (for multiplayer sync)
-                    handlePropertyLanding(player, newPos);
+                    // Only show property/chance/community UI for the local player
+                    if (player.id === currentPlayerId) {
+                        handlePropertyLanding(player, newPos);
+                    }
                 });
             }
         });
