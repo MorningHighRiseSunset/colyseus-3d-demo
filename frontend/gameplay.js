@@ -98,15 +98,22 @@ function setupMultiplayerReadyUI() {
             });
         }
     };
+
     startBtn.onclick = () => {
         // Prevent starting the game until all token models are loaded and assigned
         if (!window.tokenModelsReady) {
             console.warn('Tokens are still loading. Please wait.');
             return;
         }
-        // Ensure all players have a selectedToken
-        if (!players.every(p => p.selectedToken)) {
-            alert('All players must select a token before starting the game!');
+        // Ensure all players have a selectedToken and are ready
+        if (!playerList.every(p => p.token && p.selectedToken)) {
+            alert('All players must select a token and be ready before starting the game!');
+            return;
+        }
+        // Only host can start the game
+        const isHost = playerList[0]?.id === currentPlayerId;
+        if (!isHost) {
+            alert('Only the host can start the game.');
             return;
         }
         if (socket && currentRoomId && currentPlayerId) {
@@ -117,15 +124,17 @@ function setupMultiplayerReadyUI() {
             });
         }
     };
+
     if (socket) {
         socket.on('playerReadyStates', (readyStates) => {
             // Show ready state by playerId for the status area
             tokenReadyStatus.innerHTML = playerList.map(p => {
                 const ready = readyStates[p.id];
-                return `<span class="player-dot" style="background:${ready ? '#00ff00' : '#ccc'}"></span> <span class="player-name">${p.name}</span>: <span class="ready-status ${ready ? 'ready' : 'not-ready'}">${ready ? 'Ready' : 'Not Ready'}</span>`;
+                const hasToken = !!p.token;
+                return `<span class="player-dot" style="background:${ready && hasToken ? '#00ff00' : '#ccc'}"></span> <span class="player-name">${p.name}</span>: <span class="ready-status ${ready && hasToken ? 'ready' : 'not-ready'}">${ready && hasToken ? 'Ready' : 'Not Ready'}</span>`;
             }).join('<br>');
-            // Only show start button if all players are ready and you are the host
-            const allReady = playerList.length > 1 && playerList.every(p => readyStates[p.id]);
+            // Only show start button if all players are ready AND have tokens, and you are the host
+            const allReady = playerList.length > 1 && playerList.every(p => readyStates[p.id] && p.token);
             const isHost = playerList[0]?.id === currentPlayerId;
             startBtn.style.display = (isHost && allReady) ? '' : 'none';
             // Ready button is always visible, only disabled if this player is ready
@@ -6222,6 +6231,11 @@ function selectToken(tokenName) {
         // Register in loadedTokenModels for global access
         if (!window.loadedTokenModels) window.loadedTokenModels = {};
         window.loadedTokenModels[tokenName] = selectedToken;
+
+        // Ensure all players' selectedTokens are updated
+        if (typeof assignSelectedTokensToPlayers === 'function') {
+            assignSelectedTokensToPlayers();
+        }
 
         console.log('[TokenAssign] Assigned token to player', players[currentPlayerIndex]);
         console.log('[TokenAssign] Token object:', selectedToken, '| Visible:', selectedToken.visible, '| In scene:', !!selectedToken.parent, '| Position:', selectedToken.position);
