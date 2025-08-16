@@ -115,6 +115,10 @@ io.on('connection', (socket) => {
     if (rooms[roomId].players[playerId]) {
       rooms[roomId].players[playerId].token = token;
     }
+    // When a player changes their token, reset their ready state
+    if (rooms[roomId].ready) {
+      rooms[roomId].ready[playerId] = false;
+    }
     // Notify all players
     io.to(roomId).emit('playerSelectedToken', { playerId, token });
     // Broadcast updated player list with tokens
@@ -123,6 +127,12 @@ io.on('connection', (socket) => {
       ...info,
       token: rooms[roomId].tokens[id] || info.token || null
     })));
+    // Broadcast updated ready states
+    const readyStates = {};
+    Object.keys(rooms[roomId].players).forEach(pid => {
+      readyStates[pid] = !!rooms[roomId].ready[pid];
+    });
+    io.to(roomId).emit('playerReadyStates', readyStates);
     // Determine next turn to pick
     const pickOrder = Object.keys(rooms[roomId].players);
     const chosenCount = Object.keys(rooms[roomId].tokens).length;
