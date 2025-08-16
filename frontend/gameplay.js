@@ -345,6 +345,19 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 token: p.token || null
             };
         });
+        // --- Patch: Always assign selectedToken after multiplayer sync ---
+        if (window.loadedTokenModels && Array.isArray(players)) {
+            players.forEach((player, idx) => {
+                if (player.token && window.loadedTokenModels[player.token]) {
+                    player.selectedToken = window.loadedTokenModels[player.token].clone();
+                    if (scene && !scene.children.includes(player.selectedToken)) {
+                        scene.add(player.selectedToken);
+                    }
+                } else {
+                    player.selectedToken = null;
+                }
+            });
+        }
         console.log('[MP DEBUG] Updated local players array:', players);
         renderPlayersList();
         safeAssignSelectedTokensToPlayers('playerList socket event');
