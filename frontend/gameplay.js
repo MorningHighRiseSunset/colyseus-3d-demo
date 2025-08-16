@@ -290,15 +290,10 @@ function renderPlayersList() {
         avatar.className = 'player-avatar';
         avatar.textContent = p.name.charAt(0).toUpperCase();
         info.appendChild(avatar);
-        const details = document.createElement('div');
-        details.className = 'player-details';
+        // Only show name and token (remove $undefined/money)
         const nameDiv = document.createElement('div');
         nameDiv.textContent = p.name;
-        const moneyDiv = document.createElement('div');
-        moneyDiv.textContent = `$${p.money}`;
-        details.appendChild(nameDiv);
-        details.appendChild(moneyDiv);
-        info.appendChild(details);
+        info.appendChild(nameDiv);
         // Show chosen token
         const tokenSpan = document.createElement('span');
         tokenSpan.className = 'player-token';
@@ -327,16 +322,25 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         console.log('[MP DEBUG] Received playerList from server:', list);
         playerList = list;
         // Rebuild the main players array from the server's playerList
-        players = playerList.map(p => ({
-            id: p.id,
-            name: p.name,
-            money: p.money || 5000,
-            properties: p.properties || [],
-            selectedToken: null, // Always assign after models are ready
-            currentPosition: p.currentPosition || 0,
-            token: p.token || null
-        }));
-        // Always assign selectedToken after multiplayer sync, but only after models are ready
+        players = playerList.map(p => {
+            let selectedToken = null;
+            if (p.token && window.loadedTokenModels && window.loadedTokenModels[p.token]) {
+                selectedToken = window.loadedTokenModels[p.token].clone();
+                if (scene && !scene.children.includes(selectedToken)) {
+                    scene.add(selectedToken);
+                }
+            }
+            return {
+                id: p.id,
+                name: p.name,
+                money: p.money || 5000,
+                properties: p.properties || [],
+                selectedToken,
+                currentPosition: p.currentPosition || 0,
+                token: p.token || null
+            };
+        });
+        // If any selectedToken is still missing, assign after models are ready
         safeAssignSelectedTokensToPlayers('playerList socket event');
         console.log('[MP DEBUG] Updated local players array:', players);
         renderPlayersList();
@@ -444,7 +448,12 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 const startPos = getBoardSquarePosition(oldIndex);
                 const endPos = getBoardSquarePosition(newPos);
                 let token = player.selectedToken;
-                // Defensive: If token is missing, do not move and log warning
+                // If token is missing but player.token is set and model is loaded, assign it now
+                if (!token && player.token && window.loadedTokenModels && window.loadedTokenModels[player.token]) {
+                    token = window.loadedTokenModels[player.token].clone();
+                    scene.add(token);
+                    player.selectedToken = token;
+                }
                 if (!token) {
                     console.warn('No selectedToken (3D model) for player:', player);
                     return;
