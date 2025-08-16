@@ -48,6 +48,21 @@ function loadAllTokenModels(scene, onAllLoaded) {
 }
 
 // --- Patch: Only assign tokens after models are loaded ---
+// Utility: Assign selectedToken for a player if token and model are available
+function assignSelectedTokenForPlayer(player) {
+    if (!player || !player.token) return;
+    // Normalize token name for matching
+    const tokenKey = Object.keys(window.loadedTokenModels || {}).find(
+        k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
+    );
+    if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
+        player.selectedToken = window.loadedTokenModels[tokenKey].clone();
+        if (typeof scene !== 'undefined' && scene && !scene.children.includes(player.selectedToken)) {
+            scene.add(player.selectedToken);
+        }
+        console.log(`[Patch] Assigned selectedToken for player '${player.name}' with token '${player.token}'`);
+    }
+}
 function safeAssignSelectedTokensToPlayers(contextMsg = '') {
     // Always try to assign for all players with a token
     assignSelectedTokensToPlayers();
@@ -71,33 +86,13 @@ function assignSelectedTokensToPlayers() {
     } else {
         console.warn('[Patch Debug] loadedTokenModels is not defined');
     }
-    window.players.forEach((player, idx) => {
-        // Only assign if player has a token and selectedToken is missing
+    window.players.forEach((player) => {
         if (player.token && !player.selectedToken) {
-            // Normalize token name for matching (case-insensitive, trim)
-            const tokenKey = Object.keys(window.loadedTokenModels || {}).find(
-                k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
-            );
-            console.log(`[Patch Debug] Player ${idx} '${player.name}' token: '${player.token}', matched key: '${tokenKey}'`);
-            if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
-                player.selectedToken = window.loadedTokenModels[tokenKey].clone();
-                if (typeof scene !== 'undefined' && scene && !scene.children.includes(player.selectedToken)) {
-                    scene.add(player.selectedToken);
-                }
-                console.log(`[Patch Debug] Assigned token model to player '${player.name}'`);
-            } else {
-                // If model not loaded, set up a one-time event to assign when ready
+            assignSelectedTokenForPlayer(player);
+            // If model not loaded, set up a one-time event to assign when ready
+            if (!player.selectedToken) {
                 window.addEventListener('tokenModelsReady', () => {
-                    const lateTokenKey = Object.keys(window.loadedTokenModels || {}).find(
-                        k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
-                    );
-                    if (window.loadedTokenModels && lateTokenKey && !player.selectedToken) {
-                        player.selectedToken = window.loadedTokenModels[lateTokenKey].clone();
-                        if (typeof scene !== 'undefined' && scene && !scene.children.includes(player.selectedToken)) {
-                            scene.add(player.selectedToken);
-                        }
-                        console.log(`[Patch Debug] (Late) Assigned token model to player '${player.name}'`);
-                    }
+                    assignSelectedTokenForPlayer(player);
                 }, { once: true });
                 console.warn(`[Patch Debug] No valid token model loaded yet for player '${player.name}'. Will assign when ready.`);
             }
@@ -345,22 +340,18 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         playerList = list;
         // Rebuild the main players array from the server's playerList
         players = playerList.map(p => {
-            let selectedToken = null;
-            if (p.token && window.loadedTokenModels && window.loadedTokenModels[p.token]) {
-                selectedToken = window.loadedTokenModels[p.token].clone();
-                if (scene && !scene.children.includes(selectedToken)) {
-                    scene.add(selectedToken);
-                }
-            }
-            return {
+            const playerObj = {
                 id: p.id,
                 name: p.name,
                 money: p.money || 5000,
                 properties: p.properties || [],
-                selectedToken,
+                selectedToken: null,
                 currentPosition: p.currentPosition || 0,
                 token: p.token || null
             };
+            // Immediately assign selectedToken if possible
+            if (playerObj.token) assignSelectedTokenForPlayer(playerObj);
+            return playerObj;
         });
         // If any selectedToken is still missing, assign after models are ready
         safeAssignSelectedTokensToPlayers('playerList socket event');
@@ -393,14 +384,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             const mainPlayer = players.find(pl => pl.id === pid);
             if (mainPlayer) {
                 mainPlayer.token = token;
-                if (window.loadedTokenModels && window.loadedTokenModels[token]) {
-                    // Always assign a clone for multiplayer
-                    const newToken = window.loadedTokenModels[token].clone();
-                    mainPlayer.selectedToken = newToken;
-                    if (scene && !scene.children.includes(newToken)) {
-                        scene.add(newToken);
-                    }
-                }
+                assignSelectedTokenForPlayer(mainPlayer);
             }
             // Assign selectedToken for all players if model exists
             safeAssignSelectedTokensToPlayers('playerSelectedToken socket event');
