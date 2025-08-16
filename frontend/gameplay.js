@@ -647,7 +647,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Hide spinner and enable token selection when models are ready
     window.addEventListener('tokenModelsReady', () => {
-        hideTokenSelectionSpinner();
+    hideTokenButtonSpinners();
         // Optionally, enable token selection UI here if needed
         const modal = document.getElementById('token-selection-ui');
         if (modal) {
