@@ -65,8 +65,10 @@ function assignSelectedTokenForPlayer(player) {
     );
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
         player.selectedToken = window.loadedTokenModels[tokenKey].clone();
-        // Do NOT add to scene here. Multiplayer sync will handle adding/removing tokens.
-        player.selectedToken.position.set(0, 2.5, 0);
+        // Set token height for all types
+        player.selectedToken.position.set(0, getTokenHeight(player.token, 2.5), 0);
+        // Hide spinner as soon as model is assigned
+        if (typeof hideTokenButtonSpinners === 'function') hideTokenButtonSpinners();
         console.log(`[Patch] Assigned selectedToken for player '${player.name}' with token '${player.token}'`);
     } else {
         console.warn(`[Patch Debug] assignSelectedTokenForPlayer: Could not assign selectedToken for player '${player.name}' with token '${player.token}'`);
@@ -330,6 +332,20 @@ function renderPlayersList() {
     });
 }
 
+// --- Token Height Utility ---
+function getTokenHeight(tokenName, defaultY = 2.5) {
+    if (!tokenName) return defaultY;
+    const name = tokenName.toLowerCase();
+    if (name.includes('rolls')) return 2.7;
+    if (name.includes('helicopter')) return 2.2;
+    if (name.includes('hat')) return 2.5;
+    if (name.includes('football')) return 2.0;
+    if (name.includes('burger')) return 2.3;
+    if (name.includes('nike')) return 2.6;
+    if (name.includes('woman')) return 2.1;
+    return defaultY;
+}
+
 // --- Multiplayer Initialization ---
 function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     socket = io('https://colyseus-3d-demo.onrender.com');
@@ -514,6 +530,10 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 if (!scene.children.includes(token)) {
                     scene.add(token);
                 }
+                // Set token height for all types
+                if (player.token) {
+                    token.position.y = getTokenHeight(player.token, token.position.y);
+                }
                 // Raise Rolls Royce token above the board
                 if (player.token && player.token.toLowerCase().includes('rolls')) {
                     token.position.y = 2.5;
@@ -524,7 +544,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
                         player.currentPosition = newPos;
                         // Only show property/chance/community UI for the local player, after animation completes
-                        if (player.id === currentPlayerId) {
+                        if (pid === currentPlayerId) {
                             // Delay UI until after animation
                             handlePropertyLanding(player, newPos);
                         } else {
