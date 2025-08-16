@@ -66,7 +66,7 @@ function assignSelectedTokenForPlayer(player) {
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
         player.selectedToken = window.loadedTokenModels[tokenKey].clone();
         // Set token height for all types
-        player.selectedToken.position.set(0, getTokenHeight(player.token, 2.5), 0);
+        player.selectedToken.position.set(0, getTokenHeight(player.token), 0);
         // Hide spinner as soon as model is assigned
         if (typeof hideTokenButtonSpinners === 'function') hideTokenButtonSpinners();
         console.log(`[Patch] Assigned selectedToken for player '${player.name}' with token '${player.token}'`);
