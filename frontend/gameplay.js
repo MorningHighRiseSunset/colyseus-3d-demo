@@ -65,11 +65,8 @@ function assignSelectedTokenForPlayer(player) {
     );
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
         player.selectedToken = window.loadedTokenModels[tokenKey].clone();
-        // Move token above the board (y=2.5)
+        // Do NOT add to scene here. Multiplayer sync will handle adding/removing tokens.
         player.selectedToken.position.set(0, 2.5, 0);
-        if (typeof scene !== 'undefined' && scene && !scene.children.includes(player.selectedToken)) {
-            scene.add(player.selectedToken);
-        }
         console.log(`[Patch] Assigned selectedToken for player '${player.name}' with token '${player.token}'`);
     } else {
         console.warn(`[Patch Debug] assignSelectedTokenForPlayer: Could not assign selectedToken for player '${player.name}' with token '${player.token}'`);
