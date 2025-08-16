@@ -618,7 +618,7 @@ setTimeout(overrideRollDiceForMultiplayer, 1000);
 
 window.addEventListener('DOMContentLoaded', () => {
     // Show spinner and disable token selection immediately
-    showTokenSelectionSpinner();
+    showTokenButtonSpinners();
 
     // Start loading all token models as soon as the game loads
     if (!window.loadedTokenModels) window.loadedTokenModels = {};
