@@ -1,3 +1,5 @@
+import { DRACOLoader } from './libs/DRACOLoader.js';
+
 // --- Robust Token Model Loader (ported from oldscript.js) ---
 const tokenModels = [
     { name: 'RollsRoyce', path: 'Models/RollsRoyce/rollsRoyceCarAnim.glb', scale: [0.9, 0.9, 0.9] },
@@ -15,8 +17,11 @@ function loadTokenModelByName(name, scene, onLoaded) {
         console.error('Model not found:', name);
         return;
     }
-    // Example using THREE.GLTFLoader
-    const loader = new THREE.GLTFLoader();
+    // Example using GLTFLoader
+    const loader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('./libs/draco/');
+    loader.setDRACOLoader(dracoLoader);
     loader.load(model.path, (gltf) => {
         gltf.scene.scale.set(...model.scale);
         scene.add(gltf.scene);
@@ -192,15 +197,10 @@ import {
 // Initialize the GLTFLoader
 // Enable DRACO compression for faster .glb loading
 const loader = new GLTFLoader();
-if (typeof THREE.DRACOLoader !== 'undefined') {
-    const dracoLoader = new THREE.DRACOLoader();
-    // Set the path to the Draco decoder files (adjust if needed)
-    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
-    loader.setDRACOLoader(dracoLoader);
-    console.log('[DRACO] DRACOLoader enabled for GLTFLoader');
-} else {
-    console.warn('[DRACO] DRACOLoader not found. Draco-compressed .glb files will not be supported.');
-}
+const dracoLoader = new DRACOLoader();
+dracoLoader.setDecoderPath('./libs/draco/');
+loader.setDRACOLoader(dracoLoader);
+console.log('[DRACO] DRACOLoader enabled for GLTFLoader');
 
 // Register the KHR_materials_pbrSpecularGlossiness extension
 class GLTFMaterialsPbrSpecularGlossinessExtension {
@@ -635,12 +635,10 @@ window.addEventListener('DOMContentLoaded', () => {
     const totalModels = tokenModels.length;
     const tempScene = new THREE.Scene(); // Use a temp scene for loading
     tokenModels.forEach(model => {
-        const loader = new THREE.GLTFLoader();
-        if (typeof THREE.DRACOLoader !== 'undefined') {
-            const dracoLoader = new THREE.DRACOLoader();
-            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
-            loader.setDRACOLoader(dracoLoader);
-        }
+        const loader = new GLTFLoader();
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath('./libs/draco/');
+        loader.setDRACOLoader(dracoLoader);
         loader.load(model.path, (gltf) => {
             gltf.scene.scale.set(...model.scale);
             gltf.scene.userData.tokenName = model.name.toLowerCase();
