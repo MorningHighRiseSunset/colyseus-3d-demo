@@ -66,11 +66,21 @@ function assignSelectedTokensToPlayers() {
         console.warn('[Patch Debug] assignSelectedTokensToPlayers: players missing', window.players);
         return;
     }
+    if (window.loadedTokenModels) {
+        console.log('[Patch Debug] loadedTokenModels keys:', Object.keys(window.loadedTokenModels));
+    } else {
+        console.warn('[Patch Debug] loadedTokenModels is not defined');
+    }
     window.players.forEach((player, idx) => {
         // Only assign if player has a token and selectedToken is missing
         if (player.token && !player.selectedToken) {
-            if (window.loadedTokenModels && window.loadedTokenModels[player.token]) {
-                player.selectedToken = window.loadedTokenModels[player.token].clone();
+            // Normalize token name for matching (case-insensitive, trim)
+            const tokenKey = Object.keys(window.loadedTokenModels || {}).find(
+                k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
+            );
+            console.log(`[Patch Debug] Player ${idx} '${player.name}' token: '${player.token}', matched key: '${tokenKey}'`);
+            if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
+                player.selectedToken = window.loadedTokenModels[tokenKey].clone();
                 if (typeof scene !== 'undefined' && scene && !scene.children.includes(player.selectedToken)) {
                     scene.add(player.selectedToken);
                 }
@@ -78,8 +88,11 @@ function assignSelectedTokensToPlayers() {
             } else {
                 // If model not loaded, set up a one-time event to assign when ready
                 window.addEventListener('tokenModelsReady', () => {
-                    if (window.loadedTokenModels && window.loadedTokenModels[player.token] && !player.selectedToken) {
-                        player.selectedToken = window.loadedTokenModels[player.token].clone();
+                    const lateTokenKey = Object.keys(window.loadedTokenModels || {}).find(
+                        k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
+                    );
+                    if (window.loadedTokenModels && lateTokenKey && !player.selectedToken) {
+                        player.selectedToken = window.loadedTokenModels[lateTokenKey].clone();
                         if (typeof scene !== 'undefined' && scene && !scene.children.includes(player.selectedToken)) {
                             scene.add(player.selectedToken);
                         }
