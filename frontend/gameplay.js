@@ -60,15 +60,13 @@ function assignSelectedTokenForPlayer(player) {
         return;
     }
     const loadedKeys = Object.keys(window.loadedTokenModels || {});
-    console.log(`[Patch Debug] assignSelectedTokenForPlayer: loadedTokenModels keys:`, loadedKeys);
-    console.log(`[Patch Debug] assignSelectedTokenForPlayer: player '${player.name}' token: '${player.token}'`);
-    // Normalize token name for matching
     const tokenKey = loadedKeys.find(
         k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
     );
-    console.log(`[Patch Debug] assignSelectedTokenForPlayer: matched key: '${tokenKey}'`);
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
         player.selectedToken = window.loadedTokenModels[tokenKey].clone();
+        // Move token above the board (y=2.5)
+        player.selectedToken.position.set(0, 2.5, 0);
         if (typeof scene !== 'undefined' && scene && !scene.children.includes(player.selectedToken)) {
             scene.add(player.selectedToken);
         }
@@ -77,6 +75,7 @@ function assignSelectedTokenForPlayer(player) {
         console.warn(`[Patch Debug] assignSelectedTokenForPlayer: Could not assign selectedToken for player '${player.name}' with token '${player.token}'`);
     }
 }
+
 function safeAssignSelectedTokensToPlayers(contextMsg = '') {
     // Always try to assign for all players with a token
     assignSelectedTokensToPlayers();
@@ -134,11 +133,6 @@ function setupMultiplayerReadyUI() {
         // Prevent starting the game until all token models are loaded and assigned
         if (!window.tokenModelsReady) {
             console.warn('Tokens are still loading. Please wait.');
-            return;
-        }
-        // Ensure all players have a selectedToken and are ready
-        if (!playerList.every(p => p.token && p.selectedToken)) {
-            alert('All players must select a token and be ready before starting the game!');
             return;
         }
         // Only host can start the game
@@ -496,46 +490,41 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
 
 // --- Token Selection Tooltips ---
 // --- Spinner for Token Selection UI ---
-function showTokenSelectionSpinner() {
-    let modal = document.getElementById('token-selection-ui');
-    if (!modal) return;
-    let spinner = document.getElementById('token-selection-spinner');
-    if (!spinner) {
-        spinner = document.createElement('div');
-        spinner.id = 'token-selection-spinner';
-        spinner.style.position = 'absolute';
-        spinner.style.top = '0';
-        spinner.style.left = '0';
-        spinner.style.width = '100%';
-        spinner.style.height = '100%';
-        spinner.style.background = 'rgba(255,255,255,0.8)';
-        spinner.style.display = 'flex';
-        spinner.style.alignItems = 'center';
-        spinner.style.justifyContent = 'center';
-        spinner.style.zIndex = '1000';
-        spinner.innerHTML = '<div class="loader" style="border: 8px solid #f3f3f3; border-top: 8px solid #3498db; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite;"></div>';
-        modal.appendChild(spinner);
-        // Add spinner CSS
-        const style = document.createElement('style');
-        style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
-        document.head.appendChild(style);
-    }
-    spinner.style.display = 'flex';
-    // Disable all token buttons
-    const tokenBtns = modal.querySelectorAll('.token-button');
-    tokenBtns.forEach(btn => btn.disabled = true);
+function showTokenButtonSpinners() {
+    document.querySelectorAll('.token-button').forEach(btn => {
+        let spinner = btn.querySelector('.token-spinner');
+        if (!spinner) {
+            spinner = document.createElement('div');
+            spinner.className = 'token-spinner';
+            spinner.style.display = 'inline-block';
+            spinner.style.width = '24px';
+            spinner.style.height = '24px';
+            spinner.style.border = '3px solid #ccc';
+            spinner.style.borderTop = '3px solid #333';
+            spinner.style.borderRadius = '50%';
+            spinner.style.animation = 'spin 1s linear infinite';
+            spinner.style.marginLeft = '8px';
+            btn.appendChild(spinner);
+        }
+        spinner.style.display = '';
+        btn.disabled = true;
+    });
+}
+function hideTokenButtonSpinners() {
+    document.querySelectorAll('.token-button').forEach(btn => {
+        let spinner = btn.querySelector('.token-spinner');
+        if (spinner) spinner.style.display = 'none';
+        btn.disabled = false;
+    });
+}
+// Add spinner CSS (do this once, at startup)
+if (!document.getElementById('token-spinner-style')) {
+    const style = document.createElement('style');
+    style.id = 'token-spinner-style';
+    style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+    document.head.appendChild(style);
 }
 
-function hideTokenSelectionSpinner() {
-    let spinner = document.getElementById('token-selection-spinner');
-    if (spinner) spinner.style.display = 'none';
-    // Enable all token buttons
-    let modal = document.getElementById('token-selection-ui');
-    if (modal) {
-        const tokenBtns = modal.querySelectorAll('.token-button');
-        tokenBtns.forEach(btn => btn.disabled = false);
-    }
-}
 function addTokenTooltips() {
     const tokenButtons = document.querySelectorAll('.token-button');
     tokenButtons.forEach(btn => {
