@@ -482,11 +482,15 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     scene.add(token);
                 }
                 // Always move token to correct position (only in response to server event)
-                moveToken(startPos, endPos, token, () => {
+                moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
                     player.currentPosition = newPos;
-                    // Only show property/chance/community UI for the local player
+                    // Only show property/chance/community UI for the local player, after animation completes
                     if (player.id === currentPlayerId) {
+                        // Delay UI until after animation
                         handlePropertyLanding(player, newPos);
+                    } else {
+                        // For other players, optionally show a notification (not the full UI)
+                        // showNotification(`${player.name} landed on ${getSquareName(newPos)}`);
                     }
                 });
             }
