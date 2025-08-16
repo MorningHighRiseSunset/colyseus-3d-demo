@@ -39,10 +39,13 @@ io.on('connection', (socket) => {
   });
   // --- Metropoly Multiplayer Logic ---
   socket.on('joinMetropoly', ({ roomId, playerId, playerName }) => {
-    if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {} };
-    rooms[roomId].players[playerId] = { name: playerName || 'Player' };
-    rooms[roomId].positions[playerId] = 0;
-    socket.join(roomId);
+  if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {} };
+  // Preserve token if already chosen
+  const prevToken = rooms[roomId].tokens[playerId] || (rooms[roomId].players[playerId] && rooms[roomId].players[playerId].token) || null;
+  rooms[roomId].players[playerId] = { name: playerName || 'Player', token: prevToken };
+  if (prevToken) rooms[roomId].tokens[playerId] = prevToken;
+  rooms[roomId].positions[playerId] = 0;
+  socket.join(roomId);
     io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({
       id,
       ...info,
@@ -60,10 +63,13 @@ io.on('connection', (socket) => {
 
   // --- Queue/Room Multiplayer Logic for game.html ---
   socket.on('joinRoom', ({ roomId, playerId, playerName }) => {
-    if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {} };
-    rooms[roomId].players[playerId] = { name: playerName || 'Player' };
-    rooms[roomId].positions[playerId] = 0;
-    socket.join(roomId);
+  if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {} };
+  // Preserve token if already chosen
+  const prevToken = rooms[roomId].tokens[playerId] || (rooms[roomId].players[playerId] && rooms[roomId].players[playerId].token) || null;
+  rooms[roomId].players[playerId] = { name: playerName || 'Player', token: prevToken };
+  if (prevToken) rooms[roomId].tokens[playerId] = prevToken;
+  rooms[roomId].positions[playerId] = 0;
+  socket.join(roomId);
     io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({
       id,
       ...info,
