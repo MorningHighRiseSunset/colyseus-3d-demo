@@ -49,10 +49,10 @@ function loadAllTokenModels(scene, onAllLoaded) {
 
 // --- Patch: Only assign tokens after models are loaded ---
 function safeAssignSelectedTokensToPlayers(contextMsg = '') {
-    if (window.tokenModelsReady) {
-        console.log(`[Token Loader] safeAssignSelectedTokensToPlayers: Models ready. Triggered by: ${contextMsg}`);
-        assignSelectedTokensToPlayers();
-    } else {
+    // Always try to assign for all players with a token
+    assignSelectedTokensToPlayers();
+    // If models are not ready, set up a one-time event to assign again when ready
+    if (!window.tokenModelsReady) {
         console.warn(`[Token Loader] safeAssignSelectedTokensToPlayers: Models NOT ready yet. Waiting. Triggered by: ${contextMsg}`);
         window.addEventListener('tokenModelsReady', () => {
             console.log(`[Token Loader] safeAssignSelectedTokensToPlayers: Models now ready (event). Triggered by: ${contextMsg}`);
@@ -62,25 +62,34 @@ function safeAssignSelectedTokensToPlayers(contextMsg = '') {
 }
 
 function assignSelectedTokensToPlayers() {
-    if (!window.loadedTokenModels) return;
-    if (!window.players || !window.loadedTokenModels) {
-        console.warn('[Patch Debug] assignSelectedTokensToPlayers: players or loadedTokenModels missing', window.players, window.loadedTokenModels);
+    if (!window.players) {
+        console.warn('[Patch Debug] assignSelectedTokensToPlayers: players missing', window.players);
         return;
     }
-    if (window.loadedTokenModels && typeof window.loadedTokenModels === 'object') {
-        console.log('[Patch Debug] assignSelectedTokensToPlayers: loadedTokenModels keys:', Object.keys(window.loadedTokenModels));
-    }
-        window.players.forEach((player, idx) => {
-            player.selectedToken = null;
-            const { selectedToken, ...playerData } = player;
-            console.log(`[Patch Debug] Player ${idx}:`, JSON.stringify(playerData), selectedToken ? '[Token model present]' : '[No token]');
-            if (player.token && window.loadedTokenModels[player.token]) {
+    window.players.forEach((player, idx) => {
+        // Only assign if player has a token and selectedToken is missing
+        if (player.token && !player.selectedToken) {
+            if (window.loadedTokenModels && window.loadedTokenModels[player.token]) {
                 player.selectedToken = window.loadedTokenModels[player.token].clone();
+                if (typeof scene !== 'undefined' && scene && !scene.children.includes(player.selectedToken)) {
+                    scene.add(player.selectedToken);
+                }
                 console.log(`[Patch Debug] Assigned token model to player '${player.name}'`);
             } else {
-                console.warn(`[Patch Debug] No valid token for player '${player.name}'. player.token:`, player.token, 'loadedTokenModels:', window.loadedTokenModels);
+                // If model not loaded, set up a one-time event to assign when ready
+                window.addEventListener('tokenModelsReady', () => {
+                    if (window.loadedTokenModels && window.loadedTokenModels[player.token] && !player.selectedToken) {
+                        player.selectedToken = window.loadedTokenModels[player.token].clone();
+                        if (typeof scene !== 'undefined' && scene && !scene.children.includes(player.selectedToken)) {
+                            scene.add(player.selectedToken);
+                        }
+                        console.log(`[Patch Debug] (Late) Assigned token model to player '${player.name}'`);
+                    }
+                }, { once: true });
+                console.warn(`[Patch Debug] No valid token model loaded yet for player '${player.name}'. Will assign when ready.`);
             }
-        });
+        }
+    });
 }
 
 // --- Ready-Up UI Logic ---
