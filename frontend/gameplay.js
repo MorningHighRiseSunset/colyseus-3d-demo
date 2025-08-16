@@ -7306,8 +7306,15 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
 
 
     // Use selectedToken for the 3D model, and token (string) for the name
-    const token = currentPlayer.selectedToken;
+    let token = currentPlayer.selectedToken;
     const tokenName = currentPlayer.token;
+    // If selectedToken is missing but token and model are available, assign it now
+    if (!token && tokenName && window.loadedTokenModels && window.loadedTokenModels[tokenName]) {
+        token = window.loadedTokenModels[tokenName].clone();
+        scene.add(token);
+        currentPlayer.selectedToken = token;
+        console.warn('[PATCH] Assigned missing selectedToken for player:', currentPlayer.name, 'with token:', tokenName);
+    }
     if (!token) {
         console.error('No selectedToken (3D model) for player:', currentPlayer);
         return;
