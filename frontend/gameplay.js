@@ -327,40 +327,19 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         console.log('[MP DEBUG] Received playerList from server:', list);
         playerList = list;
         // Rebuild the main players array from the server's playerList
-        players = playerList.map(p => {
-            let selectedToken = null;
-            if (p.token && window.loadedTokenModels && window.loadedTokenModels[p.token]) {
-                selectedToken = window.loadedTokenModels[p.token].clone();
-                if (scene && !scene.children.includes(selectedToken)) {
-                    scene.add(selectedToken);
-                }
-            }
-            return {
-                id: p.id,
-                name: p.name,
-                money: p.money || 5000,
-                properties: p.properties || [],
-                selectedToken,
-                currentPosition: p.currentPosition || 0,
-                token: p.token || null
-            };
-        });
-        // --- Patch: Always assign selectedToken after multiplayer sync ---
-        if (window.loadedTokenModels && Array.isArray(players)) {
-            players.forEach((player, idx) => {
-                if (player.token && window.loadedTokenModels[player.token]) {
-                    player.selectedToken = window.loadedTokenModels[player.token].clone();
-                    if (scene && !scene.children.includes(player.selectedToken)) {
-                        scene.add(player.selectedToken);
-                    }
-                } else {
-                    player.selectedToken = null;
-                }
-            });
-        }
+        players = playerList.map(p => ({
+            id: p.id,
+            name: p.name,
+            money: p.money || 5000,
+            properties: p.properties || [],
+            selectedToken: null, // Always assign after models are ready
+            currentPosition: p.currentPosition || 0,
+            token: p.token || null
+        }));
+        // Always assign selectedToken after multiplayer sync, but only after models are ready
+        safeAssignSelectedTokensToPlayers('playerList socket event');
         console.log('[MP DEBUG] Updated local players array:', players);
         renderPlayersList();
-        safeAssignSelectedTokensToPlayers('playerList socket event');
         // Show “Start Game” only for host (first player)
         const hostId = playerList[0]?.id;
         // Toggle both button variants if present
@@ -465,34 +444,17 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 const startPos = getBoardSquarePosition(oldIndex);
                 const endPos = getBoardSquarePosition(newPos);
                 let token = player.selectedToken;
-                // --- CHEAT: If token is missing, force-spawn it ---
+                // Defensive: If token is missing, do not move and log warning
                 if (!token) {
-                    // Try to assign a token model based on player.token or fallback
-                    if (player.token && window.loadedTokenModels && window.loadedTokenModels[player.token]) {
-                        token = window.loadedTokenModels[player.token].clone();
-                        scene.add(token);
-                        player.selectedToken = token;
-                    } else {
-                        // fallback: pick any available model
-                        const modelNames = Object.keys(window.loadedTokenModels || {});
-                        if (modelNames.length > 0) {
-                            token = window.loadedTokenModels[modelNames[0]].clone();
-                            scene.add(token);
-                            player.selectedToken = token;
-                        }
-                    }
+                    console.warn('No selectedToken (3D model) for player:', player);
+                    return;
                 }
-                if (token) {
-                    // Always move token to correct position
-                    moveToken(startPos, endPos, token, () => {
-                        player.currentPosition = newPos;
-                        // Show property UI after token finishes moving (for multiplayer sync)
-                        handlePropertyLanding(player, newPos);
-                    });
-                } else {
-                    // No token model at all, just update position
+                // Always move token to correct position
+                moveToken(startPos, endPos, token, () => {
                     player.currentPosition = newPos;
-                }
+                    // Show property UI after token finishes moving (for multiplayer sync)
+                    handlePropertyLanding(player, newPos);
+                });
             }
         });
     });
