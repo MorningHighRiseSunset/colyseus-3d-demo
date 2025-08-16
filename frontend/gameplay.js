@@ -467,17 +467,24 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 const startPos = getBoardSquarePosition(oldIndex);
                 const endPos = getBoardSquarePosition(newPos);
                 let token = player.selectedToken;
+                // Remove old token from scene if it exists
+                if (player.selectedToken && scene.children.includes(player.selectedToken)) {
+                    scene.remove(player.selectedToken);
+                }
                 // If token is missing but player.token is set and model is loaded, assign it now
                 if (!token && player.token && window.loadedTokenModels && window.loadedTokenModels[player.token]) {
                     token = window.loadedTokenModels[player.token].clone();
-                    scene.add(token);
                     player.selectedToken = token;
                 }
                 if (!token) {
                     console.warn('No selectedToken (3D model) for player:', player);
                     return;
                 }
-                // Always move token to correct position
+                // Add token to scene if not already present
+                if (!scene.children.includes(token)) {
+                    scene.add(token);
+                }
+                // Always move token to correct position (only in response to server event)
                 moveToken(startPos, endPos, token, () => {
                     player.currentPosition = newPos;
                     // Only show property/chance/community UI for the local player
