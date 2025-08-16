@@ -50,17 +50,26 @@ function loadAllTokenModels(scene, onAllLoaded) {
 // --- Patch: Only assign tokens after models are loaded ---
 // Utility: Assign selectedToken for a player if token and model are available
 function assignSelectedTokenForPlayer(player) {
-    if (!player || !player.token) return;
+    if (!player || !player.token) {
+        console.warn('[Patch Debug] assignSelectedTokenForPlayer: player or player.token missing', player);
+        return;
+    }
+    const loadedKeys = Object.keys(window.loadedTokenModels || {});
+    console.log(`[Patch Debug] assignSelectedTokenForPlayer: loadedTokenModels keys:`, loadedKeys);
+    console.log(`[Patch Debug] assignSelectedTokenForPlayer: player '${player.name}' token: '${player.token}'`);
     // Normalize token name for matching
-    const tokenKey = Object.keys(window.loadedTokenModels || {}).find(
+    const tokenKey = loadedKeys.find(
         k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
     );
+    console.log(`[Patch Debug] assignSelectedTokenForPlayer: matched key: '${tokenKey}'`);
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
         player.selectedToken = window.loadedTokenModels[tokenKey].clone();
         if (typeof scene !== 'undefined' && scene && !scene.children.includes(player.selectedToken)) {
             scene.add(player.selectedToken);
         }
         console.log(`[Patch] Assigned selectedToken for player '${player.name}' with token '${player.token}'`);
+    } else {
+        console.warn(`[Patch Debug] assignSelectedTokenForPlayer: Could not assign selectedToken for player '${player.name}' with token '${player.token}'`);
     }
 }
 function safeAssignSelectedTokensToPlayers(contextMsg = '') {
