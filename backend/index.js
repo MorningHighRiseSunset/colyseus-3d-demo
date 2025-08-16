@@ -46,7 +46,7 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({
       id,
       ...info,
-      token: rooms[roomId].tokens[id] || null
+      token: rooms[roomId].tokens[id] || info.token || null
     })));
     io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
     // Notify current token-pick turn
@@ -64,7 +64,11 @@ io.on('connection', (socket) => {
     rooms[roomId].players[playerId] = { name: playerName || 'Player' };
     rooms[roomId].positions[playerId] = 0;
     socket.join(roomId);
-    io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({ id, ...info })));
+    io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({
+      id,
+      ...info,
+      token: rooms[roomId].tokens[id] || info.token || null
+    })));
     io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
   });
 
@@ -79,7 +83,11 @@ io.on('connection', (socket) => {
       if (rooms[roomId] && rooms[roomId].players[socket.id]) {
         delete rooms[roomId].players[socket.id];
         delete rooms[roomId].positions[socket.id];
-        io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({ id, ...info })));
+        io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({
+          id,
+          ...info,
+          token: rooms[roomId].tokens[id] || info.token || null
+        })));
         io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
       }
     });
