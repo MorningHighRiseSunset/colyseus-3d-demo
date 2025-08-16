@@ -190,7 +190,17 @@ import {
 } from './libs/three.module.js';
 
 // Initialize the GLTFLoader
+// Enable DRACO compression for faster .glb loading
 const loader = new GLTFLoader();
+if (typeof THREE.DRACOLoader !== 'undefined') {
+    const dracoLoader = new THREE.DRACOLoader();
+    // Set the path to the Draco decoder files (adjust if needed)
+    dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+    loader.setDRACOLoader(dracoLoader);
+    console.log('[DRACO] DRACOLoader enabled for GLTFLoader');
+} else {
+    console.warn('[DRACO] DRACOLoader not found. Draco-compressed .glb files will not be supported.');
+}
 
 // Register the KHR_materials_pbrSpecularGlossiness extension
 class GLTFMaterialsPbrSpecularGlossinessExtension {
@@ -485,6 +495,47 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
 }
 
 // --- Token Selection Tooltips ---
+// --- Spinner for Token Selection UI ---
+function showTokenSelectionSpinner() {
+    let modal = document.getElementById('token-selection-ui');
+    if (!modal) return;
+    let spinner = document.getElementById('token-selection-spinner');
+    if (!spinner) {
+        spinner = document.createElement('div');
+        spinner.id = 'token-selection-spinner';
+        spinner.style.position = 'absolute';
+        spinner.style.top = '0';
+        spinner.style.left = '0';
+        spinner.style.width = '100%';
+        spinner.style.height = '100%';
+        spinner.style.background = 'rgba(255,255,255,0.8)';
+        spinner.style.display = 'flex';
+        spinner.style.alignItems = 'center';
+        spinner.style.justifyContent = 'center';
+        spinner.style.zIndex = '1000';
+        spinner.innerHTML = '<div class="loader" style="border: 8px solid #f3f3f3; border-top: 8px solid #3498db; border-radius: 50%; width: 60px; height: 60px; animation: spin 1s linear infinite;"></div>';
+        modal.appendChild(spinner);
+        // Add spinner CSS
+        const style = document.createElement('style');
+        style.innerHTML = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
+    }
+    spinner.style.display = 'flex';
+    // Disable all token buttons
+    const tokenBtns = modal.querySelectorAll('.token-button');
+    tokenBtns.forEach(btn => btn.disabled = true);
+}
+
+function hideTokenSelectionSpinner() {
+    let spinner = document.getElementById('token-selection-spinner');
+    if (spinner) spinner.style.display = 'none';
+    // Enable all token buttons
+    let modal = document.getElementById('token-selection-ui');
+    if (modal) {
+        const tokenBtns = modal.querySelectorAll('.token-button');
+        tokenBtns.forEach(btn => btn.disabled = false);
+    }
+}
 function addTokenTooltips() {
     const tokenButtons = document.querySelectorAll('.token-button');
     tokenButtons.forEach(btn => {
@@ -573,7 +624,51 @@ function overrideRollDiceForMultiplayer() {
 setTimeout(overrideRollDiceForMultiplayer, 1000);
 
 // Initialize multiplayer on load
+
 window.addEventListener('DOMContentLoaded', () => {
+    // Show spinner and disable token selection immediately
+    showTokenSelectionSpinner();
+
+    // Start loading all token models as soon as the game loads
+    if (!window.loadedTokenModels) window.loadedTokenModels = {};
+    let loadedCount = 0;
+    const totalModels = tokenModels.length;
+    const tempScene = new THREE.Scene(); // Use a temp scene for loading
+    tokenModels.forEach(model => {
+        const loader = new THREE.GLTFLoader();
+        if (typeof THREE.DRACOLoader !== 'undefined') {
+            const dracoLoader = new THREE.DRACOLoader();
+            dracoLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/');
+            loader.setDRACOLoader(dracoLoader);
+        }
+        loader.load(model.path, (gltf) => {
+            gltf.scene.scale.set(...model.scale);
+            gltf.scene.userData.tokenName = model.name.toLowerCase();
+            window.loadedTokenModels[model.name] = gltf.scene;
+            tempScene.add(gltf.scene); // Not added to main scene yet
+            loadedCount++;
+            if (loadedCount === totalModels) {
+                window.tokenModelsReady = true;
+                window.dispatchEvent(new Event('tokenModelsReady'));
+            }
+        }, undefined, (err) => {
+            console.error('Error loading model', model.name, err);
+        });
+    });
+
+    // Hide spinner and enable token selection when models are ready
+    window.addEventListener('tokenModelsReady', () => {
+        hideTokenSelectionSpinner();
+        // Optionally, enable token selection UI here if needed
+        const modal = document.getElementById('token-selection-ui');
+        if (modal) {
+            // Enable all token buttons
+            modal.querySelectorAll('.token-button').forEach(btn => {
+                btn.disabled = false;
+            });
+        }
+    });
+
     // Check for room/player in URL (use correct param names)
     const urlParams = new URLSearchParams(window.location.search);
     let roomId = urlParams.get('roomId') || urlParams.get('room');
