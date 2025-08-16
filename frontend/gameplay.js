@@ -3720,39 +3720,11 @@ function onTokenClick(event) {
 }
 
 function getBoardSquarePosition(squareIndex) {
-    const boardSize = 18.5;
-    const spacing = 7;
-
-    // Calculate position based on board quadrant for 42-square board (11 squares per side)
-    if (squareIndex <= 10) {
-        // Bottom row (11 squares: 0-10)
-        return {
-            x: boardSize - squareIndex * spacing,
-            y: 2, // Token height
-            z: boardSize,
-        };
-    } else if (squareIndex <= 21) {
-        // Left column (11 squares: 11-21)
-        return {
-            x: -boardSize,
-            y: 2,
-            z: boardSize - (squareIndex - 10) * spacing,
-        };
-    } else if (squareIndex <= 32) {
-        // Top row (11 squares: 22-32)
-        return {
-            x: -boardSize + (squareIndex - 21) * spacing,
-            y: 2,
-            z: -boardSize,
-        };
-    } else {
-        // Right column (11 squares: 33-43, but we only have 42 total)
-        return {
-            x: boardSize,
-            y: 2,
-            z: -boardSize + (squareIndex - 32) * spacing,
-        };
+    if (typeof squareIndex !== 'number' || squareIndex < 0 || squareIndex >= positions.length) {
+        console.warn('[Patch] getBoardSquarePosition: Invalid index', squareIndex);
+        return null;
     }
+    return positions[squareIndex];
 }
 
 function onPropertyClick(event) {
