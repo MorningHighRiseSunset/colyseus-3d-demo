@@ -467,6 +467,10 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     player.currentPosition = 0;
                 }
                 const oldIndex = player.currentPosition;
+                if (typeof oldIndex !== 'number' || typeof newPos !== 'number' || isNaN(oldIndex) || isNaN(newPos)) {
+                    console.warn('[Patch] Invalid oldIndex or newPos for player', player, 'oldIndex:', oldIndex, 'newPos:', newPos);
+                    return;
+                }
                 const startPos = getBoardSquarePosition(oldIndex);
                 const endPos = getBoardSquarePosition(newPos);
                 let token = player.selectedToken;
@@ -510,18 +514,27 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 if (!scene.children.includes(token)) {
                     scene.add(token);
                 }
+                // Raise Rolls Royce token above the board
+                if (player.token && player.token.toLowerCase().includes('rolls')) {
+                    token.position.y = 2.5;
+                }
                 // Always move token to correct position (only in response to server event)
-                moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
-                    player.currentPosition = newPos;
-                    // Only show property/chance/community UI for the local player, after animation completes
-                    if (player.id === currentPlayerId) {
-                        // Delay UI until after animation
-                        handlePropertyLanding(player, newPos);
-                    } else {
-                        // For other players, optionally show a notification (not the full UI)
-                        // showNotification(`${player.name} landed on ${getSquareName(newPos)}`);
-                    }
-                });
+                // Only animate and show UI if both positions are valid
+                if (startPos && endPos) {
+                    moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
+                        player.currentPosition = newPos;
+                        // Only show property/chance/community UI for the local player, after animation completes
+                        if (player.id === currentPlayerId) {
+                            // Delay UI until after animation
+                            handlePropertyLanding(player, newPos);
+                        } else {
+                            // For other players, optionally show a notification (not the full UI)
+                            // showNotification(`${player.name} landed on ${getSquareName(newPos)}`);
+                        }
+                    });
+                } else {
+                    console.warn('[Patch] Could not find valid start or end position for player', player, 'startPos:', startPos, 'endPos:', endPos);
+                }
             }
         });
     });
