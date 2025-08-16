@@ -332,11 +332,11 @@ function renderPlayersList() {
     });
 }
 
-// --- Token Height Utility ---
+// --- Token Height Utility---
 function getTokenHeight(tokenName, defaultY = 2.5) {
     if (!tokenName) return defaultY;
     const name = tokenName.toLowerCase();
-    if (name.includes('rolls')) return 2.7;
+        // if (name.includes('rolls')) return 2.7;
     if (name.includes('helicopter')) return 2.2;
     if (name.includes('hat')) return 2.5;
     if (name.includes('football')) return 2.0;
@@ -4842,16 +4842,6 @@ function moveTokenWithJump(startPos, endPos, token) {
     }
 
     animate();
-}
-
-function getTokenHeight(tokenName, baseHeight) {
-    const heightOffsets = {
-        hat: 0.5, // Offset for the "hat" token
-        woman: 0.2, // Balanced height for the "woman" token - not too high, not too low
-        // Add offsets for other tokens as needed
-    };
-
-    return baseHeight + (heightOffsets[tokenName] || 0);
 }
 
 function updateFollowCamera(token) {
