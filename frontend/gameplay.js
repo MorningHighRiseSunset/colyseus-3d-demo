@@ -455,11 +455,17 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         }
     });
 
+    // --- Patch: Queue moves if model not loaded, ensure currentPosition is set ---
+    const pendingMoves = {};
     socket.on('tokenPositions', (positions) => {
         Object.entries(positions).forEach(([pid, newPos]) => {
             const idx = playerList.findIndex(p => p.id === pid);
             if (idx !== -1 && players[idx]) {
                 const player = players[idx];
+                // Ensure currentPosition is always set
+                if (typeof player.currentPosition !== 'number' || isNaN(player.currentPosition)) {
+                    player.currentPosition = 0;
+                }
                 const oldIndex = player.currentPosition;
                 const startPos = getBoardSquarePosition(oldIndex);
                 const endPos = getBoardSquarePosition(newPos);
@@ -473,8 +479,31 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     token = window.loadedTokenModels[player.token].clone();
                     player.selectedToken = token;
                 }
+                // If token is still missing, queue the move until model loads
                 if (!token) {
-                    console.warn('No selectedToken (3D model) for player:', player);
+                    console.warn('No selectedToken (3D model) for player:', player, '...queueing move');
+                    if (!pendingMoves[pid]) pendingMoves[pid] = [];
+                    pendingMoves[pid].push({ oldIndex, newPos });
+                    // Listen for model load and retry
+                    window.addEventListener('tokenModelsReady', () => {
+                        // Try to assign and replay queued moves
+                        if (player.token && window.loadedTokenModels && window.loadedTokenModels[player.token]) {
+                            player.selectedToken = window.loadedTokenModels[player.token].clone();
+                            while (pendingMoves[pid] && pendingMoves[pid].length > 0) {
+                                const move = pendingMoves[pid].shift();
+                                const sPos = getBoardSquarePosition(move.oldIndex);
+                                const ePos = getBoardSquarePosition(move.newPos);
+                                let t = player.selectedToken;
+                                if (!scene.children.includes(t)) scene.add(t);
+                                moveTokenWithCollisionAvoidance(sPos, ePos, t, () => {
+                                    player.currentPosition = move.newPos;
+                                    if (player.id === currentPlayerId) {
+                                        handlePropertyLanding(player, move.newPos);
+                                    }
+                                });
+                            }
+                        }
+                    }, { once: true });
                     return;
                 }
                 // Add token to scene if not already present
