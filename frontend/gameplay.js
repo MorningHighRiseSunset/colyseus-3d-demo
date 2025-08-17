@@ -1291,7 +1291,7 @@ const properties = [{
         isPenthouse: true,
         videoUrls: [
             "Videos/MGMBoxing 1 (1).mp4",
-            "Videos/MGMBoxing 2 (1).mp4",
+            "frontend/Videos/MGM 2.mp4",
             "Videos/MGMBoxing 3 (1).mp4",
         ],
         customBuyLabel: "Buy ticket",
@@ -7480,9 +7480,16 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
     // If selectedToken is missing but token and model are available, assign it now
     if (!token && tokenName && window.loadedTokenModels && window.loadedTokenModels[tokenName]) {
         token = window.loadedTokenModels[tokenName].clone();
+        // Place at GO square (positions[0])
+        if (positions && positions[0]) {
+            token.position.set(positions[0].x, getTokenHeight(tokenName, positions[0].y), positions[0].z);
+            currentPlayer.currentPosition = 0;
+        }
         scene.add(token);
+        token.visible = true;
+        token.traverse(child => { child.visible = true; });
         currentPlayer.selectedToken = token;
-        console.warn('[PATCH] Assigned missing selectedToken for player:', currentPlayer.name, 'with token:', tokenName);
+        console.warn('[PATCH] Assigned missing selectedToken for player:', currentPlayer.name, 'with token:', tokenName, 'at GO square');
     }
     if (!token) {
         console.error('No selectedToken (3D model) for player:', currentPlayer);
