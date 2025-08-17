@@ -336,7 +336,7 @@ function renderPlayersList() {
 function getTokenHeight(tokenName, defaultY = 2.5) {
     if (!tokenName) return defaultY;
     const name = tokenName.toLowerCase();
-        if (name.includes('rolls')) return 3.1; // Raised higher for Rolls Royce
+        if (name.includes('rolls')) return 2.5; // Raised higher for Rolls Royce
     if (name.includes('helicopter')) return 2.2;
     if (name.includes('hat')) return 2.5;
     if (name.includes('football')) return 2.0;
