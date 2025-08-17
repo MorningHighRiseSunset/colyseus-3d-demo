@@ -25,8 +25,41 @@ function loadTokenModelByName(name, scene, onLoaded) {
     loader.load(model.path, (gltf) => {
         gltf.scene.scale.set(...model.scale);
         scene.add(gltf.scene);
+        // --- Patch: Setup animation mixer and play rotor animation for helicopter ---
+        if (name === 'Helicopter' && gltf.animations && gltf.animations.length > 0) {
+            const mixer = new THREE.AnimationMixer(gltf.scene);
+            const actions = gltf.animations.map(clip => mixer.clipAction(clip));
+            actions.forEach(action => action.play());
+            gltf.scene.userData.mixer = mixer;
+            gltf.scene.userData.actions = actions;
+            gltf.scene.userData.tokenName = 'helicopter';
+        }
         if (onLoaded) onLoaded(gltf.scene);
     });
+// --- Patch: Animation mixer update for all tokens (including helicopter rotor) ---
+function updateAllTokenMixers(delta) {
+    if (!window.loadedTokenModels) return;
+    Object.values(window.loadedTokenModels).forEach(model => {
+        if (model.userData && model.userData.mixer) {
+            model.userData.mixer.update(delta);
+        }
+    });
+}
+
+// Patch main render loop to call updateAllTokenMixers
+const _origAnimate = typeof animate === 'function' ? animate : null;
+function animate() {
+    const delta = clock.getDelta();
+    updateAllTokenMixers(delta);
+    if (_origAnimate) _origAnimate();
+    else if (typeof renderer !== 'undefined' && typeof scene !== 'undefined' && typeof camera !== 'undefined') {
+        renderer.render(scene, camera);
+    }
+    requestAnimationFrame(animate);
+}
+if (!_origAnimate) {
+    requestAnimationFrame(animate);
+}
 }
 
 function removeCircularReferences() {
@@ -5764,9 +5797,14 @@ function finishMove(player, newPosition, passedGo) {
         updateMoneyDisplay();
     }
 
-    const landingSpace = placeNames[newPosition] || "Unknown Space";
-    const property = properties.find(p => p.name === landingSpace);
-    
+    // Only show property UI for the current player (not for others)
+    if (players[currentPlayerIndex] === player) {
+        const landingSpace = placeNames[newPosition] || "Unknown Space";
+        const property = properties.find(p => p.name === landingSpace);
+        if (property && property.type !== "special") {
+            showPropertyUI(newPosition);
+        }
+    }
 }
 
 function showGoToJailUI(player) {
