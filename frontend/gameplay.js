@@ -573,9 +573,15 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     // Hide token selection modal
     const modal = document.getElementById('token-selection-ui');
     if (modal) modal.style.display = 'none';
-    // Hide roll dice button for all at game start; only show on turnUpdate
+    // Show roll dice button for the current player, hide for others
     const diceBtn = document.querySelector('.dice-button');
-    if (diceBtn) diceBtn.style.display = 'none';
+    if (diceBtn) {
+        if (playerList[0]?.id === currentPlayerId && typeof isCurrentPlayerAI === 'function' && !isCurrentPlayerAI()) {
+            diceBtn.style.display = 'block';
+        } else {
+            diceBtn.style.display = 'none';
+        }
+    }
     });
 
     // Host Start Game action (bind both IDs)
