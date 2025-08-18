@@ -1,3 +1,40 @@
+// --- DEBUG: Player List and Turn State ---
+function debugLogPlayerState(context) {
+    console.log(`[DEBUG] ${context} | currentPlayerId:`, currentPlayerId, '| currentPlayerIndex:', currentPlayerIndex, '| players:', players, '| playerList:', playerList);
+}
+
+// --- Robust Player Mapping ---
+function syncPlayersWithServerList(serverPlayerList) {
+    // Map server playerList to local players array by id
+    // If a player already exists in local players, keep their state; otherwise, create new
+    const newPlayers = serverPlayerList.map((serverPlayer, idx) => {
+        let local = players.find(p => p.id === serverPlayer.id);
+        if (!local) {
+            // Try to match by name if id missing (legacy)
+            local = players.find(p => p.name === serverPlayer.name);
+        }
+        if (local) {
+            // Update name/id if needed
+            local.name = serverPlayer.name;
+            local.id = serverPlayer.id;
+            local.token = serverPlayer.token || local.token;
+            return local;
+        } else {
+            // Create new player object
+            return {
+                name: serverPlayer.name,
+                id: serverPlayer.id,
+                money: serverPlayer.money || 5000,
+                properties: serverPlayer.properties || [],
+                selectedToken: null,
+                currentPosition: serverPlayer.currentPosition || 0,
+                token: serverPlayer.token || null
+            };
+        }
+    });
+    players = newPlayers;
+    debugLogPlayerState('syncPlayersWithServerList');
+}
 // --- DEBUG LOGGING HELPERS ---
 function debugLogLoadedTokenModels() {
     if (window.loadedTokenModels) {
@@ -444,20 +481,12 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     socket.on('playerList', (list) => {
         console.log('[MP DEBUG] Received playerList from server:', list);
         playerList = list;
-        // Rebuild the main players array from the server's playerList
-        players = playerList.map(p => {
-            const playerObj = {
-                id: p.id,
-                name: p.name,
-                money: p.money || 5000,
-                properties: p.properties || [],
-                selectedToken: null,
-                currentPosition: p.currentPosition || 0,
-                token: p.token || null
-            };
-            // Immediately assign selectedToken if possible
+        debugLogPlayerState('playerList socket event (before sync)');
+        syncPlayersWithServerList(list);
+        debugLogPlayerState('playerList socket event (after sync)');
+        // Immediately assign selectedToken if possible
+        players.forEach(playerObj => {
             if (playerObj.token) assignSelectedTokenForPlayer(playerObj);
-            return playerObj;
         });
         // If any selectedToken is still missing, assign after models are ready
         safeAssignSelectedTokensToPlayers('playerList socket event');
