@@ -563,6 +563,14 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         if (playerList[0]?.id === currentPlayerId) {
             const diceBtn = document.querySelector('.dice-button');
             if (diceBtn) diceBtn.style.display = '';
+            // --- PATCH: Trigger first turn for host if no turnUpdate is received ---
+            setTimeout(() => {
+                // Only trigger if currentPlayerIndex is 0 and no turn has started
+                if (typeof startTurn === 'function' && currentPlayerIndex === 0) {
+                    console.log('[MP PATCH] Triggering first player startTurn() after gameStarted');
+                    startTurn();
+                }
+            }, 500);
         }
     });
 
