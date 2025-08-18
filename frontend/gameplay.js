@@ -453,7 +453,7 @@ function renderPlayersList() {
 function getTokenHeight(tokenName, defaultY = 2.5) {
     if (!tokenName) return defaultY;
     const name = tokenName.toLowerCase();
-        if (name.includes('rolls')) return 2.5; // Raised higher for Rolls Royce
+        if (name.includes('rolls')) return 2.3; // Raised higher for Rolls Royce
     if (name.includes('helicopter')) return 2.2;
     if (name.includes('hat')) return 2.5;
     if (name.includes('football')) return 2.0;
@@ -668,7 +668,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 }
                 // Raise Rolls Royce token above the board
                 if (player.token && player.token.toLowerCase().includes('rolls')) {
-                    token.position.y = 2.5;
+                    token.position.y = 2.3;
                 }
                 // Always move token to correct position (only in response to server event)
                 // Only animate and show UI if both positions are valid
