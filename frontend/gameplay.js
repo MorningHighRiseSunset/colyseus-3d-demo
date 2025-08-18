@@ -667,6 +667,36 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             }
         });
     });
+
+    // --- Multiplayer Turn Sync: Listen for server turn updates and update local turn state ---
+    socket.on('turnUpdate', ({ currentTurnPlayerId }) => {
+        console.log('[MP DEBUG] Received turnUpdate from server:', currentTurnPlayerId);
+        // Find the index of the player whose turn it is
+        const idx = playerList.findIndex(p => p.id === currentTurnPlayerId);
+        if (idx !== -1) {
+            const prevIndex = currentPlayerIndex;
+            currentPlayerIndex = idx;
+            console.log(`[MP DEBUG] Setting currentPlayerIndex: ${prevIndex} -> ${currentPlayerIndex} (PlayerId: ${currentTurnPlayerId})`);
+            debugLogPlayerState('turnUpdate socket event');
+            // Call startTurn to update UI/camera for the new turn
+            if (typeof startTurn === 'function') {
+                console.log('[MP DEBUG] Calling startTurn() for player:', players[currentPlayerIndex]?.name, players[currentPlayerIndex]);
+                startTurn();
+                setTimeout(() => {
+                    const player = players[currentPlayerIndex];
+                    if (player && player.selectedToken) {
+                        console.log('[MP DEBUG] Camera/controls should now follow token for:', player.name, player.selectedToken.position);
+                    } else {
+                        console.warn('[MP DEBUG] No selectedToken for camera follow after startTurn');
+                    }
+                }, 500);
+            } else {
+                console.warn('[MP DEBUG] startTurn is not a function');
+            }
+        } else {
+            console.warn('[MP DEBUG] turnUpdate: No player found for id', currentTurnPlayerId);
+        }
+    });
 }
 
 // --- Token Selection Tooltips ---
