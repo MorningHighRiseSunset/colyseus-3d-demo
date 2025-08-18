@@ -1,3 +1,40 @@
+// --- Multiplayer Move Queue for Token Model Readiness ---
+const pendingMoves = [];
+
+function processPendingMoves() {
+    if (!window.loadedTokenModels) return;
+    for (let i = pendingMoves.length - 1; i >= 0; i--) {
+        const { playerId, from, to } = pendingMoves[i];
+        const player = players.find(p => p.id === playerId);
+        if (!player) continue;
+        const tokenName = player.token;
+        if (window.loadedTokenModels[tokenName]) {
+            // Model is ready, process move
+            moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
+                if (isLocalPlayer(player)) {
+                    showPropertyUI(to);
+                }
+            });
+            pendingMoves.splice(i, 1);
+        }
+    }
+}
+
+// Patch: When models are loaded, process any pending moves
+const origLoadedTokenModelsSetter = Object.getOwnPropertyDescriptor(window, 'loadedTokenModels')?.set;
+Object.defineProperty(window, 'loadedTokenModels', {
+    configurable: true,
+    enumerable: true,
+    set(val) {
+        if (origLoadedTokenModelsSetter) origLoadedTokenModelsSetter.call(window, val);
+        this._loadedTokenModels = val;
+        processPendingMoves();
+    },
+    get() {
+        return this._loadedTokenModels;
+    }
+});
+
 import { DRACOLoader } from './libs/DRACOLoader.js';
 
 // --- Robust Token Model Loader (ported from oldscript.js) ---
@@ -7494,13 +7531,18 @@ if (typeof socket !== 'undefined' && socket) {
     socket.on('moveToken', ({ playerId, from, to }) => {
         const player = players.find(p => p.id === playerId);
         if (!player) return;
-        // Animate the token for this player
-        moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
-            // Only show property UI if this is the local player
-            if (isLocalPlayer(player)) {
-                showPropertyUI(to);
-            }
-        });
+        const tokenName = player.token;
+        if (window.loadedTokenModels && window.loadedTokenModels[tokenName]) {
+            moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
+                if (isLocalPlayer(player)) {
+                    showPropertyUI(to);
+                }
+            });
+        } else {
+            // Model not ready, queue the move
+            pendingMoves.push({ playerId, from, to });
+            console.warn(`[PATCH] Queued move for player ${playerId} (${tokenName}) until model is loaded.`);
+        }
     });
 }
 
