@@ -2806,9 +2806,7 @@ function applyCardEffect(selectedCard) {
 
 function handleUtilitySpace(player, property) {
     if (!property.owner) {
-        if (!isCurrentPlayerAI()) {
-            showPropertyUI(player.currentPosition);
-        }
+        // Only handle property UI in main movement logic
         return;
     }
 
@@ -2838,9 +2836,7 @@ function handleUtilitySpace(player, property) {
 
 function handleRailroadSpace(player, property) {
     if (!property.owner) {
-        if (!isCurrentPlayerAI()) {
-            showPropertyUI(player.currentPosition);
-        }
+        // Only handle property UI in main movement logic
         return;
     }
 
@@ -2861,6 +2857,18 @@ function handleRailroadSpace(player, property) {
 }
 
 function showPropertyUI(position) {
+    // Debug: Check if multiple property UIs are being triggered
+    const overlays = document.querySelectorAll('.property-overlay');
+    if (overlays.length > 0) {
+        console.warn(`[PropertyUI Debug] ${overlays.length} property UI overlays detected before creating new one.`);
+    }
+    // Ensure only one property UI overlay is present at a time
+    const existingOverlays = document.querySelectorAll('.property-overlay');
+    existingOverlays.forEach(overlay => {
+        if (overlay && overlay.parentElement) {
+            overlay.parentElement.removeChild(overlay);
+        }
+    });
     console.log(`showPropertyUI called for position ${position}`);
     
     // Check if current player is AI first
