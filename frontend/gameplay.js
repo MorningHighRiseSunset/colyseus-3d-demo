@@ -5805,14 +5805,20 @@ function finishMove(player, newPosition, passedGo) {
         updateMoneyDisplay();
     }
 
-    // Only show property UI for the current player (not for others)
-    if (players[currentPlayerIndex] === player) {
-        const landingSpace = placeNames[newPosition] || "Unknown Space";
-        const property = properties.find(p => p.name === landingSpace);
-        if (property && property.type !== "special") {
-            showPropertyUI(newPosition);
-        }
+    // Handle bankruptcy check
+    if (player.money < 0) {
+        handleBankruptcy(player);
+        return;
     }
+
+    // Handle jail logic if needed
+    if (player.inJail) {
+        showJailUI(player);
+        return;
+    }
+
+    // Any other end-of-move logic can go here
+    // (Property UI is now shown after animation in moveTokenToNewPositionWithCollisionAvoidance)
 }
 
 function showGoToJailUI(player) {
@@ -7462,9 +7468,6 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
     const currentPlayer = players[currentPlayerIndex];
     if (!currentPlayer.token) {
         console.error(`No token assigned to ${currentPlayer.name}.`);
-        console.log('Debug - Current player:', currentPlayer);
-        console.log('Debug - Current player index:', currentPlayerIndex);
-        console.log('Debug - Global players array:', players);
         return;
     }
 
@@ -7481,14 +7484,10 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
         });
     }
 
-
-    // Use selectedToken for the 3D model, and token (string) for the name
     let token = currentPlayer.selectedToken;
     const tokenName = currentPlayer.token;
-    // If selectedToken is missing but token and model are available, assign it now
     if (!token && tokenName && window.loadedTokenModels && window.loadedTokenModels[tokenName]) {
         token = window.loadedTokenModels[tokenName].clone();
-        // Place at GO square (positions[0])
         if (positions && positions[0]) {
             token.position.set(positions[0].x, getTokenHeight(tokenName, positions[0].y), positions[0].z);
             currentPlayer.currentPosition = 0;
@@ -7497,17 +7496,14 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
         token.visible = true;
         token.traverse(child => { child.visible = true; });
         currentPlayer.selectedToken = token;
-        console.warn('[PATCH] Assigned missing selectedToken for player:', currentPlayer.name, 'with token:', tokenName, 'at GO square');
     }
     if (!token) {
         console.error('No selectedToken (3D model) for player:', currentPlayer);
         return;
     }
 
-    // Update token position tracking
     updateTokenPosition(token, oldPosition);
 
-    // --- Make token and all children visible on first move ---
     if (!token.visible) {
         token.visible = true;
         token.traverse(child => { child.visible = true; });
@@ -7516,7 +7512,18 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
     let isWoman = tokenName === "woman";
     if (isWoman) playWalkAnimation(token);
 
-    // --- FOOTBALL: throw directly to destination ---
+    // Helper to show property UI only for the local player after move
+    function showUIAfterMove(player, newPosition) {
+        if (players[currentPlayerIndex] === player && typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
+            const landingSpace = placeNames[newPosition] || "Unknown Space";
+            const property = properties.find(p => p.name === landingSpace);
+            if (property && property.type !== "special") {
+                showPropertyUI(newPosition);
+            }
+        }
+    }
+
+    // FOOTBALL: throw directly to destination
     if (tokenName === "football") {
         const startPos = positions[oldPosition];
         const endPos = positions[newPosition];
@@ -7524,40 +7531,44 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
         throwFootballAnimation(token, endPos, finalHeight, () => {
             updateTokenPosition(token, newPosition);
             finishMove(currentPlayer, newPosition, oldPosition + spaces >= propertiesCount);
+            showUIAfterMove(currentPlayer, newPosition);
             if (callback) callback();
         });
         return;
     }
 
-    // --- ROLLS ROYCE: drive with collision avoidance ---
+    // ROLLS ROYCE: drive with collision avoidance
     if (tokenName === "rolls royce") {
         const path = calculatePathWithCollisionAvoidance(oldPosition, newPosition, currentPlayerIndex);
         const pathPositions = path.map(index => positions[index]);
         driveRollsRoyceAlongPath(token, pathPositions, () => {
             updateTokenPosition(token, newPosition);
             finishMove(currentPlayer, newPosition, oldPosition + spaces >= propertiesCount);
+            showUIAfterMove(currentPlayer, newPosition);
             if (callback) callback();
         });
         return;
     }
 
-    // --- HELICOPTER: fly with collision avoidance ---
+    // HELICOPTER: fly with collision avoidance
     if (tokenName === "helicopter") {
         const path = calculatePathWithCollisionAvoidance(oldPosition, newPosition, currentPlayerIndex);
         const pathPositions = path.map(index => positions[index]);
         flyWithHelicopterEffectPath(pathPositions, token, () => {
             updateTokenPosition(token, newPosition);
             finishMove(currentPlayer, newPosition, oldPosition + spaces >= propertiesCount);
+            showUIAfterMove(currentPlayer, newPosition);
             if (callback) callback();
         });
         return;
     }
 
-    // --- All other tokens: move with collision avoidance ---
+    // All other tokens: move with collision avoidance
     const path = calculatePathWithCollisionAvoidance(oldPosition, newPosition, currentPlayerIndex);
     moveTokenAlongPath(path, token, () => {
         updateTokenPosition(token, newPosition);
         finishMove(currentPlayer, newPosition, oldPosition + spaces >= propertiesCount);
+        showUIAfterMove(currentPlayer, newPosition);
         if (isWoman) stopWalkAnimation(token);
         if (callback) callback();
     });
