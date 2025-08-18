@@ -648,7 +648,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 // Always add token to scene and set its position before moving
                 if (!scene.children.includes(token)) {
                     scene.add(token);
-                    console.log(`[Patch] Added token to scene for player '${player.name}'`);
+                    console.log(`[Patch] Added token to scene for player '${player.name}' (playerId: ${player.id})`);
                 }
                 // Set token position to startPos before animating
                 if (startPos) {
@@ -4311,10 +4311,15 @@ function endTurn() {
         updateMoneyDisplay();
         updateBoards();
 
-        // Show/hide roll button based on player type
+        // Show/hide roll button based on turn and player type
         const rollButton = document.querySelector('.dice-button');
         if (rollButton) {
-            rollButton.style.display = isCurrentPlayerAI() ? 'none' : 'block';
+            // Only show if it's the local player's turn and not AI
+            if (playerList[currentPlayerIndex]?.id === currentPlayerId && !isCurrentPlayerAI()) {
+                rollButton.style.display = 'block';
+            } else {
+                rollButton.style.display = 'none';
+            }
         }
 
         // Handle specific player situations
