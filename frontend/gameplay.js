@@ -113,14 +113,14 @@ function loadTokenModelByName(name, scene, onLoaded) {
     loader.load(model.path, (gltf) => {
         gltf.scene.scale.set(...model.scale);
         scene.add(gltf.scene);
-        // --- Patch: Setup animation mixer and play rotor animation for helicopter ---
-        if (name === 'Helicopter' && gltf.animations && gltf.animations.length > 0) {
+        // --- Patch: Setup animation mixer and play all animations for any animated token ---
+        if (gltf.animations && gltf.animations.length > 0) {
             const mixer = new THREE.AnimationMixer(gltf.scene);
             const actions = gltf.animations.map(clip => mixer.clipAction(clip));
             actions.forEach(action => action.play());
             gltf.scene.userData.mixer = mixer;
             gltf.scene.userData.actions = actions;
-            gltf.scene.userData.tokenName = 'helicopter';
+            gltf.scene.userData.tokenName = name.toLowerCase();
         }
         if (onLoaded) onLoaded(gltf.scene);
     });
