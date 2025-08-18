@@ -7480,9 +7480,100 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
         socket.emit('moveToken', {
             roomId: currentRoomId,
             playerId: currentPlayerId,
-            newPosition
+            from: oldPosition,
+            to: newPosition
         });
     }
+// Helper: returns true if the player is the local player
+function isLocalPlayer(player) {
+    return player && player.id === currentPlayerId;
+}
+
+// Socket handler: animate token movement for all clients
+if (typeof socket !== 'undefined' && socket) {
+    socket.on('moveToken', ({ playerId, from, to }) => {
+        const player = players.find(p => p.id === playerId);
+        if (!player) return;
+        // Animate the token for this player
+        moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
+            // Only show property UI if this is the local player
+            if (isLocalPlayer(player)) {
+                showPropertyUI(to);
+            }
+        });
+    });
+}
+
+// New: moveTokenToNewPositionWithCollisionAvoidanceForPlayer (for socket handler)
+function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, callback) {
+    // Use selectedToken for the 3D model, and token (string) for the name
+    let token = player.selectedToken;
+    const tokenName = player.token;
+    if (!token && tokenName && window.loadedTokenModels && window.loadedTokenModels[tokenName]) {
+        token = window.loadedTokenModels[tokenName].clone();
+        if (positions && positions[0]) {
+            token.position.set(positions[0].x, getTokenHeight(tokenName, positions[0].y), positions[0].z);
+            player.currentPosition = 0;
+        }
+        scene.add(token);
+        token.visible = true;
+        token.traverse(child => { child.visible = true; });
+        player.selectedToken = token;
+    }
+    if (!token) {
+        console.error('No selectedToken (3D model) for player:', player);
+        return;
+    }
+    updateTokenPosition(token, from);
+    if (!token.visible) {
+        token.visible = true;
+        token.traverse(child => { child.visible = true; });
+    }
+    let isWoman = tokenName === "woman";
+    if (isWoman) playWalkAnimation(token);
+    // FOOTBALL: throw directly to destination
+    if (tokenName === "football") {
+        const startPos = positions[from];
+        const endPos = positions[to];
+        const finalHeight = getTokenHeight(tokenName, endPos.y) + 1.0;
+        throwFootballAnimation(token, endPos, finalHeight, () => {
+            updateTokenPosition(token, to);
+            finishMove(player, to, false);
+            if (callback) callback();
+        });
+        return;
+    }
+    // ROLLS ROYCE: drive with collision avoidance
+    if (tokenName === "rolls royce") {
+        const path = calculatePathWithCollisionAvoidance(from, to, players.indexOf(player));
+        const pathPositions = path.map(index => positions[index]);
+        driveRollsRoyceAlongPath(token, pathPositions, () => {
+            updateTokenPosition(token, to);
+            finishMove(player, to, false);
+            if (callback) callback();
+        });
+        return;
+    }
+    // HELICOPTER: fly with collision avoidance
+    if (tokenName === "helicopter") {
+        const path = calculatePathWithCollisionAvoidance(from, to, players.indexOf(player));
+        const pathPositions = path.map(index => positions[index]);
+        flyWithHelicopterEffectPath(pathPositions, token, () => {
+            updateTokenPosition(token, to);
+            finishMove(player, to, false);
+            if (callback) callback();
+        });
+        return;
+    }
+    // All other tokens: move with collision avoidance
+    const path = calculatePathWithCollisionAvoidance(from, to, players.indexOf(player));
+    moveTokenAlongPath(path, token, () => {
+        updateTokenPosition(token, to);
+        finishMove(player, to, false);
+        if (isWoman) stopWalkAnimation(token);
+        if (callback) callback();
+    });
+}
 
     let token = currentPlayer.selectedToken;
     const tokenName = currentPlayer.token;
