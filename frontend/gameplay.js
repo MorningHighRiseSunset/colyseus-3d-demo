@@ -176,15 +176,17 @@ function assignSelectedTokenForPlayer(player) {
         console.warn('[Patch Debug] assignSelectedTokenForPlayer: player or player.token missing', player);
         return;
     }
+    if (player.selectedToken) {
+        // Already assigned, do not re-clone
+        return;
+    }
     const loadedKeys = Object.keys(window.loadedTokenModels || {});
     const tokenKey = loadedKeys.find(
         k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
     );
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
         player.selectedToken = window.loadedTokenModels[tokenKey].clone();
-        // Set token height for all types
         player.selectedToken.position.set(0, getTokenHeight(player.token), 0);
-        // Hide spinner as soon as model is assigned
         if (typeof hideTokenButtonSpinners === 'function') hideTokenButtonSpinners();
         console.log(`[Patch] Assigned selectedToken for player '${player.name}' with token '${player.token}'`);
     } else {
@@ -617,19 +619,14 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 const startPos = getBoardSquarePosition(oldIndex);
                 const endPos = getBoardSquarePosition(newPos);
                 let token = player.selectedToken;
-                // Remove old token from scene if it exists
-                if (player.selectedToken && scene.children.includes(player.selectedToken)) {
-                    scene.remove(player.selectedToken);
+                // Remove old token from scene if it exists (but do not re-clone)
+                if (token && scene.children.includes(token)) {
+                    scene.remove(token);
                 }
-                // --- PATCH: Force assign selectedToken if missing and model is loaded ---
+                // Only assign selectedToken if it is missing
                 if ((!token || !token.position) && player.token && window.loadedTokenModels) {
-                    const loadedKeys = Object.keys(window.loadedTokenModels);
-                    const tokenKey = loadedKeys.find(k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, ''));
-                    if (tokenKey && window.loadedTokenModels[tokenKey]) {
-                        token = window.loadedTokenModels[tokenKey].clone();
-                        player.selectedToken = token;
-                        console.log(`[Patch] Forced assign selectedToken for player '${player.name}' with token '${player.token}' at move time.`);
-                    }
+                    assignSelectedTokenForPlayer(player);
+                    token = player.selectedToken;
                 }
                 // If token is still missing, queue the move until model loads
                 if (!token) {
@@ -638,25 +635,21 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     pendingMoves[pid].push({ oldIndex, newPos });
                     // Listen for model load and retry
                     window.addEventListener('tokenModelsReady', () => {
-                        // Try to assign and replay queued moves
                         if (player.token && window.loadedTokenModels) {
-                            const loadedKeys = Object.keys(window.loadedTokenModels);
-                            const tokenKey = loadedKeys.find(k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, ''));
-                            if (tokenKey && window.loadedTokenModels[tokenKey]) {
-                                player.selectedToken = window.loadedTokenModels[tokenKey].clone();
-                                while (pendingMoves[pid] && pendingMoves[pid].length > 0) {
-                                    const move = pendingMoves[pid].shift();
-                                    const sPos = getBoardSquarePosition(move.oldIndex);
-                                    const ePos = getBoardSquarePosition(move.newPos);
-                                    let t = player.selectedToken;
-                                    if (!scene.children.includes(t)) scene.add(t);
-                                    moveTokenWithCollisionAvoidance(sPos, ePos, t, () => {
-                                        player.currentPosition = move.newPos;
-                                        if (player.id === currentPlayerId) {
-                                            handlePropertyLanding(player, move.newPos);
-                                        }
-                                    });
-                                }
+                            assignSelectedTokenForPlayer(player);
+                            token = player.selectedToken;
+                            while (pendingMoves[pid] && pendingMoves[pid].length > 0) {
+                                const move = pendingMoves[pid].shift();
+                                const sPos = getBoardSquarePosition(move.oldIndex);
+                                const ePos = getBoardSquarePosition(move.newPos);
+                                let t = player.selectedToken;
+                                if (!scene.children.includes(t)) scene.add(t);
+                                moveTokenWithCollisionAvoidance(sPos, ePos, t, () => {
+                                    player.currentPosition = move.newPos;
+                                    if (player.id === currentPlayerId) {
+                                        handlePropertyLanding(player, move.newPos);
+                                    }
+                                });
                             }
                         }
                     }, { once: true });
@@ -681,12 +674,9 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 if (startPos && endPos) {
                     moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
                         player.currentPosition = newPos;
-                        // Only show property/chance/community UI for the local player, after animation completes
                         if (pid === currentPlayerId) {
-                            // Delay UI until after animation
                             handlePropertyLanding(player, newPos);
                         } else {
-                            // For other players, optionally show a notification (not the full UI)
                             // showNotification(`${player.name} landed on ${getSquareName(newPos)}`);
                         }
                     });
@@ -5098,123 +5088,43 @@ function moveToken(startPos, endPos, token, callback) {
     else if (tokenName === "helicopter") stopHelicopterHover();
 
     // Movement logic for each token type
-    if (tokenName === "nike") {
-        const nikeHeight = 0.7;
-        const adjustedStartPos = { ...startPos, y: startPos.y + nikeHeight };
-        const adjustedEndPos = { ...endPos, y: endPos.y + nikeHeight };
-        hopWithNikeEffect(adjustedStartPos, adjustedEndPos, token, () => {
-            finalizeMove(token, adjustedEndPos, callback);
-        });
-    } else if (tokenName === "burger") {
-        jumpWithBigMacEffect(startPos, endPos, token, () => {
-            finalizeMove(token, endPos, callback);
-        });
-    } else if (tokenName === "hat") {
-        const hatRestingHeight = getTokenHeight('hat', endPos.y !== undefined ? endPos.y : 2);
-        jumpWithHatEffect(
-            { ...startPos, y: hatRestingHeight },
-            { ...endPos, y: hatRestingHeight },
-            token,
-            () => {
-                finalizeMove(token, endPos, callback);
-            }
-        );
-    } else if (tokenName === "woman") {
-        const womanHeight = 0.3;
-        const adjustedStartPos = { ...startPos, y: startPos.y + womanHeight };
-        const adjustedEndPos = { ...endPos, y: endPos.y + womanHeight };
-        const duration = 1000;
-        const startTime = Date.now();
-
-        playWalkAnimation(token);
-
-        function animate() {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-
-            const currentX = adjustedStartPos.x + (adjustedEndPos.x - adjustedStartPos.x) * progress;
-            const currentZ = adjustedStartPos.z + (adjustedEndPos.z - adjustedStartPos.z) * progress;
-
-            token.position.set(currentX, adjustedStartPos.y, currentZ);
-
-            const directionVector = new THREE.Vector3(
-                adjustedEndPos.x - adjustedStartPos.x,
-                0,
-                adjustedEndPos.z - adjustedStartPos.z
-            ).normalize();
-            token.rotation.set(0, Math.atan2(directionVector.x, directionVector.z), 0);
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                stopWalkAnimation(token);
-                finalizeMove(token, adjustedEndPos, callback);
-            }
-        }
-
-        animate();
-    } else if (tokenName === "football") {
-        finalizeMove(token, endPos, callback);
-    } else if (tokenName === "rolls royce") {
-        finalizeMove(token, endPos, callback);
-    } else if (tokenName === "helicopter") {
-        const duration = 1000;
-        const startTime = Date.now();
-
-        function animate() {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-
-            const currentX = startPos.x + (endPos.x - startPos.x) * progress;
-            const currentZ = startPos.z + (endPos.z - startPos.z) * progress;
-
-            token.position.set(currentX, startPos.y, currentZ);
-
-            const directionVector = new THREE.Vector3(
-                endPos.x - startPos.x,
-                0,
-                endPos.z - startPos.z
-            ).normalize();
-            token.rotation.set(0, Math.atan2(directionVector.x, directionVector.z), 0);
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                finalizeMove(token, endPos, callback);
-            }
-        }
-
-        animate();
-    } else {
-        // Default movement for other tokens
-        const duration = 1000;
-        const startTime = Date.now();
-
-        function animate() {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-
-            const currentX = startPos.x + (endPos.x - startPos.x) * progress;
-            const currentZ = startPos.z + (endPos.z - startPos.z) * progress;
-
-            token.position.set(currentX, startPos.y, currentZ);
-
-            const directionVector = new THREE.Vector3(
-                endPos.x - startPos.x,
-                0,
-                endPos.z - startPos.z
-            ).normalize();
-            token.rotation.set(0, Math.atan2(directionVector.x, directionVector.z), 0);
-
-            if (progress < 1) {
-                requestAnimationFrame(animate);
-            } else {
-                finalizeMove(token, endPos, callback);
-            }
-        }
-
-        animate();
+    // --- PATCH: Use correct height for all tokens during movement, matching oldscript.js ---
+    function getMoveHeight(tokenName, baseY) {
+        if (tokenName === "nike") return baseY + 0.7;
+        if (tokenName === "burger") return baseY + 0.2;
+        if (tokenName === "hat") return getTokenHeight('hat', baseY);
+        if (tokenName === "woman") return baseY + 0.3;
+        if (tokenName === "rolls royce") return baseY + 0.3;
+        if (tokenName === "football") return baseY + 1.0;
+        return getTokenHeight(tokenName, baseY);
     }
+
+    const duration = 1000;
+    const startTime = Date.now();
+    playWalkAnimation(tokenName === "woman" ? token : null);
+
+    function animate() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const currentX = startPos.x + (endPos.x - startPos.x) * progress;
+        const currentZ = startPos.z + (endPos.z - startPos.z) * progress;
+        const baseY = startPos.y + (endPos.y - startPos.y) * progress;
+        const moveY = getMoveHeight(tokenName, baseY);
+        token.position.set(currentX, moveY, currentZ);
+        const directionVector = new THREE.Vector3(
+            endPos.x - startPos.x,
+            0,
+            endPos.z - startPos.z
+        ).normalize();
+        token.rotation.set(0, Math.atan2(directionVector.x, directionVector.z), 0);
+        if (progress < 1) {
+            requestAnimationFrame(animate);
+        } else {
+            if (tokenName === "woman") stopWalkAnimation(token);
+            finalizeMove(token, { x: endPos.x, y: moveY, z: endPos.z }, callback);
+        }
+    }
+    animate();
 }
 
 function finalizeMove(token, endPos, callback) {
