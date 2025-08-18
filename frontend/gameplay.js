@@ -391,7 +391,7 @@ function renderPlayersList() {
         console.warn('players-list element not found');
         return;
     }
-    playerListUI.innerHTML = '';
+        playerListUI.innerHTML = ''; // Clear existing player list
     playerList.forEach(p => {
         const info = document.createElement('div');
         info.className = 'player-info' + (p.id === currentPlayerId ? ' current-player' : '');
