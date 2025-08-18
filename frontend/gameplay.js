@@ -698,6 +698,15 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     } else {
                         console.warn('[MP DEBUG] No selectedToken for camera follow after startTurn');
                     }
+                    // Show/hide roll dice button for the local player only
+                    const rollButton = document.querySelector('.dice-button');
+                    if (rollButton) {
+                        if (playerList[currentPlayerIndex]?.id === currentPlayerId && !isCurrentPlayerAI()) {
+                            rollButton.style.display = 'block';
+                        } else {
+                            rollButton.style.display = 'none';
+                        }
+                    }
                 }, 500);
             } else {
                 console.warn('[MP DEBUG] startTurn is not a function');
