@@ -1,3 +1,12 @@
+// --- DEBUG LOGGING HELPERS ---
+function debugLogLoadedTokenModels() {
+    if (window.loadedTokenModels) {
+        console.log('[DEBUG] loadedTokenModels keys:', Object.keys(window.loadedTokenModels));
+    } else {
+        console.log('[DEBUG] loadedTokenModels is undefined');
+    }
+}
+
 // --- Multiplayer Move Queue for Token Model Readiness ---
 const pendingMoves = [];
 
@@ -29,6 +38,7 @@ Object.defineProperty(window, 'loadedTokenModels', {
         if (origLoadedTokenModelsSetter) origLoadedTokenModelsSetter.call(window, val);
         this._loadedTokenModels = val;
         processPendingMoves();
+    debugLogLoadedTokenModels();
     },
     get() {
         return this._loadedTokenModels;
@@ -7514,6 +7524,15 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
 
     // Multiplayer sync: only emit if this client controls the current player
     if (isMultiplayerMode && playerList[currentPlayerIndex]?.id === currentPlayerId && socket) {
+        console.log('[DEBUG] Emitting moveToken:', {
+            roomId: currentRoomId,
+            playerId: currentPlayerId,
+            from: oldPosition,
+            to: newPosition,
+            currentPlayerIndex,
+            playerList,
+            players,
+        });
         socket.emit('moveToken', {
             roomId: currentRoomId,
             playerId: currentPlayerId,
@@ -7529,8 +7548,19 @@ function isLocalPlayer(player) {
 // Socket handler: animate token movement for all clients
 if (typeof socket !== 'undefined' && socket) {
     socket.on('moveToken', ({ playerId, from, to }) => {
+        console.log('[DEBUG] moveToken event received:', {
+            playerId,
+            from,
+            to,
+            players,
+            currentPlayerIndex,
+            currentPlayer: players[currentPlayerIndex],
+        });
         const player = players.find(p => p.id === playerId);
-        if (!player) return;
+        if (!player) {
+            console.warn('[DEBUG] moveToken: No player found for playerId', playerId);
+            return;
+        }
         const tokenName = player.token;
         if (window.loadedTokenModels && window.loadedTokenModels[tokenName]) {
             moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
@@ -7542,16 +7572,21 @@ if (typeof socket !== 'undefined' && socket) {
             // Model not ready, queue the move
             pendingMoves.push({ playerId, from, to });
             console.warn(`[PATCH] Queued move for player ${playerId} (${tokenName}) until model is loaded.`);
+            debugLogLoadedTokenModels();
         }
     });
+    console.log('[DEBUG] processPendingMoves called. pendingMoves:', pendingMoves, 'players:', players);
 }
 
 // New: moveTokenToNewPositionWithCollisionAvoidanceForPlayer (for socket handler)
 function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, callback) {
     // Use selectedToken for the 3D model, and token (string) for the name
+    console.log('[DEBUG] moveTokenToNewPositionWithCollisionAvoidanceForPlayer called for player:', player);
     let token = player.selectedToken;
     const tokenName = player.token;
+    console.log('[DEBUG] Player token:', tokenName, 'selectedToken exists:', !!token);
     if (!token && tokenName && window.loadedTokenModels && window.loadedTokenModels[tokenName]) {
+        console.log(`[DEBUG] Assigning selectedToken for player '${player && player.name}' with token '${tokenName}'`);
         token = window.loadedTokenModels[tokenName].clone();
         if (positions && positions[0]) {
             token.position.set(positions[0].x, getTokenHeight(tokenName, positions[0].y), positions[0].z);
@@ -7561,11 +7596,14 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
         token.visible = true;
         token.traverse(child => { child.visible = true; });
         player.selectedToken = token;
+        console.warn(`[PATCH] Assigned selectedToken for player '${player.name}' with token '${tokenName}' during move processing.`);
     }
     if (!token) {
-        console.error('No selectedToken (3D model) for player:', player);
+        console.error('No selectedToken (3D model) for player:', player, '...queueing move');
+        debugLogLoadedTokenModels();
         return;
     }
+    console.log('[DEBUG] processPendingMoves called. pendingMoves:', pendingMoves);
     updateTokenPosition(token, from);
     if (!token.visible) {
         token.visible = true;
