@@ -34,6 +34,10 @@ function syncPlayersWithServerList(serverPlayerList) {
     });
     players = newPlayers;
     debugLogPlayerState('syncPlayersWithServerList');
+    // PATCH: Ensure first player's selectedToken is set after sync
+    if (players[0] && players[0].token && !players[0].selectedToken && window.loadedTokenModels) {
+        assignSelectedTokenForPlayer(players[0]);
+    }
 }
 // --- DEBUG LOGGING HELPERS ---
 function debugLogLoadedTokenModels() {
@@ -2652,6 +2656,7 @@ function jumpWithBigMacEffect(startPos, endPos, token, callback) {
 }
 
 function playWalkAnimation(token) {
+    if (!token || !token.userData || !token.userData.tokenName) return;
     if (token.userData.tokenName === "woman" && token.userData.walkAction) {
         console.log('Starting woman walk animation...');
         // Stop idle animation if it's playing
