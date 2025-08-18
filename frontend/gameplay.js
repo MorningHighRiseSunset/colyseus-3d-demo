@@ -861,6 +861,30 @@ window.addEventListener('DOMContentLoaded', () => {
     // Show spinner and disable token selection immediately
     showTokenButtonSpinners();
 
+    // --- PATCH: Always attach event to .dice-button and force visible ---
+    setTimeout(() => {
+        const diceBtn = document.querySelector('.dice-button');
+        if (diceBtn) {
+            diceBtn.style.display = 'block';
+            diceBtn.style.zIndex = '2001';
+            diceBtn.removeAttribute('disabled');
+            // Remove all previous click listeners by replacing the node
+            const newBtn = diceBtn.cloneNode(true);
+            diceBtn.parentNode.replaceChild(newBtn, diceBtn);
+            newBtn.addEventListener('click', () => {
+                if (typeof rollDice === 'function') rollDice();
+            });
+            newBtn.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                if (typeof rollDice === 'function') rollDice();
+            });
+            // Debug log
+            console.log('[PATCH] .dice-button found and event attached');
+        } else {
+            console.warn('[PATCH] .dice-button NOT found in DOM');
+        }
+    }, 1000);
+
     // Start loading all token models as soon as the game loads
     if (!window.loadedTokenModels) window.loadedTokenModels = {};
     let loadedCount = 0;
@@ -888,7 +912,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Hide spinner and enable token selection when models are ready
     window.addEventListener('tokenModelsReady', () => {
-    hideTokenButtonSpinners();
+        hideTokenButtonSpinners();
         // Optionally, enable token selection UI here if needed
         const modal = document.getElementById('token-selection-ui');
         if (modal) {

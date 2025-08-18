@@ -176,21 +176,22 @@ body {
     min-width: 100px;
     max-width: 120px;
     width: auto;
-    padding: 12px 20px;
-    font-size: 16px;
-    height: auto;
-    line-height: 1.2;
-    z-index: 1000;
-    display: block;
-    background: #4CAF50;
-    color: white;
+    padding: 18px 36px;
+    font-size: 1.5em;
+    background: #ffd700;
+    color: #222;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px #0008;
     cursor: pointer;
+    z-index: 3000;
+    display: block;
+    transition: background 0.2s, color 0.2s, transform 0.2s;
     font-weight: bold;
+    outline: none;
+    opacity: 1;
+    pointer-events: auto;
     text-align: center;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    transition: all 0.2s ease;
   }
   
   .dice-button:hover {
@@ -598,22 +599,16 @@ body {
       right: auto !important;
       bottom: 20px !important;
       top: auto !important;
-      transform: none !important;
       width: 100px !important;
       max-width: 120px !important;
       min-width: 100px !important;
-      z-index: 1000 !important;
+      z-index: 3000 !important;
       font-size: 16px !important;
       padding: 12px 20px !important;
       height: auto !important;
       border-radius: 8px !important;
       display: block !important;
       text-align: center !important;
-      background: #4CAF50 !important;
-      color: white !important;
-      border: none !important;
-      font-weight: bold !important;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
     }
     #properties-toggle-btn {
       position: fixed !important;
@@ -790,7 +785,7 @@ body {
       right: auto !important;
       top: auto !important;
       display: block !important;
-      z-index: 1000 !important;
+      z-index: 3000 !important;
       width: 100px !important;
       max-width: 120px !important;
       min-width: 100px !important;
@@ -798,11 +793,7 @@ body {
       padding: 12px 20px !important;
       height: auto !important;
       border-radius: 8px !important;
-      background: #4CAF50 !important;
-      color: white !important;
-      border: none !important;
-      font-weight: bold !important;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
+      text-align: center !important;
     }
     #properties-toggle-btn {
       position: fixed !important;
