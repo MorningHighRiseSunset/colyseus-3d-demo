@@ -551,20 +551,17 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
 
     // Handle game start broadcast
     socket.on('gameStarted', ({ hostName }) => {
-        // Hide ready/start buttons
-        const readyBtn = document.getElementById('readyUpBtn');
-        const startBtn = document.getElementById('startGameBtn');
-        if (readyBtn) readyBtn.style.display = 'none';
-        if (startBtn) startBtn.style.display = 'none';
-        // Hide token selection modal
-        const modal = document.getElementById('token-selection-ui');
-        if (modal) modal.style.display = 'none';
-        // If host, show roll dice
-        if (playerList[0]?.id === currentPlayerId) {
-            const diceBtn = document.querySelector('.dice-button');
-            if (diceBtn) diceBtn.style.display = '';
-            // Multiplayer: Do NOT trigger startTurn() locally. Wait for server turnUpdate event.
-        }
+    // Hide ready/start buttons
+    const readyBtn = document.getElementById('readyUpBtn');
+    const startBtn = document.getElementById('startGameBtn');
+    if (readyBtn) readyBtn.style.display = 'none';
+    if (startBtn) startBtn.style.display = 'none';
+    // Hide token selection modal
+    const modal = document.getElementById('token-selection-ui');
+    if (modal) modal.style.display = 'none';
+    // Hide roll dice button for all at game start; only show on turnUpdate
+    const diceBtn = document.querySelector('.dice-button');
+    if (diceBtn) diceBtn.style.display = 'none';
     });
 
     // Host Start Game action (bind both IDs)
