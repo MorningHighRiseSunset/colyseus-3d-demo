@@ -645,13 +645,15 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     }, { once: true });
                     return;
                 }
-                // Add token to scene if not already present
+                // Always add token to scene and set its position before moving
                 if (!scene.children.includes(token)) {
                     scene.add(token);
+                    console.log(`[Patch] Added token to scene for player '${player.name}'`);
                 }
-                // Set token height for all types
-                if (player.token) {
-                    token.position.y = getTokenHeight(player.token, token.position.y);
+                // Set token position to startPos before animating
+                if (startPos) {
+                    token.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
+                    token.visible = true;
                 }
                 // Raise Rolls Royce token above the board
                 if (player.token && player.token.toLowerCase().includes('rolls')) {
