@@ -7663,14 +7663,19 @@ if (typeof socket !== 'undefined' && socket) {
                 player.selectedToken.traverse(child => { child.visible = true; });
                 console.log(`[Patch] Added token to scene for player '${player.name}' (playerId: ${player.id})`);
             }
+            // Always update token position for all players
+            console.log(`[PATCH] Moving token for player '${player.name}' (playerId: ${player.id}) from ${from} to ${to}`);
             moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
+                console.log(`[PATCH] Move complete for player '${player.name}' (playerId: ${player.id})`);
+                // Only show property UI for the local player
                 if (isLocalPlayer(player)) {
                     showPropertyUI(to);
                 }
             });
         } else {
             // Model not ready, queue the move
-            pendingMoves.push({ playerId, from, to });
+            if (!pendingMoves[`${playerId}`]) pendingMoves[`${playerId}`] = [];
+            pendingMoves[`${playerId}`].push({ from, to });
             console.warn(`[PATCH] Queued move for player ${playerId} (${tokenName}) until model is loaded.`);
             debugLogLoadedTokenModels();
         }
