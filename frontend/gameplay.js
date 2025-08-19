@@ -166,9 +166,9 @@ function allPlayersHaveTokens() {
     return players.every(player => player.token && player.selectedToken);
 }
 
-function followCurrentTurnToken() {
+function followCurrentTurnToken(retryCount = 0) {
     const player = players[currentPlayerIndex];
-    if (player && player.selectedToken && typeof camera !== 'undefined' && typeof controls !== 'undefined') {
+    if (player && player.selectedToken && typeof camera !== 'undefined' && typeof controls !== 'undefined' && scene.children.includes(player.selectedToken)) {
         const pos = player.selectedToken.position;
         camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
         camera.lookAt(pos.x, pos.y, pos.z);
@@ -177,6 +177,11 @@ function followCurrentTurnToken() {
             controls.update();
         }
         console.log('[PATCH] Camera now follows token for:', player.name, pos);
+    } else if (retryCount < 10) {
+        // Retry after a short delay if token is not ready
+        setTimeout(() => followCurrentTurnToken(retryCount + 1), 200);
+    } else {
+        console.warn('[PATCH] Camera follow failed: token not ready for', player ? player.name : 'unknown');
     }
 }
 
@@ -2184,7 +2189,6 @@ function handleAIPropertyDecision(property, callback = () => {}) {
     }
 }
 
-
 function handleRentPayment(player, property) {
     if (!property || !property.owner) {
         console.error("Invalid property or owner for rent payment");
@@ -2194,38 +2198,51 @@ function handleRentPayment(player, property) {
     if (ticketProperties.includes(property.name)) {
         showFeedback("No rent is due for this property.");
         closePropertyUI();
-        setTimeout(() => {
-            isTurnInProgress = false;
-            endTurn();
-        }, 1000);
+        isTurnInProgress = false;
+        // Do NOT auto end turn for human players
         return;
     }
     const rentAmount = calculateRent(property);
     if (player.money >= rentAmount) {
         player.money -= rentAmount;
         property.owner.money += rentAmount;
-        
-        // Check if we're in multiplayer mode
-        const isMultiplayer = window.location.search.includes('room=') && window.location.search.includes('player=');
-        const isCurrentPlayer = isMultiplayer ? 
-            (player === players[currentPlayerIndex]) : false;
-        
         // Show feedback to the current player
         showFeedback(`${player.name} paid $${rentAmount} rent to ${property.owner.name}`);
-        
-        
         updateMoneyDisplay();
         closePropertyUI();
-        setTimeout(() => {
-            isTurnInProgress = false;
-            endTurn();
-        }, 1500);
+        isTurnInProgress = false;
+        // Do NOT auto end turn for human players
     } else {
         showFeedback(`${player.name} cannot afford rent of $${rentAmount}!`);
         handleBankruptcy(player, property.owner);
     }
 }
 
+function closePropertyUI() {
+    const overlay = document.querySelector('.property-overlay');
+    if (!overlay) {
+        resumeHelicopterAudio();
+        return;
+    }
+    const popup = overlay.querySelector('.property-popup');
+    if (popup) {
+        popup.classList.remove('show');
+        popup.classList.add('hide');
+    }
+    setTimeout(() => {
+        if (overlay && overlay.parentElement) {
+            overlay.parentElement.removeChild(overlay);
+        }
+        resumeHelicopterAudio();
+        // Do NOT auto end turn for human players
+    }, 300);
+}
+
+// In createButtonContainer, update closeButton.onclick:
+closeButton.onclick = () => {
+    closePropertyUI();
+    // Do NOT auto end turn for human players
+};
 
 function executeAITurn() {
     const currentPlayer = players[currentPlayerIndex];
