@@ -193,6 +193,8 @@ function assignSelectedTokenForPlayer(player) {
         player.selectedToken.position.set(0, getTokenHeight(player.token), 0);
         if (typeof hideTokenButtonSpinners === 'function') hideTokenButtonSpinners();
         console.log(`[Patch] Assigned selectedToken for player '${player.name}' with token '${player.token}'`);
+        // Process any pending moves now that the token is assigned
+        if (typeof processPendingMoves === 'function') processPendingMoves();
     } else {
         console.warn(`[Patch Debug] assignSelectedTokenForPlayer: Could not assign selectedToken for player '${player.name}' with token '${player.token}'`);
     }
