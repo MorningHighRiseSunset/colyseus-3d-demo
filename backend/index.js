@@ -83,10 +83,14 @@ io.on('connection', (socket) => {
   socket.on('moveToken', ({ roomId, playerId, from, to }) => {
     if (!rooms[roomId]) return;
     rooms[roomId].positions[playerId] = to;
-    // Broadcast the move to all clients for animation and UI sync
     io.to(roomId).emit('moveToken', { playerId, from, to });
     io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
-    // PATCH: Advance turn and emit turnUpdate
+    // DO NOT ADVANCE TURN HERE!
+  });
+
+  // New: Only advance turn when client explicitly ends their turn
+  socket.on('endTurn', ({ roomId, playerId }) => {
+    if (!rooms[roomId]) return;
     const playerIds = Object.keys(rooms[roomId].players);
     if (!rooms[roomId].currentTurnIndex) rooms[roomId].currentTurnIndex = 0;
     // Advance to next player (wrap around)
