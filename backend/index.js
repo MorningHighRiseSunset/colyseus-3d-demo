@@ -26,7 +26,7 @@ const rooms = {};
 io.on('connection', (socket) => {
   // Send player number to each client when they join
   socket.on('joinRoom', ({ roomId, playerId, playerName }) => {
-    if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {} };
+    if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {}, currentTurnIndex: 0 };
     rooms[roomId].players[playerId] = { name: playerName || 'Player' };
     rooms[roomId].positions[playerId] = 0;
     socket.join(roomId);
@@ -39,13 +39,13 @@ io.on('connection', (socket) => {
   });
   // --- Metropoly Multiplayer Logic ---
   socket.on('joinMetropoly', ({ roomId, playerId, playerName }) => {
-  if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {} };
-  // Preserve token if already chosen
-  const prevToken = rooms[roomId].tokens[playerId] || (rooms[roomId].players[playerId] && rooms[roomId].players[playerId].token) || null;
-  rooms[roomId].players[playerId] = { name: playerName || 'Player', token: prevToken };
-  if (prevToken) rooms[roomId].tokens[playerId] = prevToken;
-  rooms[roomId].positions[playerId] = 0;
-  socket.join(roomId);
+    if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {}, currentTurnIndex: 0 };
+    // Preserve token if already chosen
+    const prevToken = rooms[roomId].tokens[playerId] || (rooms[roomId].players[playerId] && rooms[roomId].players[playerId].token) || null;
+    rooms[roomId].players[playerId] = { name: playerName || 'Player', token: prevToken };
+    if (prevToken) rooms[roomId].tokens[playerId] = prevToken;
+    rooms[roomId].positions[playerId] = 0;
+    socket.join(roomId);
     // PATCH: Log all player IDs in the room after join
     console.log('Room', roomId, 'players:', Object.keys(rooms[roomId].players));
     io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({
@@ -60,6 +60,11 @@ io.on('connection', (socket) => {
     const nextId = pickOrder[chosenCount];
     if (nextId) {
       io.to(roomId).emit('nextTurnToPick', { playerId: nextId });
+    }
+    // PATCH: On join, emit current turn to all
+    if (pickOrder.length > 0) {
+      const currentTurnPlayerId = pickOrder[rooms[roomId].currentTurnIndex || 0];
+      io.to(roomId).emit('turnUpdate', { currentTurnPlayerId });
     }
   });
 
@@ -85,8 +90,14 @@ io.on('connection', (socket) => {
     rooms[roomId].positions[playerId] = to;
     // Broadcast the move to all clients for animation and UI sync
     io.to(roomId).emit('moveToken', { playerId, from, to });
-    // Optionally, still emit tokenPositions for absolute sync
     io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
+    // PATCH: Advance turn and emit turnUpdate
+    const playerIds = Object.keys(rooms[roomId].players);
+    if (!rooms[roomId].currentTurnIndex) rooms[roomId].currentTurnIndex = 0;
+    // Advance to next player (wrap around)
+    rooms[roomId].currentTurnIndex = (rooms[roomId].currentTurnIndex + 1) % playerIds.length;
+    const currentTurnPlayerId = playerIds[rooms[roomId].currentTurnIndex];
+    io.to(roomId).emit('turnUpdate', { currentTurnPlayerId });
   });
 
   socket.on('disconnecting', () => {
