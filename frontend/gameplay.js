@@ -189,6 +189,7 @@ function updateTurnUI() {
     const rollButton = document.querySelector('.dice-button');
     const currentPlayer = players[currentPlayerIndex];
     if (rollButton) {
+        // Only show dice button if it's the local player's turn and not AI
         if (currentPlayer && currentPlayer.id === currentPlayerId && !(currentPlayer.isAI)) {
             rollButton.style.display = 'block';
         } else {
@@ -758,15 +759,14 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             if (turnPlayer && turnPlayer.token && !turnPlayer.selectedToken && window.loadedTokenModels) {
                 assignSelectedTokenForPlayer(turnPlayer);
             }
-            // Call startTurn to update UI/camera for the new turn
-            if (typeof startTurn === 'function') {
-                console.log('[MP DEBUG] Calling startTurn() for player:', players[currentPlayerIndex]?.name, players[currentPlayerIndex]);
-                startTurn();
-            } else {
-                console.warn('[MP DEBUG] startTurn is not a function');
-            }
-            // Always follow the current turn's token and update UI
+            // Always follow the current turn's token for all clients
             followCurrentTurnToken();
+            // Only call startTurn for the local player whose turn it is
+            if (turnPlayer && turnPlayer.id === currentPlayerId && typeof startTurn === 'function') {
+                console.log('[MP DEBUG] Calling startTurn() for local player:', turnPlayer.name, turnPlayer);
+                startTurn();
+            }
+            // Update UI for all clients
             updateTurnUI();
         } else {
             console.warn('[MP DEBUG] turnUpdate: No player found for id', currentTurnPlayerId);
@@ -855,26 +855,6 @@ function setupReadyUpButton() {
     }
 }
 
-// --- Patch dice roll logic for animation ---
-function patchRollDice() {
-    const originalRollDice = window.rollDice;
-    window.rollDice = function() {
-        if (isMultiplayerMode && socket) {
-            // Only allow dice roll if it's your turn
-            if (playerList[currentPlayerIndex]?.id === currentPlayerId) {
-                animateDiceRoll();
-                originalRollDice();
-            } else {
-                alert('Wait for your turn!');
-            }
-        } else {
-            animateDiceRoll();
-            originalRollDice();
-        }
-    };
-}
-
-
 
 function overrideRollDiceForMultiplayer() {
     if (typeof window.rollDice === 'function') {
@@ -883,11 +863,13 @@ function overrideRollDiceForMultiplayer() {
             if (isMultiplayerMode && socket) {
                 // Only allow dice roll if it's your turn
                 if (playerList[currentPlayerIndex]?.id === currentPlayerId) {
+                    animateDiceRoll();
                     originalRollDice();
                 } else {
                     alert('Wait for your turn!');
                 }
             } else {
+                animateDiceRoll();
                 originalRollDice();
             }
         };
