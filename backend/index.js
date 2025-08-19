@@ -61,11 +61,6 @@ io.on('connection', (socket) => {
     if (nextId) {
       io.to(roomId).emit('nextTurnToPick', { playerId: nextId });
     }
-    // PATCH: On join, emit current turn to all
-    if (pickOrder.length > 0) {
-      const currentTurnPlayerId = pickOrder[rooms[roomId].currentTurnIndex || 0];
-      io.to(roomId).emit('turnUpdate', { currentTurnPlayerId });
-    }
   });
 
   // --- Queue/Room Multiplayer Logic for game.html ---
@@ -133,6 +128,12 @@ io.on('connection', (socket) => {
     const hostId = Object.keys(rooms[roomId].players)[0];
     if (playerId === hostId) {
       io.to(roomId).emit('gameStarted', { hostName: playerName, roomId });
+
+      // PATCH: Emit turnUpdate for the first player after game starts
+      const playerIds = Object.keys(rooms[roomId].players);
+      rooms[roomId].currentTurnIndex = 0;
+      const currentTurnPlayerId = playerIds[0];
+      io.to(roomId).emit('turnUpdate', { currentTurnPlayerId });
     }
   });
 
