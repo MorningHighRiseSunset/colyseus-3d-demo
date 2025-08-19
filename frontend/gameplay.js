@@ -7604,6 +7604,17 @@ if (typeof socket !== 'undefined' && socket) {
         }
         const tokenName = player.token;
         if (window.loadedTokenModels && window.loadedTokenModels[tokenName]) {
+            // Ensure selectedToken is assigned
+            if (!player.selectedToken) {
+                assignSelectedTokenForPlayer(player);
+            }
+            // Ensure token is in the scene
+            if (player.selectedToken && !player.selectedToken.parent) {
+                scene.add(player.selectedToken);
+                player.selectedToken.visible = true;
+                player.selectedToken.traverse(child => { child.visible = true; });
+                console.log(`[Patch] Added token to scene for player '${player.name}' (playerId: ${player.id})`);
+            }
             moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
                 if (isLocalPlayer(player)) {
                     showPropertyUI(to);
