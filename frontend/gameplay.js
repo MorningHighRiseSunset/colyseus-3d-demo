@@ -7632,28 +7632,22 @@ if (typeof socket !== 'undefined' && socket) {
 
 // New: moveTokenToNewPositionWithCollisionAvoidanceForPlayer (for socket handler)
 function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, callback) {
-    // Use selectedToken for the 3D model, and token (string) for the name
+    // Always use player.selectedToken for movement; never create a new token for remote players
     console.log('[DEBUG] moveTokenToNewPositionWithCollisionAvoidanceForPlayer called for player:', player);
-    let token = player.selectedToken;
+    const token = player.selectedToken;
     const tokenName = player.token;
     console.log('[DEBUG] Player token:', tokenName, 'selectedToken exists:', !!token);
-    if (!token && tokenName && window.loadedTokenModels && window.loadedTokenModels[tokenName]) {
-        console.log(`[DEBUG] Assigning selectedToken for player '${player && player.name}' with token '${tokenName}'`);
-        token = window.loadedTokenModels[tokenName].clone();
-        if (positions && positions[0]) {
-            token.position.set(positions[0].x, getTokenHeight(tokenName, positions[0].y), positions[0].z);
-            player.currentPosition = 0;
-        }
+    if (!token) {
+        console.error('[PATCH] No selectedToken for player', player, 'during move processing. Token movement skipped.');
+        debugLogLoadedTokenModels();
+        return;
+    }
+    // Ensure token is in the scene
+    if (!token.parent) {
         scene.add(token);
         token.visible = true;
         token.traverse(child => { child.visible = true; });
-        player.selectedToken = token;
-        console.warn(`[PATCH] Assigned selectedToken for player '${player.name}' with token '${tokenName}' during move processing.`);
-    }
-    if (!token) {
-        console.error('No selectedToken (3D model) for player:', player, '...queueing move');
-        debugLogLoadedTokenModels();
-        return;
+        console.log(`[Patch] Added token to scene for player '${player.name}' (playerId: ${player.id})`);
     }
     console.log('[DEBUG] processPendingMoves called. pendingMoves:', pendingMoves);
     updateTokenPosition(token, from);
