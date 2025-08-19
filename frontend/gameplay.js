@@ -1987,7 +1987,13 @@ function startTurn() {
     if (currentPlayer.isAI) {
         executeAITurn(currentPlayer);
     } else {
-        enableHumanTurn(currentPlayer);
+        if (typeof enableHumanTurn === 'function') {
+            enableHumanTurn(currentPlayer);
+        } else {
+            // Fallback: allow dice roll and hide turn indicator after roll
+            allowedToRoll = true;
+            console.warn('enableHumanTurn is not defined. Allowing dice roll for local player.');
+        }
     }
 
     const originalEndTurn = endTurn;
@@ -7188,6 +7194,15 @@ function rollDice() {
     allowedToRoll = false; // Prevent further rolls until this one is done
     isTurnInProgress = true; // Mark the turn as in progress
     hasTakenAction = true; // Mark that the player has taken an action
+    // Hide turn indicator immediately after rolling (for local player)
+    if (typeof showTurnIndicator === 'function') showTurnIndicator(false);
+// Patch: Provide a stub for enableHumanTurn if missing to prevent errors
+if (typeof enableHumanTurn !== 'function') {
+    function enableHumanTurn(player) {
+        allowedToRoll = true;
+        console.warn('Stub enableHumanTurn called. Allowing dice roll for local player.');
+    }
+}
 
     // Create dice rolling sound
     const rollSound = new Audio('Sounds/dice-142528.mp3');
