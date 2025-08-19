@@ -8703,6 +8703,48 @@ function createTestingModeUI() {
 createTestingModeUI();
 */
 
+// --- Add End Turn Button to DOM if not present ---
+function ensureEndTurnButton() {
+    if (!document.getElementById('endTurnBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'endTurnBtn';
+        btn.textContent = 'End Turn';
+        btn.style.position = 'absolute';
+        btn.style.bottom = '20px';
+        btn.style.right = '20px';
+        btn.style.zIndex = 1000;
+        btn.style.display = 'none';
+        document.body.appendChild(btn);
+    }
+}
+ensureEndTurnButton();
+
+// --- Show/hide End Turn button only for local player and only when allowed ---
+function updateEndTurnButtonVisibility() {
+    const btn = document.getElementById('endTurnBtn');
+    if (!btn) return;
+    // Only show if it's the local player's turn and they've rolled/moved and property UI is closed
+    const currentPlayer = players[currentPlayerIndex];
+    if (currentPlayer && currentPlayer.id === currentPlayerId && hasRolledDice && !propertyUIOpen) {
+        btn.style.display = '';
+        btn.disabled = false;
+    } else {
+        btn.style.display = 'none';
+        btn.disabled = true;
+    }
+}
+
+// --- Track property UI state ---
+let propertyUIOpen = false;
+
+// Patch showPropertyUI to set propertyUIOpen = true
+const origShowPropertyUI = window.showPropertyUI;
+window.showPropertyUI = function(...args) {
+    propertyUIOpen = true;
+    if (origShowPropertyUI) origShowPropertyUI.apply(this, args);
+    updateEndTurnButtonVisibility();
+};
+
 init();
 setupPropertiesToggleButton();
 
