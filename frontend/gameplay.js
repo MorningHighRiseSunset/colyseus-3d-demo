@@ -7634,6 +7634,15 @@ if (typeof socket !== 'undefined' && socket) {
 function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, callback) {
     // Always use player.selectedToken for movement; never create a new token for remote players
     console.log('[DEBUG] moveTokenToNewPositionWithCollisionAvoidanceForPlayer called for player:', player);
+    console.log(`[DEBUG] from: ${from}, to: ${to}`);
+    if (positions && positions[from] && positions[to]) {
+        console.log('[DEBUG] from position:', positions[from], 'to position:', positions[to]);
+    } else {
+        console.warn('[DEBUG] Invalid from/to indices or positions array:', from, to, positions);
+    }
+    if (player.selectedToken) {
+        console.log('[DEBUG] Token position before move:', player.selectedToken.position);
+    }
     const token = player.selectedToken;
     const tokenName = player.token;
     console.log('[DEBUG] Player token:', tokenName, 'selectedToken exists:', !!token);
@@ -7658,6 +7667,11 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
     let isWoman = tokenName === "woman";
     if (isWoman) playWalkAnimation(token);
     // FOOTBALL: throw directly to destination
+    if (player.selectedToken) {
+        setTimeout(() => {
+            console.log('[DEBUG] Token position after move:', player.selectedToken.position);
+        }, 2000); // Log after 2 seconds to see if it moved
+    }
     if (tokenName === "football") {
         const startPos = positions[from];
         const endPos = positions[to];
