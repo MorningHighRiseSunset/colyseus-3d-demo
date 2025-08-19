@@ -166,6 +166,41 @@ function allPlayersHaveTokens() {
     return players.every(player => player.token && player.selectedToken);
 }
 
+function followCurrentTurnToken() {
+    const player = players[currentPlayerIndex];
+    if (player && player.selectedToken && typeof camera !== 'undefined' && typeof controls !== 'undefined') {
+        const pos = player.selectedToken.position;
+        camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
+        camera.lookAt(pos.x, pos.y, pos.z);
+        if (typeof controls.target !== 'undefined') {
+            controls.target.set(pos.x, pos.y, pos.z);
+            controls.update();
+        }
+        console.log('[PATCH] Camera now follows token for:', player.name, pos);
+    }
+}
+
+function updateTurnUI() {
+    const rollButton = document.querySelector('.dice-button');
+    const currentPlayer = players[currentPlayerIndex];
+    if (rollButton) {
+        if (currentPlayer && currentPlayer.id === currentPlayerId && !(currentPlayer.isAI)) {
+            rollButton.style.display = 'block';
+        } else {
+            rollButton.style.display = 'none';
+        }
+    }
+    // Update 'It's Your Turn' indicator if you have one
+    const turnIndicator = document.getElementById('turn-indicator');
+    if (turnIndicator) {
+        if (currentPlayer && currentPlayer.id === currentPlayerId) {
+            turnIndicator.style.display = '';
+        } else {
+            turnIndicator.style.display = 'none';
+        }
+    }
+}
+
 // Lazy loading: Do NOT load all token models at startup. Models are loaded only when selected in the UI.
 
 // Deprecated: do not preload all models at once. Use loadTokenModelByName for lazy loading.
@@ -719,26 +754,12 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             if (typeof startTurn === 'function') {
                 console.log('[MP DEBUG] Calling startTurn() for player:', players[currentPlayerIndex]?.name, players[currentPlayerIndex]);
                 startTurn();
-                setTimeout(() => {
-                    const player = players[currentPlayerIndex];
-                    if (player && player.selectedToken) {
-                        console.log('[MP DEBUG] Camera/controls should now follow token for:', player.name, player.selectedToken.position);
-                    } else {
-                        console.warn('[MP DEBUG] No selectedToken for camera follow after startTurn');
-                    }
-                    // Show/hide roll dice button for the local player only
-                    const rollButton = document.querySelector('.dice-button');
-                    if (rollButton) {
-                        if (playerList[currentPlayerIndex]?.id === currentPlayerId && !isCurrentPlayerAI()) {
-                            rollButton.style.display = 'block';
-                        } else {
-                            rollButton.style.display = 'none';
-                        }
-                    }
-                }, 500);
             } else {
                 console.warn('[MP DEBUG] startTurn is not a function');
             }
+            // Always follow the current turn's token and update UI
+            followCurrentTurnToken();
+            updateTurnUI();
         } else {
             console.warn('[MP DEBUG] turnUpdate: No player found for id', currentTurnPlayerId);
         }
