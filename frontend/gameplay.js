@@ -7598,10 +7598,10 @@ function moveTokenToNewPositionWithCollisionAvoidance(spaces, callback) {
             players,
         });
         socket.emit('moveToken', {
-            roomId: currentRoomId,
-            playerId: currentPlayerId,
-            from: oldPosition,
-            to: newPosition
+        roomId: currentRoomId,
+        playerId: currentPlayerId,
+        from: oldPosition,
+        to: newPosition
         });
     }
 // Helper: returns true if the player is the local player

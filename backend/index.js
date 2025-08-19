@@ -80,9 +80,12 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
   });
 
-  socket.on('moveToken', ({ roomId, playerId, newPosition }) => {
+  socket.on('moveToken', ({ roomId, playerId, from, to }) => {
     if (!rooms[roomId]) return;
-    rooms[roomId].positions[playerId] = newPosition;
+    rooms[roomId].positions[playerId] = to;
+    // Broadcast the move to all clients for animation and UI sync
+    io.to(roomId).emit('moveToken', { playerId, from, to });
+    // Optionally, still emit tokenPositions for absolute sync
     io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
   });
 
