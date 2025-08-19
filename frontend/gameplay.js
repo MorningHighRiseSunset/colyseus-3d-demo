@@ -214,8 +214,6 @@ function loadAllTokenModels(scene, onAllLoaded) {
     if (onAllLoaded) onAllLoaded();
 }
 
-// --- Patch: Only assign tokens after models are loaded ---
-// Utility: Assign selectedToken for a player if token and model are available
 function assignSelectedTokenForPlayer(player) {
     if (!player || !player.token) {
         console.warn('[Patch Debug] assignSelectedTokenForPlayer: player or player.token missing', player);
@@ -755,6 +753,11 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             currentPlayerIndex = idx;
             console.log(`[MP DEBUG] Setting currentPlayerIndex: ${prevIndex} -> ${currentPlayerIndex} (PlayerId: ${currentTurnPlayerId})`);
             debugLogPlayerState('turnUpdate socket event');
+            // PATCH: Always assign selectedToken for the current turn's player before following token
+            const turnPlayer = players[currentPlayerIndex];
+            if (turnPlayer && turnPlayer.token && !turnPlayer.selectedToken && window.loadedTokenModels) {
+                assignSelectedTokenForPlayer(turnPlayer);
+            }
             // Call startTurn to update UI/camera for the new turn
             if (typeof startTurn === 'function') {
                 console.log('[MP DEBUG] Calling startTurn() for player:', players[currentPlayerIndex]?.name, players[currentPlayerIndex]);
@@ -2032,7 +2035,98 @@ function startTurn() {
 
     const originalEndTurn = endTurn;
     endTurn = function() {
-        // ...existing code for ending the turn...
+        if (isTurnInProgress) {
+            console.log("Turn is still in progress. Cannot end turn yet.");
+            return;
+        }
+
+        console.log(`Ending turn for Player ${currentPlayerIndex + 1} (${players[currentPlayerIndex].name})`);
+
+        try {
+            // Reset all turn-related flags
+            isTurnInProgress = true; // Temporarily set to true during transition
+            hasTakenAction = false;
+            hasRolledDice = false;
+            hasMovedToken = false;
+            hasHandledProperty = false;
+            hasDrawnCard = false;
+            isAIProcessing = false;
+
+            // Store the last player's index
+            lastPlayerIndex = currentPlayerIndex;
+
+            // Move to the next valid player
+            let nextPlayerFound = false;
+            const startingIndex = currentPlayerIndex;
+            let attempts = 0;
+
+            while (!nextPlayerFound && attempts < players.length) {
+                currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+                const nextPlayer = players[currentPlayerIndex];
+
+                if (nextPlayer && !nextPlayer.eliminated && nextPlayer.money >= 0) {
+                    nextPlayerFound = true;
+                    console.log(`Next turn is for Player ${currentPlayerIndex + 1} (${nextPlayer.name})`);
+                }
+
+                attempts++;
+            }
+
+            if (!nextPlayerFound) {
+                console.error("No valid players found for next turn!");
+                checkGameEnd();
+                return;
+            }
+
+            const currentPlayer = players[currentPlayerIndex];
+
+            // Update UI elements
+            updateMoneyDisplay();
+            updateBoards();
+
+            // Show/hide roll button based on turn and player type
+            const rollButton = document.querySelector('.dice-button');
+            if (rollButton) {
+                // Only show if it's the local player's turn and not AI
+                if (playerList[currentPlayerIndex]?.id === currentPlayerId && !isCurrentPlayerAI()) {
+                    rollButton.style.display = 'block';
+                } else {
+                    rollButton.style.display = 'none';
+                }
+            }
+
+            // Handle specific player situations
+            if (currentPlayer.inJail) {
+                console.log(`Player ${currentPlayerIndex + 1} is in jail`);
+                handlePlayerInJail(currentPlayer);
+            } else {
+                // Start the next player's turn
+                setTimeout(() => {
+                    isTurnInProgress = false; // Reset the flag
+                    if (isCurrentPlayerAI()) {
+                        console.log(`Starting AI turn for Player ${currentPlayerIndex + 1}`);
+                        executeAITurn();
+                    } else {
+                        console.log(`Starting human turn for Player ${currentPlayerIndex + 1}`);
+                        allowedToRoll = true;
+                        showFeedback(`${currentPlayer.name}'s turn - Roll the dice!`);
+                    }
+                }, 1000);
+            }
+
+            // Increment turn counter for game progression
+            turnCounter++;
+
+            // Validate game state periodically
+            if (turnCounter % 4 === 0) {
+                validateGameState();
+            }
+
+        } catch (error) {
+            console.error("Error in endTurn:", error);
+            isTurnInProgress = false; // Ensure the flag is reset even if an error occurs
+        }
+
         if (typeof originalEndTurn === 'function') {
             originalEndTurn();
         }
