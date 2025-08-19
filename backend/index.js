@@ -46,6 +46,8 @@ io.on('connection', (socket) => {
   if (prevToken) rooms[roomId].tokens[playerId] = prevToken;
   rooms[roomId].positions[playerId] = 0;
   socket.join(roomId);
+    // PATCH: Log all player IDs in the room after join
+    console.log('Room', roomId, 'players:', Object.keys(rooms[roomId].players));
     io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({
       id,
       ...info,
