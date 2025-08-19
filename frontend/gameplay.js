@@ -867,12 +867,13 @@ function overrideRollDiceForMultiplayer() {
                     originalRollDice();
                 } else {
                     alert('Wait for your turn!');
+                    return;
                 }
             } else {
                 animateDiceRoll();
                 originalRollDice();
             }
-        };
+        }
     } else {
         console.warn('window.rollDice is not defined yet.');
     }
