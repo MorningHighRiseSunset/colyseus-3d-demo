@@ -1956,6 +1956,15 @@ function startTurn() {
     }
     console.log(`Starting turn for Player ${currentPlayerIndex + 1} (${currentPlayer.name})`);
 
+    // Show turn indicator only for the local player
+    if (typeof showTurnIndicator === 'function') {
+        if (currentPlayer.id === currentPlayerId) {
+            showTurnIndicator(true);
+        } else {
+            showTurnIndicator(false);
+        }
+    }
+
     // Reset turn-related flags
     hasDrawnCard = false;
 
@@ -1973,6 +1982,10 @@ function startTurn() {
     const originalEndTurn = endTurn;
     endTurn = function() {
         originalEndTurn.apply(this, arguments);
+        // Hide turn indicator at the end of the local player's turn
+        if (typeof showTurnIndicator === 'function' && players[currentPlayerIndex]?.id === currentPlayerId) {
+            showTurnIndicator(false);
+        }
         if (cameraFollowMode) {
             setTimeout(() => {
                 const currentPlayer = players[currentPlayerIndex];
