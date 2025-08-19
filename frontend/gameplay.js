@@ -3659,12 +3659,13 @@ function createButtonContainer(property) {
                 showFeedback(`${currentPlayer.name} bought 1 night at the Brothel for $1500`);
                 updateMoneyDisplay();
                 closePropertyUI();
-                setTimeout(() => endTurn(), 1000);
+                // Do NOT auto end turn for human players
             } else {
                 showFeedback("Not enough money to buy 1 night!");
             }
         };
         buttonContainer.appendChild(buyButton);
+
         const rentButton = document.createElement('button');
         rentButton.className = 'action-button rent';
         rentButton.textContent = property.customRentLabel || 'Rent a room for 300';
@@ -3674,7 +3675,7 @@ function createButtonContainer(property) {
                 showFeedback(`${currentPlayer.name} rented a room at the Brothel for $300`);
                 updateMoneyDisplay();
                 closePropertyUI();
-                setTimeout(() => endTurn(), 1000);
+                // Do NOT auto end turn for human players
             } else {
                 showFeedback("Not enough money to rent a room!");
             }
@@ -3691,7 +3692,7 @@ function createButtonContainer(property) {
                 showFeedback(`${currentPlayer.name} ${property.customBuyLabel.toLowerCase()} for $${property.price}`);
                 updateMoneyDisplay();
                 closePropertyUI();
-                setTimeout(() => endTurn(), 1000);
+                // Do NOT auto end turn for human players
             } else {
                 showFeedback("Not enough money!");
             }
@@ -3753,6 +3754,7 @@ function createButtonContainer(property) {
                 if (currentPlayer.money >= property.price) {
                     buyProperty(currentPlayer, property);
                     closePropertyUI();
+                    // Do NOT auto end turn for human players
                 } else {
                     showFeedback(
                         property.isPenthouse ?
@@ -3784,13 +3786,10 @@ function createButtonContainer(property) {
     closeButton.textContent = 'Close';
     closeButton.onclick = () => {
         closePropertyUI();
-        // End the turn when close button is pressed
-        setTimeout(() => {
-            endTurn();
-        }, 300); // Small delay to allow the UI to close first
+        // Do NOT auto end turn for human players
     };
     closeButton.style.marginTop = '0';
-    closeButton.style.marginBottom = '20px'; // Move the button up from the bottom
+    closeButton.style.marginBottom = '20px';
     closeButton.style.alignSelf = 'stretch';
     buttonContainer.appendChild(closeButton);
 
