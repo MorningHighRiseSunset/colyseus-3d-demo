@@ -7622,7 +7622,10 @@ if (typeof socket !== 'undefined' && socket) {
         });
         const player = players.find(p => p.id === playerId);
         if (!player) {
-            console.warn('[DEBUG] moveToken: No player found for playerId', playerId);
+            // Queue the move until the player is available
+            if (!pendingMoves[`${playerId}`]) pendingMoves[`${playerId}`] = [];
+            pendingMoves[`${playerId}`].push({ from, to });
+            console.warn('[PATCH] Queued move for player', playerId, 'until player object is available.');
             return;
         }
         const tokenName = player.token;
