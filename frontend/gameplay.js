@@ -1953,7 +1953,15 @@ function updateStartButtonVisibility() {
     startBtn.style.display = (isHost && allReady) ? '' : 'none';
 }
 
+let lastTurnId = null;
 function startTurn() {
+    // Prevent double startTurn per turn per client
+    const turnId = `${currentPlayerIndex}-${players[currentPlayerIndex]?.id}`;
+    if (lastTurnId === turnId) {
+        console.warn('[PATCH GUARD] startTurn called twice for same turn, skipping. turnId:', turnId);
+        return;
+    }
+    lastTurnId = turnId;
     // Skip players without a selectedToken
     let attempts = 0;
     while (attempts < players.length && (!players[currentPlayerIndex] || !players[currentPlayerIndex].selectedToken)) {
@@ -1998,42 +2006,9 @@ function startTurn() {
 
     const originalEndTurn = endTurn;
     endTurn = function() {
-        originalEndTurn.apply(this, arguments);
-        // Hide turn indicator at the end of the local player's turn
-        if (typeof showTurnIndicator === 'function' && players[currentPlayerIndex]?.id === currentPlayerId) {
-            showTurnIndicator(false);
-        }
-        if (cameraFollowMode) {
-            setTimeout(() => {
-                const currentPlayer = players[currentPlayerIndex];
-                if (currentPlayer && currentPlayer.selectedToken) {
-                    controls.target.copy(currentPlayer.selectedToken.position);
-                    camera.position.lerp(new THREE.Vector3(
-                        currentPlayer.selectedToken.position.x + 4,
-                        currentPlayer.selectedToken.position.y + 7,
-                        currentPlayer.selectedToken.position.z + 4
-                    ), 1.0);
-                    controls.update();
-                }
-            }, 400);
-        }
-    };
-    const originalStartTurn = startTurn;
-    startTurn = function() {
-        originalStartTurn.apply(this, arguments);
-        if (cameraFollowMode) {
-            setTimeout(() => {
-                const currentPlayer = players[currentPlayerIndex];
-                if (currentPlayer && currentPlayer.selectedToken) {
-                    controls.target.copy(currentPlayer.selectedToken.position);
-                    camera.position.lerp(new THREE.Vector3(
-                        currentPlayer.selectedToken.position.x + 4,
-                        currentPlayer.selectedToken.position.y + 7,
-                        currentPlayer.selectedToken.position.z + 4
-                    ), 1.0);
-                    controls.update();
-                }
-            }, 400);
+        // ...existing code for ending the turn...
+        if (typeof originalEndTurn === 'function') {
+            originalEndTurn();
         }
     };
 }
