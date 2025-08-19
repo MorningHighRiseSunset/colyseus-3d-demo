@@ -2238,12 +2238,6 @@ function closePropertyUI() {
     }, 300);
 }
 
-// In createButtonContainer, update closeButton.onclick:
-closeButton.onclick = () => {
-    closePropertyUI();
-    // Do NOT auto end turn for human players
-};
-
 function executeAITurn() {
     const currentPlayer = players[currentPlayerIndex];
     if (!currentPlayer.isAI) {
