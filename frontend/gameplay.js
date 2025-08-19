@@ -3023,6 +3023,12 @@ function handleRailroadSpace(player, property) {
 }
 
 function showPropertyUI(position) {
+    // Only show property UI for the local player
+    const currentPlayer = players[currentPlayerIndex];
+    if (typeof isLocalPlayer === 'function' && !isLocalPlayer(currentPlayer)) {
+        console.log('[Patch] Not showing property UI for remote player.');
+        return;
+    }
     // Debug: Check if multiple property UIs are being triggered
     const overlays = document.querySelectorAll('.property-overlay');
     if (overlays.length > 0) {
