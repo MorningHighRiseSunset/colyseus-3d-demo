@@ -3797,26 +3797,6 @@ function createButtonContainer(property) {
     return buttonContainer;
 }
 
-function closePropertyUI() {
-    const overlay = document.querySelector('.property-overlay');
-    if (!overlay) {
-        resumeHelicopterAudio();
-        return;
-    }
-    const popup = overlay.querySelector('.property-popup');
-    if (popup) {
-        popup.classList.remove('show');
-        popup.classList.add('hide');
-    }
-    setTimeout(() => {
-        if (overlay && overlay.parentElement) {
-            overlay.parentElement.removeChild(overlay);
-        }
-        resumeHelicopterAudio();
-        endTurn(); // End the turn when property UI is closed
-    }, 300);
-}
-
 function addPropertyManagementButtons(container, property) {
     if (!property.mortgaged) {
         // Mortgage button
