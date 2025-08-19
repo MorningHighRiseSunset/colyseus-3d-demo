@@ -55,13 +55,14 @@ function processPendingMoves() {
     if (!window.loadedTokenModels) return;
     for (let i = pendingMoves.length - 1; i >= 0; i--) {
         const { playerId, from, to } = pendingMoves[i];
+        // Always re-fetch the player object by ID from the latest players array
         const player = players.find(p => p.id === playerId);
         if (!player) continue;
         const tokenName = player.token;
-        if (window.loadedTokenModels[tokenName]) {
-            // Model is ready, process move
+        if (window.loadedTokenModels[tokenName] && player.selectedToken) {
+            // Model and selectedToken are ready, process move
             moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
-                if (isLocalPlayer(player)) {
+                if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
                     showPropertyUI(to);
                 }
             });
