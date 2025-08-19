@@ -529,6 +529,10 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         // Always start with host's turn after player list is set
         if (typeof startTurn === 'function') {
             currentPlayerIndex = 0;
+            // Only call startTurn if the game has started and not already in progress
+            if (gameStarted && !isTurnInProgress) {
+                startTurn();
+            }
         }
     });
 
@@ -582,6 +586,8 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     // Hide token selection modal
     const modal = document.getElementById('token-selection-ui');
     if (modal) modal.style.display = 'none';
+    // Mark game as started
+    gameStarted = true;
     // Show roll dice button for the current player, hide for others
     const diceBtn = document.querySelector('.dice-button');
     if (diceBtn) {
@@ -590,6 +596,11 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         } else {
             diceBtn.style.display = 'none';
         }
+    }
+    // Start the first turn for the host/local player if not already started
+    if (typeof startTurn === 'function' && !isTurnInProgress) {
+        currentPlayerIndex = 0;
+        startTurn();
     }
     });
 
