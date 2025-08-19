@@ -7725,14 +7725,23 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
             console.log('[DEBUG] Token position after move:', player.selectedToken.position);
         }, 2000); // Log after 2 seconds to see if it moved
     }
+    function postMoveLogic() {
+        // Always call finishMove for all players to keep state in sync
+        finishMove(player, to, false);
+        // Only show property UI for the local player
+        if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
+            showPropertyUI(to);
+        }
+        if (isWoman) stopWalkAnimation(token);
+        if (callback) callback();
+    }
     if (tokenName === "football") {
         const startPos = positions[from];
         const endPos = positions[to];
         const finalHeight = getTokenHeight(tokenName, endPos.y) + 1.0;
         throwFootballAnimation(token, endPos, finalHeight, () => {
             updateTokenPosition(token, to);
-            finishMove(player, to, false);
-            if (callback) callback();
+            postMoveLogic();
         });
         return;
     }
@@ -7742,8 +7751,7 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
         const pathPositions = path.map(index => positions[index]);
         driveRollsRoyceAlongPath(token, pathPositions, () => {
             updateTokenPosition(token, to);
-            finishMove(player, to, false);
-            if (callback) callback();
+            postMoveLogic();
         });
         return;
     }
@@ -7753,8 +7761,7 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
         const pathPositions = path.map(index => positions[index]);
         flyWithHelicopterEffectPath(pathPositions, token, () => {
             updateTokenPosition(token, to);
-            finishMove(player, to, false);
-            if (callback) callback();
+            postMoveLogic();
         });
         return;
     }
@@ -7762,9 +7769,7 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
     const path = calculatePathWithCollisionAvoidance(from, to, players.indexOf(player));
     moveTokenAlongPath(path, token, () => {
         updateTokenPosition(token, to);
-        finishMove(player, to, false);
-        if (isWoman) stopWalkAnimation(token);
-        if (callback) callback();
+        postMoveLogic();
     });
 }
 
