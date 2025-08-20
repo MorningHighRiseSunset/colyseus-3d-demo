@@ -3120,7 +3120,11 @@ function showPropertyUI(position) {
     // Only show property UI for the local player
     const currentPlayer = players[currentPlayerIndex];
     if (typeof isLocalPlayer === 'function' && !isLocalPlayer(currentPlayer)) {
-        console.log('[Patch] Not showing property UI for remote player.');
+        console.log('[Patch] Not showing property UI for remote player.', {
+            currentPlayer,
+            currentPlayerIndex,
+            position
+        });
         return;
     }
     // Debug: Check if multiple property UIs are being triggered
@@ -3132,17 +3136,21 @@ function showPropertyUI(position) {
     const existingOverlays = document.querySelectorAll('.property-overlay');
     existingOverlays.forEach(overlay => {
         if (overlay && overlay.parentElement) {
+            console.log('[PropertyUI Debug] Removing existing overlay:', overlay);
             overlay.parentElement.removeChild(overlay);
             // PATCH: Reset propertyUIOpen when overlay is removed
             if (typeof propertyUIOpen !== 'undefined') propertyUIOpen = false;
             updateEndTurnButtonVisibility && updateEndTurnButtonVisibility();
         }
     });
-    console.log(`showPropertyUI called for position ${position}`);
-    
+    console.log(`[PropertyUI Debug] showPropertyUI called for position`, position);
     // Check if current player is AI first
     if (isCurrentPlayerAI()) {
-        console.log("AI player - skipping property UI");
+        console.log('[PropertyUI Debug] AI player - skipping property UI', {
+            position,
+            propertyName: placeNames[position],
+            properties
+        });
         const propertyName = placeNames[position];
         const property = properties.find(p => p.name === propertyName);
         if (property) {
@@ -3156,13 +3164,17 @@ function showPropertyUI(position) {
     }
 
     const propertyName = placeNames[position];
-    console.log(`Property name at position ${position}: ${propertyName}`);
     const property = properties.find(p => p.name === propertyName);
-    console.log(`Found property:`, property);
+    console.log('[PropertyUI Debug] Property lookup:', {
+        position,
+        propertyName,
+        property,
+        propertiesList: properties.map(p => p.name)
+    });
 
     if (!property) {
-        console.error(`No property found for position ${position} (propertyName: ${propertyName})`);
-        console.log('Available properties:', properties.map(p => p.name));
+        console.error('[PropertyUI Debug] No property found for position', position, 'propertyName:', propertyName);
+        console.log('[PropertyUI Debug] Available properties:', properties.map(p => p.name));
         hasHandledProperty = true;
         return;
     }
@@ -3199,8 +3211,7 @@ function showPropertyUI(position) {
         // The tax-specific logic will be handled in the button creation below
     }
 
-    console.log(`Creating property UI for ${property.name}`);
-    
+    console.log('[PropertyUI Debug] Creating property UI for', property.name, 'at position', position);
     // Create overlay and popup
     const overlay = document.createElement('div');
     overlay.className = 'property-overlay';
@@ -3213,6 +3224,15 @@ function showPropertyUI(position) {
     popup.style.width = '340px';
     popup.style.maxWidth = '95vw';
     popup.style.margin = '0 auto';
+
+    // PATCH: Debug log after overlay is appended
+    setTimeout(() => {
+        if (document.body.contains(overlay)) {
+            console.log('[PropertyUI Debug] Overlay appended to body:', overlay);
+        } else {
+            console.warn('[PropertyUI Debug] Overlay NOT appended to body:', overlay);
+        }
+    }, 100);
 
     const content = document.createElement('div');
     content.className = 'property-content';
