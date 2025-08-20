@@ -89,12 +89,19 @@ io.on('connection', (socket) => {
   });
 
   // New: Only advance turn when client explicitly ends their turn
-  socket.on('endTurn', ({ roomId, playerId }) => {
+  socket.on('endTurn', ({ roomId, playerId, nextPlayerIndex }) => {
     if (!rooms[roomId]) return;
     const playerIds = Object.keys(rooms[roomId].players);
-    if (!rooms[roomId].currentTurnIndex) rooms[roomId].currentTurnIndex = 0;
-    // Advance to next player (wrap around)
-    rooms[roomId].currentTurnIndex = (rooms[roomId].currentTurnIndex + 1) % playerIds.length;
+    
+    // Use the nextPlayerIndex from the frontend if provided, otherwise increment
+    if (nextPlayerIndex !== undefined && nextPlayerIndex >= 0 && nextPlayerIndex < playerIds.length) {
+      rooms[roomId].currentTurnIndex = nextPlayerIndex;
+    } else {
+      if (!rooms[roomId].currentTurnIndex) rooms[roomId].currentTurnIndex = 0;
+      // Advance to next player (wrap around)
+      rooms[roomId].currentTurnIndex = (rooms[roomId].currentTurnIndex + 1) % playerIds.length;
+    }
+    
     const currentTurnPlayerId = playerIds[rooms[roomId].currentTurnIndex];
     io.to(roomId).emit('turnUpdate', { currentTurnPlayerId });
   });

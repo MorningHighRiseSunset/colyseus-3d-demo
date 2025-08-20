@@ -537,20 +537,21 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         });
         // If any selectedToken is still missing, assign after models are ready
         safeAssignSelectedTokensToPlayers('playerList socket event');
-        // --- PATCH: Force assign and add first player's token to scene if missing ---
-        const firstPlayer = players[0];
-        if (firstPlayer && firstPlayer.token && !firstPlayer.selectedToken && window.loadedTokenModels) {
-            assignSelectedTokenForPlayer(firstPlayer);
-        }
-        if (firstPlayer && firstPlayer.selectedToken && typeof scene !== 'undefined' && !scene.children.includes(firstPlayer.selectedToken)) {
-            scene.add(firstPlayer.selectedToken);
-            firstPlayer.selectedToken.visible = true;
-            // Set to starting position
-            const startPos = getBoardSquarePosition(firstPlayer.currentPosition || 0);
-            if (startPos) {
-                firstPlayer.selectedToken.position.set(startPos.x, getTokenHeight(firstPlayer.token, startPos.y), startPos.z);
+        // --- PATCH: Force assign and add ALL players' tokens to scene if missing ---
+        players.forEach(player => {
+            if (player && player.token && !player.selectedToken && window.loadedTokenModels) {
+                assignSelectedTokenForPlayer(player);
             }
-        }
+            if (player && player.selectedToken && typeof scene !== 'undefined' && !scene.children.includes(player.selectedToken)) {
+                scene.add(player.selectedToken);
+                player.selectedToken.visible = true;
+                // Set to starting position
+                const startPos = getBoardSquarePosition(player.currentPosition || 0);
+                if (startPos) {
+                    player.selectedToken.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
+                }
+            }
+        });
         console.log('[MP DEBUG] Updated local players array:', players);
         renderPlayersList();
         // Show “Start Game” only for host (first player)
@@ -2044,104 +2045,8 @@ function startTurn() {
         }
     }
 
-    const originalEndTurn = endTurn;
-    endTurn = function() {
-        if (isTurnInProgress) {
-            console.log("Turn is still in progress. Cannot end turn yet.");
-            return;
-        }
-
-        console.log(`Ending turn for Player ${currentPlayerIndex + 1} (${players[currentPlayerIndex].name})`);
-
-        try {
-            // Reset all turn-related flags
-            isTurnInProgress = true; // Temporarily set to true during transition
-            hasTakenAction = false;
-            hasRolledDice = false;
-            hasMovedToken = false;
-            hasHandledProperty = false;
-            hasDrawnCard = false;
-            isAIProcessing = false;
-
-            // Store the last player's index
-            lastPlayerIndex = currentPlayerIndex;
-
-            // Move to the next valid player
-            let nextPlayerFound = false;
-            const startingIndex = currentPlayerIndex;
-            let attempts = 0;
-
-            while (!nextPlayerFound && attempts < players.length) {
-                currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
-                const nextPlayer = players[currentPlayerIndex];
-
-                if (nextPlayer && !nextPlayer.eliminated && nextPlayer.money >= 0) {
-                    nextPlayerFound = true;
-                    console.log(`Next turn is for Player ${currentPlayerIndex + 1} (${nextPlayer.name})`);
-                }
-
-                attempts++;
-            }
-
-            if (!nextPlayerFound) {
-                console.error("No valid players found for next turn!");
-                checkGameEnd();
-                return;
-            }
-
-            const currentPlayer = players[currentPlayerIndex];
-
-            // Update UI elements
-            updateMoneyDisplay();
-            updateBoards();
-
-            // Show/hide roll button based on turn and player type
-            const rollButton = document.querySelector('.dice-button');
-            if (rollButton) {
-                // Only show if it's the local player's turn and not AI
-                if (playerList[currentPlayerIndex]?.id === currentPlayerId && !isCurrentPlayerAI()) {
-                    rollButton.style.display = 'block';
-                } else {
-                    rollButton.style.display = 'none';
-                }
-            }
-
-            // Handle specific player situations
-            if (currentPlayer.inJail) {
-                console.log(`Player ${currentPlayerIndex + 1} is in jail`);
-                handlePlayerInJail(currentPlayer);
-            } else {
-                // Start the next player's turn
-                setTimeout(() => {
-                    isTurnInProgress = false; // Reset the flag
-                    if (isCurrentPlayerAI()) {
-                        console.log(`Starting AI turn for Player ${currentPlayerIndex + 1}`);
-                        executeAITurn();
-                    } else {
-                        console.log(`Starting human turn for Player ${currentPlayerIndex + 1}`);
-                        allowedToRoll = true;
-                        showFeedback(`${currentPlayer.name}'s turn - Roll the dice!`);
-                    }
-                }, 1000);
-            }
-
-            // Increment turn counter for game progression
-            turnCounter++;
-
-            // Validate game state periodically
-            if (turnCounter % 4 === 0) {
-                validateGameState();
-            }
-
-        } catch (error) {
-            console.error("Error in endTurn:", error);
-            isTurnInProgress = false; // Ensure the flag is reset even if an error occurs
-        }
-
-        if (typeof originalEndTurn === 'function') {
-            originalEndTurn();
-        }
-    };
+    // Reset turn state to allow ending turn
+    isTurnInProgress = false;
 }
 
 function toggleAI(token, button) {
@@ -3276,6 +3181,9 @@ function showPropertyUI(position) {
     let mediaShown = false;
 
     function showImageFallback() {
+        // Prevent multiple fallbacks from being created
+        if (mediaShown) return;
+        
         let imageUrl = null;
         if (Array.isArray(property.imageUrls) && property.imageUrls.length > 0) {
             imageUrl = property.imageUrls[0];
@@ -3391,7 +3299,7 @@ function showPropertyUI(position) {
 
         // Add timeout to ensure video loads within reasonable time
         const videoLoadTimeout = setTimeout(() => {
-            if (video.readyState < 2) { // HAVE_CURRENT_DATA
+            if (video.readyState < 2 && !mediaShown) { // HAVE_CURRENT_DATA
                 console.warn(`Video load timeout for ${selectedUrl}, falling back to image`);
                 loadingIndicator.style.display = 'none';
                 video.style.display = 'none';
@@ -3446,6 +3354,7 @@ function showPropertyUI(position) {
 
         // Better error handling - try to load video, fallback to image if it fails
         video.onerror = () => {
+            if (mediaShown) return; // Prevent multiple fallbacks
             console.warn(`Failed to load video: ${selectedUrl}, falling back to image`);
             loadingIndicator.style.display = 'none';
             video.style.display = 'none';
@@ -3454,6 +3363,7 @@ function showPropertyUI(position) {
 
         // Additional error handling for network issues
         video.addEventListener('error', (e) => {
+            if (mediaShown) return; // Prevent multiple fallbacks
             console.warn(`Video error for ${selectedUrl}:`, e);
             loadingIndicator.style.display = 'none';
             video.style.display = 'none';
@@ -3462,6 +3372,7 @@ function showPropertyUI(position) {
 
         // Handle stalled video loading
         video.addEventListener('stalled', () => {
+            if (mediaShown) return; // Prevent multiple fallbacks
             console.warn(`Video stalled for ${selectedUrl}, falling back to image`);
             loadingIndicator.style.display = 'none';
             video.style.display = 'none';
@@ -3470,6 +3381,7 @@ function showPropertyUI(position) {
 
         // Handle suspend event (network issues)
         video.addEventListener('suspend', () => {
+            if (mediaShown) return; // Prevent multiple fallbacks
             console.warn(`Video suspended for ${selectedUrl}, falling back to image`);
             loadingIndicator.style.display = 'none';
             video.style.display = 'none';
@@ -3485,7 +3397,7 @@ function showPropertyUI(position) {
                     if (contentLength && parseInt(contentLength) < 1024) {
                         console.warn(`Video file too small (${contentLength} bytes), likely corrupted: ${selectedUrl}`);
                         video.style.display = 'none';
-                        showImageFallback();
+                        if (!mediaShown) showImageFallback();
                     }
                 })
                 .catch(() => {
@@ -4596,47 +4508,35 @@ function endTurn() {
             validateGameState();
         }
 
+        // Emit turn update to other players in multiplayer mode
+        if (isMultiplayerMode && socket && currentRoomId) {
+            socket.emit('endTurn', {
+                roomId: currentRoomId,
+                playerId: currentPlayerId,
+                nextPlayerIndex: currentPlayerIndex
+            });
+        }
+
     } catch (error) {
         console.error("Error in endTurn:", error);
         isTurnInProgress = false; // Ensure the flag is reset even if an error occurs
     }
 
-    const originalEndTurn = endTurn;
-    endTurn = function() {
-        originalEndTurn.apply(this, arguments);
-        if (cameraFollowMode) {
-            setTimeout(() => {
-                const currentPlayer = players[currentPlayerIndex];
-                if (currentPlayer && currentPlayer.selectedToken) {
-                    controls.target.copy(currentPlayer.selectedToken.position);
-                    camera.position.lerp(new THREE.Vector3(
-                        currentPlayer.selectedToken.position.x + 4,
-                        currentPlayer.selectedToken.position.y + 7,
-                        currentPlayer.selectedToken.position.z + 4
-                    ), 1.0);
-                    controls.update();
-                }
-            }, 400);
-        }
-    };
-    const originalStartTurn = startTurn;
-    startTurn = function() {
-        originalStartTurn.apply(this, arguments);
-        if (cameraFollowMode) {
-            setTimeout(() => {
-                const currentPlayer = players[currentPlayerIndex];
-                if (currentPlayer && currentPlayer.selectedToken) {
-                    controls.target.copy(currentPlayer.selectedToken.position);
-                    camera.position.lerp(new THREE.Vector3(
-                        currentPlayer.selectedToken.position.x + 4,
-                        currentPlayer.selectedToken.position.y + 7,
-                        currentPlayer.selectedToken.position.z + 4
-                    ), 1.0);
-                    controls.update();
-                }
-            }, 400);
-        }
-    };
+    // Camera follow logic for turn changes
+    if (cameraFollowMode) {
+        setTimeout(() => {
+            const currentPlayer = players[currentPlayerIndex];
+            if (currentPlayer && currentPlayer.selectedToken) {
+                controls.target.copy(currentPlayer.selectedToken.position);
+                camera.position.lerp(new THREE.Vector3(
+                    currentPlayer.selectedToken.position.x + 4,
+                    currentPlayer.selectedToken.position.y + 7,
+                    currentPlayer.selectedToken.position.z + 4
+                ), 1.0);
+                controls.update();
+            }
+        }, 400);
+    }
 }
 
 function startPlayerTurn(player) {
@@ -7436,7 +7336,16 @@ if (typeof enableHumanTurn !== 'function') {
                 if (typeof showTurnIndicator === 'function') showTurnIndicator(false);
                 moveTokenToNewPositionWithCollisionAvoidance(total, () => {
                     isTurnInProgress = false;
+                    hasMovedToken = true;
                 });
+                
+                // Safety timeout to ensure turn state is reset
+                setTimeout(() => {
+                    if (isTurnInProgress) {
+                        console.warn('Safety timeout: Resetting isTurnInProgress flag');
+                        isTurnInProgress = false;
+                    }
+                }, 10000); // 10 second safety timeout
             }, 1500); // Shorter delay
         }
     };
