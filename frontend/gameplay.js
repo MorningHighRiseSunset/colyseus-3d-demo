@@ -1,3 +1,5 @@
+    // PATCH: Set propertyUIOpen true when UI is created
+    if (typeof propertyUIOpen !== 'undefined') propertyUIOpen = true;
 // --- DEBUG: Player List and Turn State ---
 function debugLogPlayerState(context) {
     console.log(`[DEBUG] ${context} | currentPlayerId:`, currentPlayerId, '| currentPlayerIndex:', currentPlayerIndex, '| players:', players, '| playerList:', playerList);
@@ -189,6 +191,7 @@ function followCurrentTurnToken(retryCount = 0) {
 
 function updateTurnUI() {
     const rollButton = document.querySelector('.dice-button');
+    hasHandledProperty = false; // PATCH: Reset property UI flag for each move
     const currentPlayer = players[currentPlayerIndex];
     if (rollButton) {
         // Only show dice button if it's the local player's turn and not AI
@@ -3130,6 +3133,9 @@ function showPropertyUI(position) {
     existingOverlays.forEach(overlay => {
         if (overlay && overlay.parentElement) {
             overlay.parentElement.removeChild(overlay);
+            // PATCH: Reset propertyUIOpen when overlay is removed
+            if (typeof propertyUIOpen !== 'undefined') propertyUIOpen = false;
+            updateEndTurnButtonVisibility && updateEndTurnButtonVisibility();
         }
     });
     console.log(`showPropertyUI called for position ${position}`);
@@ -7883,6 +7889,8 @@ if (typeof socket !== 'undefined' && socket) {
         console.log('[DEBUG] Found player:', player);
         console.log('[DEBUG] All players in array:', players.map(p => ({ id: p.id, name: p.name, currentPosition: p.currentPosition })));
         
+        // PATCH: Reset property UI flag for each move
+        hasHandledProperty = false;
         // Process the move on all clients, but only for the moving player's token
         console.log('[DEBUG] Processing moveToken for playerId:', playerId, 'on client currentPlayerId:', currentPlayerId);
         
