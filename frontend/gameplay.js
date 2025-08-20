@@ -7895,6 +7895,8 @@ function isLocalPlayer(player) {
 // Socket handler: animate token movement for all clients
 if (typeof socket !== 'undefined' && socket) {
     socket.on('moveToken', ({ playerId, from, to }) => {
+    console.log('[PropertyUI Debug] socket.on(moveToken) called:', { playerId, from, to, currentPlayerId, currentPlayerIndex });
+    console.log('[PropertyUI Debug] moveTokenToNewPositionWithCollisionAvoidanceForPlayer called:', { player, from, to, currentPlayerId });
         console.log('[DEBUG] moveToken event received:', {
             playerId,
             from,
@@ -8024,11 +8026,13 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
             finishMove(player, to, false);
             // PATCH: Always show property UI for local player after move
             if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
-                console.log('[PATCH] Showing property UI after move for local player:', player, 'at position:', to);
+                console.log('[PropertyUI Debug] Calling showPropertyUI after move for local player:', { player, to, currentPlayerId });
                 showPropertyUI(to);
             } else {
-                console.log('[PATCH] Not showing property UI: not local player.', player);
+                console.log('[PropertyUI Debug] Not showing property UI: not local player.', { player, to, currentPlayerId });
             }
+        } else {
+            console.log('[PropertyUI Debug] Not calling finishMove/showPropertyUI: player.id !== playerId', { player, playerId });
         }
         if (isWoman) stopWalkAnimation(token);
         if (callback) callback();
