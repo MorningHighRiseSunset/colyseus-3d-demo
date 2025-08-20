@@ -27,18 +27,38 @@ io.on('connection', (socket) => {
   // Send player number to each client when they join
   socket.on('joinRoom', ({ roomId, playerId, playerName }) => {
     if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {}, currentTurnIndex: 0 };
-    rooms[roomId].players[playerId] = { name: playerName || 'Player' };
+    // Preserve token if already chosen
+    const prevToken = rooms[roomId].tokens[playerId] || (rooms[roomId].players[playerId] && rooms[roomId].players[playerId].token) || null;
+    rooms[roomId].players[playerId] = { name: playerName || 'Player', token: prevToken };
+    if (prevToken) rooms[roomId].tokens[playerId] = prevToken;
     rooms[roomId].positions[playerId] = 0;
     socket.join(roomId);
     // Player number is order in Object.keys
     const playerIds = Object.keys(rooms[roomId].players);
     const playerNum = playerIds.indexOf(playerId) + 1;
     socket.emit('playerNumber', playerNum);
-    io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({ id, ...info })));
+    io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({ 
+      id, 
+      ...info,
+      token: rooms[roomId].tokens[id] || info.token || null
+    })));
     io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
+    
+    // Notify current token-pick turn if tokens are being selected
+    const pickOrder = Object.keys(rooms[roomId].players);
+    const chosenCount = Object.keys(rooms[roomId].tokens).length;
+    if (chosenCount < pickOrder.length) {
+      const nextId = pickOrder[chosenCount];
+      io.to(roomId).emit('nextTurnToPick', { playerId: nextId });
+    } else if (chosenCount === 0 && pickOrder.length > 0) {
+      // If no one has picked tokens yet, let the first player pick
+      const firstId = pickOrder[0];
+      io.to(roomId).emit('nextTurnToPick', { playerId: firstId });
+    }
   });
   // --- Metropoly Multiplayer Logic ---
   socket.on('joinMetropoly', ({ roomId, playerId, playerName }) => {
+    console.log('[BACKEND] joinMetropoly received:', { roomId, playerId, playerName });
     if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {}, currentTurnIndex: 0 };
     // Preserve token if already chosen
     const prevToken = rooms[roomId].tokens[playerId] || (rooms[roomId].players[playerId] && rooms[roomId].players[playerId].token) || null;
@@ -47,7 +67,7 @@ io.on('connection', (socket) => {
     rooms[roomId].positions[playerId] = 0;
     socket.join(roomId);
     // PATCH: Log all player IDs in the room after join
-    console.log('Room', roomId, 'players:', Object.keys(rooms[roomId].players));
+    console.log('[BACKEND] Room', roomId, 'players:', Object.keys(rooms[roomId].players));
     io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({
       id,
       ...info,
@@ -57,27 +77,16 @@ io.on('connection', (socket) => {
     // Notify current token-pick turn
     const pickOrder = Object.keys(rooms[roomId].players);
     const chosenCount = Object.keys(rooms[roomId].tokens).length;
-    const nextId = pickOrder[chosenCount];
-    if (nextId) {
+    if (chosenCount < pickOrder.length) {
+      const nextId = pickOrder[chosenCount];
+      console.log('[BACKEND] Emitting nextTurnToPick for next player:', { playerId: nextId });
       io.to(roomId).emit('nextTurnToPick', { playerId: nextId });
+    } else if (chosenCount === 0 && pickOrder.length > 0) {
+      // If no one has picked tokens yet, let the first player pick
+      const firstId = pickOrder[0];
+      console.log('[BACKEND] Emitting nextTurnToPick for first player:', { playerId: firstId });
+      io.to(roomId).emit('nextTurnToPick', { playerId: firstId });
     }
-  });
-
-  // --- Queue/Room Multiplayer Logic for game.html ---
-  socket.on('joinRoom', ({ roomId, playerId, playerName }) => {
-  if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {} };
-  // Preserve token if already chosen
-  const prevToken = rooms[roomId].tokens[playerId] || (rooms[roomId].players[playerId] && rooms[roomId].players[playerId].token) || null;
-  rooms[roomId].players[playerId] = { name: playerName || 'Player', token: prevToken };
-  if (prevToken) rooms[roomId].tokens[playerId] = prevToken;
-  rooms[roomId].positions[playerId] = 0;
-  socket.join(roomId);
-    io.to(roomId).emit('playerList', Object.entries(rooms[roomId].players).map(([id, info]) => ({
-      id,
-      ...info,
-      token: rooms[roomId].tokens[id] || info.token || null
-    })));
-    io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
   });
 
   socket.on('moveToken', ({ roomId, playerId, from, to }) => {
@@ -108,6 +117,7 @@ io.on('connection', (socket) => {
 
   // Player action notifications
   socket.on('playerAction', ({ roomId, playerId, action, details }) => {
+    console.log('[BACKEND] playerAction received:', { roomId, playerId, action, details });
     if (!rooms[roomId]) return;
     io.to(roomId).emit('playerAction', { playerId, action, details });
   });
@@ -129,6 +139,7 @@ io.on('connection', (socket) => {
 
   // --- Ready-up and game start logic ---
   socket.on('playerReady', ({ roomId, playerId }) => {
+    console.log('[BACKEND] playerReady received:', { roomId, playerId });
     if (!rooms[roomId]) return;
     rooms[roomId].ready[playerId] = true;
     // Broadcast all ready states by playerId
@@ -136,6 +147,7 @@ io.on('connection', (socket) => {
     Object.keys(rooms[roomId].players).forEach(pid => {
       readyStates[pid] = !!rooms[roomId].ready[pid];
     });
+    console.log('[BACKEND] Broadcasting readyStates:', readyStates);
     io.to(roomId).emit('playerReadyStates', readyStates);
   });
 
@@ -156,6 +168,7 @@ io.on('connection', (socket) => {
 
   // Token selection logic
   socket.on('selectToken', ({ roomId, playerId, token }) => {
+    console.log('[BACKEND] selectToken received:', { roomId, playerId, token });
     if (!rooms[roomId]) return;
     // Record chosen token
     rooms[roomId].tokens[playerId] = token;
@@ -186,6 +199,7 @@ io.on('connection', (socket) => {
     const chosenCount = Object.keys(rooms[roomId].tokens).length;
     if (chosenCount < pickOrder.length) {
       const nextId = pickOrder[chosenCount];
+      console.log('[BACKEND] Emitting nextTurnToPick:', { playerId: nextId });
       io.to(roomId).emit('nextTurnToPick', { playerId: nextId });
     }
   });

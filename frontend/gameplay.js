@@ -278,21 +278,31 @@ function assignSelectedTokensToPlayers() {
 
 // --- Ready-Up UI Logic ---
 function setupMultiplayerReadyUI() {
+    console.log('[MP DEBUG] setupMultiplayerReadyUI called');
     const readyBtn = document.getElementById('readyUpBtn');
     const startBtn = document.getElementById('startGameBtn');
     const tokenReadyStatus = document.getElementById('tokenReadyStatus');
-    if (!readyBtn || !startBtn) return;
+    console.log('[MP DEBUG] UI elements found:', { readyBtn: !!readyBtn, startBtn: !!startBtn, tokenReadyStatus: !!tokenReadyStatus });
+    if (!readyBtn || !startBtn) {
+        console.warn('[MP DEBUG] Missing required UI elements');
+        return;
+    }
 
     readyBtn.onclick = () => {
+        console.log('[MP DEBUG] Ready button clicked');
         if (socket && currentRoomId && currentPlayerId) {
+            console.log('[MP DEBUG] Emitting playerReady:', { roomId: currentRoomId, playerId: currentPlayerId });
             socket.emit('playerReady', {
                 roomId: currentRoomId,
                 playerId: currentPlayerId
             });
+        } else {
+            console.warn('[MP DEBUG] Cannot emit playerReady - socket:', !!socket, 'roomId:', currentRoomId, 'playerId:', currentPlayerId);
         }
     };
 
     startBtn.onclick = () => {
+        console.log('[MP DEBUG] Start button clicked');
         // Prevent starting the game until all token models are loaded and assigned
         if (!window.tokenModelsReady) {
             console.warn('Tokens are still loading. Please wait.');
@@ -300,21 +310,27 @@ function setupMultiplayerReadyUI() {
         }
         // Only host can start the game
         const isHost = playerList[0]?.id === currentPlayerId;
+        console.log('[MP DEBUG] Start button - isHost:', isHost, 'playerList[0]?.id:', playerList[0]?.id, 'currentPlayerId:', currentPlayerId);
         if (!isHost) {
             alert('Only the host can start the game.');
             return;
         }
         if (socket && currentRoomId && currentPlayerId) {
+            console.log('[MP DEBUG] Emitting startGame:', { roomId: currentRoomId, playerId: currentPlayerId });
             socket.emit('startGame', {
                 roomId: currentRoomId,
                 playerId: currentPlayerId,
                 playerName: playerList.find(p => p.id === currentPlayerId)?.name || 'Player'
             });
+        } else {
+            console.warn('[MP DEBUG] Cannot emit startGame - socket:', !!socket, 'roomId:', currentRoomId, 'playerId:', currentPlayerId);
         }
     };
 
     if (socket) {
         socket.on('playerReadyStates', (readyStates) => {
+            console.log('[MP DEBUG] playerReadyStates received:', readyStates);
+            console.log('[MP DEBUG] playerList:', playerList);
             // Show ready state by playerId for the status area
             tokenReadyStatus.innerHTML = playerList.map(p => {
                 const ready = readyStates[p.id];
@@ -324,11 +340,13 @@ function setupMultiplayerReadyUI() {
             // Only show start button if all players are ready AND have tokens, and you are the host
             const allReady = playerList.length > 1 && playerList.every(p => readyStates[p.id] && p.token);
             const isHost = playerList[0]?.id === currentPlayerId;
+            console.log('[MP DEBUG] Ready states - allReady:', allReady, 'isHost:', isHost, 'playerList.length:', playerList.length);
             startBtn.style.display = (isHost && allReady) ? '' : 'none';
             // Ready button is always visible, only disabled if this player is ready
             const iAmReady = readyStates[currentPlayerId];
             readyBtn.disabled = !!iAmReady;
             readyBtn.textContent = iAmReady ? 'Ready' : 'Ready Up';
+            console.log('[MP DEBUG] Start button display:', startBtn.style.display, 'Ready button disabled:', readyBtn.disabled);
         });
     }
 }
@@ -512,13 +530,17 @@ function getTokenHeight(tokenName, defaultY = 2.5) {
 
 // --- Multiplayer Initialization ---
 function setupSocketIOMultiplayer(roomId, playerId, playerName) {
+    console.log('[MP DEBUG] setupSocketIOMultiplayer called with:', { roomId, playerId, playerName });
     socket = io('https://colyseus-3d-demo.onrender.com');
+    console.log('[MP DEBUG] Socket created:', !!socket);
     setupGameStartedSocketListener();
     currentRoomId = roomId || 'defaultRoom';
     currentPlayerId = playerId || socket.id;
     playerName = playerName || `Player-${Math.floor(Math.random()*1000)}`;
     isMultiplayerMode = true;
+    console.log('[MP DEBUG] Multiplayer variables set:', { currentRoomId, currentPlayerId, playerName, isMultiplayerMode });
 
+    console.log('[MP DEBUG] Emitting joinMetropoly');
     socket.emit('joinMetropoly', {
         roomId: currentRoomId,
         playerId: currentPlayerId,
@@ -528,6 +550,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     socket.on('playerList', (list) => {
         console.log('[MP DEBUG] Received playerList from server:', list);
         playerList = list;
+        console.log('[MP DEBUG] playerList updated, length:', playerList.length);
         debugLogPlayerState('playerList socket event (before sync)');
         syncPlayersWithServerList(list);
         debugLogPlayerState('playerList socket event (after sync)');
@@ -556,6 +579,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         renderPlayersList();
         // Show “Start Game” only for host (first player)
         const hostId = playerList[0]?.id;
+        console.log('[MP DEBUG] Host ID:', hostId, 'Current Player ID:', currentPlayerId, 'Is Host:', hostId === currentPlayerId);
         // Toggle both button variants if present
         const startBtn1 = document.getElementById('startGameBtn');
         const startBtn2 = document.getElementById('start-game');
@@ -563,6 +587,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             if (btn) {
                 btn.style.display = (hostId === currentPlayerId) ? '' : 'none';
                 btn.disabled = hostId !== currentPlayerId;
+                console.log('[MP DEBUG] Start button:', btn.id, 'display:', btn.style.display, 'disabled:', btn.disabled);
             }
         });
         // Always start with host's turn after player list is set
@@ -603,15 +628,22 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     // Handle turn to pick next token
     let isPicker = false;
     socket.on('nextTurnToPick', ({ playerId: pid }) => {
+        console.log('[MP DEBUG] nextTurnToPick received:', { playerId: pid, currentPlayerId, isPicker: pid === currentPlayerId });
         const modal = document.getElementById('token-selection-ui');
-        if (!modal) return;
+        if (!modal) {
+            console.warn('[MP DEBUG] token-selection-ui modal not found');
+            return;
+        }
         // Track picker status
         isPicker = (pid === currentPlayerId);
+        console.log('[MP DEBUG] isPicker:', isPicker);
         const tokenBtns = modal.querySelectorAll('.token-button');
+        console.log('[MP DEBUG] Found token buttons:', tokenBtns.length);
         // Show modal for all, but only enable for current player
         modal.style.display = '';
         tokenBtns.forEach(btn => {
             btn.disabled = !isPicker || btn.classList.contains('picked');
+            console.log('[MP DEBUG] Token button:', btn.textContent, 'disabled:', btn.disabled);
         });
     });
 
@@ -10118,14 +10150,21 @@ window.finishMove = finishMove;
 window.handlePropertyLanding = handlePropertyLanding;
 
 function createTokens(callback) {
+    console.log('[MP DEBUG] createTokens called');
     const tokenNames = ['RollsRoyce','Helicopter','Shoe','Football','Cheeseburger','TopHat'];
     const grid = document.getElementById('tokenGrid');
+    if (!grid) {
+        console.error('[MP DEBUG] tokenGrid element not found');
+        return;
+    }
+    console.log('[MP DEBUG] Found tokenGrid, clearing and creating buttons');
     grid.innerHTML = '';
     // Hide ready until token picked
     const readyStatus = document.getElementById('tokenReadyStatus');
-    readyStatus.textContent = '';
+    if (readyStatus) readyStatus.textContent = '';
     const readyBtn = document.getElementById('readyUpBtn');
     if (readyBtn) readyBtn.style.display = 'none';
+    
     tokenNames.forEach(name => {
         const btn = document.createElement('button');
         btn.className = 'token-button';
@@ -10133,15 +10172,23 @@ function createTokens(callback) {
         btn.innerText = name;
         btn.disabled = true; // enabled by nextTurnToPick
         btn.addEventListener('click', () => {
-            socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
-            btn.classList.add('picked');
-            btn.disabled = true;
-            const playerName = playerList.find(p => p.id === currentPlayerId)?.name || 'Player';
-            readyStatus.textContent = `Token ${name} selected for ${playerName}`;
-            if (readyBtn) readyBtn.style.display = '';
+            console.log('[MP DEBUG] Token button clicked:', name);
+            if (socket && currentRoomId && currentPlayerId) {
+                console.log('[MP DEBUG] Emitting selectToken:', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
+                socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
+                btn.classList.add('picked');
+                btn.disabled = true;
+                const playerName = playerList.find(p => p.id === currentPlayerId)?.name || 'Player';
+                if (readyStatus) readyStatus.textContent = `Token ${name} selected for ${playerName}`;
+                if (readyBtn) readyBtn.style.display = '';
+            } else {
+                console.warn('[MP DEBUG] Socket not ready for token selection - socket:', !!socket, 'roomId:', currentRoomId, 'playerId:', currentPlayerId);
+            }
         });
         grid.appendChild(btn);
+        console.log('[MP DEBUG] Created token button:', name);
     });
+    console.log('[MP DEBUG] createTokens completed, total buttons:', grid.children.length);
     if (callback) callback();
 }
 

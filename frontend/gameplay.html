@@ -390,8 +390,6 @@
     <script>
         // Modern multiplayer game initialization
         document.addEventListener('DOMContentLoaded', () => {
-            // Preload tokens and render selection UI
-            if (window.createTokens) window.createTokens();
             // Get room and player info from URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             let roomId = urlParams.get('roomId') || urlParams.get('room');
@@ -431,6 +429,8 @@
             }
             setTimeout(() => {
                 if (window.setupMultiplayerReadyUI) window.setupMultiplayerReadyUI();
+                // Create tokens after socket is established
+                if (window.createTokens) window.createTokens();
             }, 1000);
         });
         
