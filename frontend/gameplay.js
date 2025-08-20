@@ -1,5 +1,9 @@
+// ...existing code...
+// ...existing code...
 // Expose globally for dice roll logic and other event handlers
-window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer;
+if (typeof moveTokenToNewPositionWithCollisionAvoidanceForPlayer === 'function') {
+    window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer;
+}
 // --- Ensure socket event handler is registered ---
 let moveTokenHandlerRegistered = false;
 const registerMoveTokenHandler = () => {
