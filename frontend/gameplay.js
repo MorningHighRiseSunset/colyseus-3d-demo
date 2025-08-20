@@ -7880,10 +7880,16 @@ if (typeof socket !== 'undefined' && socket) {
         console.log('[DEBUG] All players in array:', players.map(p => ({ id: p.id, name: p.name, currentPosition: p.currentPosition })));
         
         // Only process the move for the player who actually moved
+        console.log('[DEBUG] Checking if should process moveToken event:', {
+            playerId,
+            currentPlayerId,
+            shouldProcess: playerId === currentPlayerId
+        });
         if (playerId !== currentPlayerId) {
             console.log('[DEBUG] Ignoring moveToken event for non-local player:', playerId, 'currentPlayerId:', currentPlayerId);
             return;
         }
+        console.log('[DEBUG] Processing moveToken event for local player:', playerId);
         
         if (!player) {
             // Queue the move until the player is available
