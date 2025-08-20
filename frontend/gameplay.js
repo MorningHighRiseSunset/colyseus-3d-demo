@@ -7853,11 +7853,12 @@ if (typeof socket !== 'undefined' && socket) {
             console.log(`[PATCH] Moving token for player '${player.name}' (playerId: ${player.id}) from ${from} to ${to}`);
             moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
                 console.log(`[PATCH] Move complete for player '${player.name}' (playerId: ${player.id})`);
-                // Only show property UI for the local player if not already handled
+                // Only show property UI for the player who actually moved (not just any local player)
                 console.log('[DEBUG] Move callback - isLocalPlayer:', isLocalPlayer(player), 'hasHandledProperty:', hasHandledProperty, 'player:', player.name, 'to:', to);
                 console.log('[DEBUG] Move callback - player.currentPosition:', player.currentPosition, 'from:', from, 'to:', to);
-                if (isLocalPlayer(player) && !hasHandledProperty) {
-                    console.log('[DEBUG] Calling showPropertyUI for local player:', player.name, 'position:', to);
+                console.log('[DEBUG] Move callback - playerId from socket:', playerId, 'currentPlayerId:', currentPlayerId);
+                if (player.id === playerId && player.id === currentPlayerId && !hasHandledProperty) {
+                    console.log('[DEBUG] Calling showPropertyUI for player who actually moved:', player.name, 'position:', to);
                     showPropertyUI(to);
                 }
                 // Call the original callback if this is the local player's move
@@ -7927,10 +7928,7 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
     function postMoveLogic() {
         // Always call finishMove for all players to keep state in sync
         finishMove(player, to, false);
-        // Only show property UI for the local player if not already handled
-        if (typeof isLocalPlayer === 'function' && isLocalPlayer(player) && !hasHandledProperty) {
-            showPropertyUI(to);
-        }
+        // REMOVED: showPropertyUI call from here - it's handled in the main moveToken callback
         if (isWoman) stopWalkAnimation(token);
         if (callback) callback();
     }
