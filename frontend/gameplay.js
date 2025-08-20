@@ -7521,7 +7521,7 @@ if (typeof enableHumanTurn !== 'function') {
                     });
                 }
                 // Always move the token and show property UI for the local player
-                moveTokenToNewPositionWithCollisionAvoidanceForPlayer(currentPlayer, from, to, () => {
+                window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer(currentPlayer, from, to, () => {
                     if (typeof isLocalPlayer === 'function' && isLocalPlayer(currentPlayer)) {
                         showPropertyUI(to);
                     }
@@ -7987,17 +7987,10 @@ if (typeof socket !== 'undefined' && socket) {
                 console.log('[DEBUG] Move callback - isLocalPlayer:', isLocalPlayer(player), 'hasHandledProperty:', hasHandledProperty, 'player:', player.name, 'to:', to);
                 console.log('[DEBUG] Move callback - player.currentPosition:', player.currentPosition, 'from:', from, 'to:', to);
                 console.log('[DEBUG] Move callback - playerId from socket:', playerId, 'currentPlayerId:', currentPlayerId);
-                console.log('[DEBUG] Move callback - condition check:', {
-                    'player.id === playerId': player.id === playerId,
-                    'player.id === currentPlayerId': player.id === currentPlayerId,
-                    '!hasHandledProperty': !hasHandledProperty,
-                    'willCallShowPropertyUI': player.id === playerId && player.id === currentPlayerId && !hasHandledProperty
-                });
-                if (player.id === playerId && player.id === currentPlayerId && !hasHandledProperty) {
-                    console.log('[DEBUG] Calling showPropertyUI for player who actually moved:', player.name, 'position:', to);
+                // Always show property UI for the local player after move
+                if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
+                    console.log('[PropertyUI] Showing property UI for local player:', player.name, 'position:', to);
                     showPropertyUI(to);
-                } else {
-                    console.log('[DEBUG] NOT calling showPropertyUI for player:', player.name, 'position:', to);
                 }
                 // Call the original callback if this is the local player's move
                 if (isLocalPlayer(player) && player.id === currentPlayerId) {
@@ -10489,3 +10482,6 @@ if (socket) {
     });
 }
 
+
+// Expose to window for socket handler
+window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer;
