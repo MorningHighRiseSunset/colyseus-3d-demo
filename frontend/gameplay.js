@@ -7807,8 +7807,11 @@ if (typeof socket !== 'undefined' && socket) {
             players,
             currentPlayerIndex,
             currentPlayer: players[currentPlayerIndex],
+            currentPlayerId
         });
+        console.log('[DEBUG] Looking for player with id:', playerId);
         const player = players.find(p => p.id === playerId);
+        console.log('[DEBUG] Found player:', player);
         if (!player) {
             // Queue the move until the player is available
             if (!pendingMoves[`${playerId}`]) pendingMoves[`${playerId}`] = [];
@@ -7834,7 +7837,9 @@ if (typeof socket !== 'undefined' && socket) {
             moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
                 console.log(`[PATCH] Move complete for player '${player.name}' (playerId: ${player.id})`);
                 // Only show property UI for the local player if not already handled
+                console.log('[DEBUG] Move callback - isLocalPlayer:', isLocalPlayer(player), 'hasHandledProperty:', hasHandledProperty, 'player:', player.name, 'to:', to);
                 if (isLocalPlayer(player) && !hasHandledProperty) {
+                    console.log('[DEBUG] Calling showPropertyUI for local player:', player.name, 'position:', to);
                     showPropertyUI(to);
                 }
                 // Call the original callback if this is the local player's move
