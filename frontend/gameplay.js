@@ -20,7 +20,7 @@ function syncPlayersWithServerList(serverPlayerList) {
             local.token = serverPlayer.token || local.token;
             return local;
         } else {
-            // Create new player object 
+            // Create new player object
             return {
                 name: serverPlayer.name,
                 id: serverPlayer.id,
@@ -507,22 +507,17 @@ function renderPlayersList() {
         return;
     }
         playerListUI.innerHTML = ''; // Clear existing player list
-    playerList.forEach((p, idx) => {
+    playerList.forEach(p => {
         const info = document.createElement('div');
         info.className = 'player-info' + (p.id === currentPlayerId ? ' current-player' : '');
         const avatar = document.createElement('div');
         avatar.className = 'player-avatar';
         avatar.textContent = p.name.charAt(0).toUpperCase();
         info.appendChild(avatar);
-        // Show name
+        // Only show name and token (remove $undefined/money)
         const nameDiv = document.createElement('div');
         nameDiv.textContent = p.name;
         info.appendChild(nameDiv);
-        // Show money
-        const moneyDiv = document.createElement('div');
-        moneyDiv.className = 'player-money';
-        moneyDiv.textContent = `$${p.money || 0}`;
-        info.appendChild(moneyDiv);
         // Show chosen token
         const tokenSpan = document.createElement('span');
         tokenSpan.className = 'player-token';
@@ -740,7 +735,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                                 let t = player.selectedToken;
                                 // Initial spawn if never spawned
                                 if (!player.hasTokenSpawned) {
-                                    if (!scene.children.includes(t)) scene.add(t);
+                                if (!scene.children.includes(t)) scene.add(t);
                                     if (ePos) {
                                         t.position.set(ePos.x, getTokenHeight(player.token, ePos.y), ePos.z);
                                     }
@@ -748,11 +743,11 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                                     player.hasTokenSpawned = true;
                                 } else if (move.newPos !== move.oldIndex && sPos && ePos) {
                                     // Animate only if position actually changed
-                                    moveTokenWithCollisionAvoidance(sPos, ePos, t, () => {
+                                moveTokenWithCollisionAvoidance(sPos, ePos, t, () => {
                                         if (player.id === pid) {
-                                            player.currentPosition = move.newPos;
-                                        }
-                                    });
+                                    player.currentPosition = move.newPos;
+                                    }
+                                });
                                 }
                             }
                         }
@@ -769,7 +764,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     if (!scene.children.includes(token)) scene.add(token);
                     if (endPos) {
                         token.position.set(endPos.x, getTokenHeight(player.token, endPos.y), endPos.z);
-                        token.visible = true;
+                    token.visible = true;
                     }
                     player.currentPosition = newPos;
                     player.hasTokenSpawned = true;
@@ -818,7 +813,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             // Always follow the current turn's token for all clients
             // Add a small delay to allow token assignment to complete
             setTimeout(() => {
-                followCurrentTurnToken();
+            followCurrentTurnToken();
             }, 100);
             // Only call startTurn for the local player whose turn it is
             if (turnPlayer && turnPlayer.id === currentPlayerId && typeof startTurn === 'function') {
@@ -2813,17 +2808,12 @@ function stopWalkAnimation(token) {
 
 function updateMoneyDisplay() {
     try {
-        let moneyElement = document.getElementById("player-money");
-        const multiplayerUI = document.getElementById("multiplayer-ui");
+        const moneyElement = document.getElementById("player-money");
         if (!moneyElement) {
-            moneyElement = document.createElement("div");
-            moneyElement.id = "player-money";
-            moneyElement.className = "money-display";
-            if (multiplayerUI) {
-                multiplayerUI.insertBefore(moneyElement, multiplayerUI.firstChild);
-            } else {
-                document.body.appendChild(moneyElement);
-            }
+            const moneyDisplay = document.createElement("div");
+            moneyDisplay.id = "player-money";
+            moneyDisplay.className = "money-display";
+            document.body.appendChild(moneyDisplay);
         }
 
         if (currentPlayerIndex < 0 || currentPlayerIndex >= players.length) {
@@ -2839,7 +2829,7 @@ function updateMoneyDisplay() {
 
         const playerType = isCurrentPlayerAI() ? 'AI ' : '';
         const moneyText = `${playerType}Player ${currentPlayerIndex + 1}'s Turn - Money: $${currentPlayer.money}`;
-        moneyElement.textContent = moneyText;
+        document.getElementById("player-money").textContent = moneyText;
 
         checkBankruptcy(currentPlayer);
     } catch (error) {
@@ -3168,17 +3158,6 @@ function showPropertyUI(position) {
         console.error(`No property found for position ${position} (propertyName: ${propertyName})`);
         console.log('Available properties:', properties.map(p => p.name));
         hasHandledProperty = true;
-        // Fallback: show a simple popup for unknown squares
-        const fallbackOverlay = document.createElement('div');
-        fallbackOverlay.className = 'property-overlay';
-        const fallbackPopup = document.createElement('div');
-        fallbackPopup.className = 'property-popup';
-        fallbackPopup.textContent = `No property data for this square.`;
-        fallbackOverlay.appendChild(fallbackPopup);
-        document.body.appendChild(fallbackOverlay);
-        setTimeout(() => {
-            if (fallbackOverlay.parentElement) fallbackOverlay.parentElement.removeChild(fallbackOverlay);
-        }, 1500);
         return;
     }
 
@@ -7788,7 +7767,21 @@ function moveTokenWithCollisionAvoidance(startPos, endPos, token, callback) {
     const path = calculatePathWithCollisionAvoidance(startIndex, endIndex, playerIndex);
     
     // Move along the calculated path
-    moveTokenAlongPath(path, token, callback);
+    moveTokenAlongPath(path, token, function() {
+        // After token finishes moving, show property UI for local player
+        const playerIndex = players.findIndex(p => p.selectedToken === token);
+        if (playerIndex !== -1) {
+            const player = players[playerIndex];
+            if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
+                // Use the final position index as the destination
+                const endIndex = positions.findIndex(pos => Math.abs(pos.x - endPos.x) < 0.1 && Math.abs(pos.z - endPos.z) < 0.1);
+                if (endIndex !== -1) {
+                    showPropertyUI(endIndex);
+                }
+            }
+        }
+        if (callback) callback();
+    });
 }
 
 // Move token along a calculated path
@@ -8000,7 +7993,7 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
     function postMoveLogic() {
         // Only call finishMove for the player who actually moved
         if (player.id === playerId) {
-            finishMove(player, to, false);
+        finishMove(player, to, false);
         }
         // REMOVED: showPropertyUI call from here - it's handled in the main moveToken callback
         if (isWoman) stopWalkAnimation(token);
