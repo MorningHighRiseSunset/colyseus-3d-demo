@@ -3123,27 +3123,50 @@ function handleRailroadSpace(player, property) {
     }
 }
 
-function showPropertyUI(position, onClose) {
+function showPropertyUI(position) {
     // Only show property UI for the local player
     const currentPlayer = players[currentPlayerIndex];
     if (typeof isLocalPlayer === 'function' && !isLocalPlayer(currentPlayer)) {
         console.log('[Patch] Not showing property UI for remote player.');
         return;
     }
-
-    // Remove any existing overlays
+    // Debug: Check if multiple property UIs are being triggered
     const overlays = document.querySelectorAll('.property-overlay');
-    overlays.forEach(overlay => {
+    if (overlays.length > 0) {
+        console.warn(`[PropertyUI Debug] ${overlays.length} property UI overlays detected before creating new one.`);
+    }
+    // Ensure only one property UI overlay is present at a time
+    const existingOverlays = document.querySelectorAll('.property-overlay');
+    existingOverlays.forEach(overlay => {
         if (overlay && overlay.parentElement) {
             overlay.parentElement.removeChild(overlay);
-            if (typeof onClose === 'function') onClose();
         }
     });
+    console.log(`showPropertyUI called for position ${position}`);
+    
+    // Check if current player is AI first
+    if (isCurrentPlayerAI()) {
+        console.log("AI player - skipping property UI");
+        const propertyName = placeNames[position];
+        const property = properties.find(p => p.name === propertyName);
+        if (property) {
+            handleAIPropertyDecision(property, () => {
+                setTimeout(() => endTurn(), 1500);
+            });
+        } else {
+            setTimeout(() => endTurn(), 1500);
+        }
+        return;
+    }
 
     const propertyName = placeNames[position];
+    console.log(`Property name at position ${position}: ${propertyName}`);
     const property = properties.find(p => p.name === propertyName);
+    console.log(`Found property:`, property);
+
     if (!property) {
         console.error(`No property found for position ${position} (propertyName: ${propertyName})`);
+        console.log('Available properties:', properties.map(p => p.name));
         hasHandledProperty = true;
         return;
     }
@@ -3152,30 +3175,41 @@ function showPropertyUI(position, onClose) {
     if (property.name === "GO") {
         showFeedback("You landed on GO! Collect $200 if you passed it.");
         hasHandledProperty = true;
-        if (typeof onClose === 'function') onClose();
+        endTurn();
         return;
     }
     if (property.name === "JAIL") {
-        showJailUI(currentPlayer, onClose);
+        const currentPlayer = players[currentPlayerIndex];
+        showJailUI(currentPlayer);
         hasHandledProperty = true;
         return;
     }
     if (property.name === "GO TO JAIL") {
+        const currentPlayer = players[currentPlayerIndex];
         goToJail(currentPlayer);
         hasHandledProperty = true;
-        if (typeof onClose === 'function') onClose();
         return;
     }
     if (property.name === "FREE PARKING") {
-        showFreeParkingUI(currentPlayer, onClose);
+        const currentPlayer = players[currentPlayerIndex];
+        showFreeParkingUI(currentPlayer);
         hasHandledProperty = true;
         return;
     }
 
+    // Handle tax properties - use image-based UI instead of old functions
+    if (property.type === "tax") {
+        // Let the normal property UI handle this with the image
+        // The tax-specific logic will be handled in the button creation below
+    }
+
+    console.log(`Creating property UI for ${property.name}`);
+    
     // Create overlay and popup
     const overlay = document.createElement('div');
     overlay.className = 'property-overlay';
 
+    // Lower helicopter audio when UI is shown
     pauseHelicopterAudio();
 
     const popup = document.createElement('div');
@@ -3192,10 +3226,13 @@ function showPropertyUI(position, onClose) {
     content.style.gap = '8px';
     content.style.fontSize = '13px';
 
-    // Media (image or video)
+    // --- Video on top ---
     let mediaShown = false;
+
     function showImageFallback() {
+        // Prevent multiple fallbacks from being created
         if (mediaShown) return;
+        
         let imageUrl = null;
         if (Array.isArray(property.imageUrls) && property.imageUrls.length > 0) {
             imageUrl = property.imageUrls[0];
@@ -3226,6 +3263,7 @@ function showPropertyUI(position, onClose) {
             content.appendChild(imageContainer);
             mediaShown = true;
         } else {
+            // No image, show a better placeholder
             const placeholder = document.createElement('div');
             placeholder.style.width = '160px';
             placeholder.style.height = '90px';
@@ -3249,18 +3287,273 @@ function showPropertyUI(position, onClose) {
         }
     }
 
-    // Details and buttons
-    const detailsContainer = document.createElement('div');
-    detailsContainer.className = 'property-details';
-    detailsContainer.innerHTML = `
-        <div><strong>Price:</strong> $${property.price || 'N/A'}</div>
-        ${property.rent ? `<div><strong>Rent:</strong> $${property.rent}</div>` : ''}
-        ${property.owner ? `<div><strong>Owner:</strong> ${property.owner.name}</div>` : ''}
-        ${property.description ? `<div style='margin-top:8px;'>${property.description}</div>` : ''}
-    `;
+    if (property.videoUrls && property.videoUrls.length > 0) {
+        const videoContainer = document.createElement('div');
+        videoContainer.className = 'property-video-container';
+        videoContainer.style.width = '160px';
+        videoContainer.style.height = '90px';
+        videoContainer.style.overflow = 'hidden';
+        videoContainer.style.borderRadius = '8px';
+        videoContainer.style.margin = '0 auto 4px auto';
+        videoContainer.style.position = 'relative';
+        videoContainer.style.display = 'flex';
+        videoContainer.style.justifyContent = 'center';
+        videoContainer.style.alignItems = 'center';
 
-    // Buttons
+        // Improved randomization: avoid immediate repeats
+        if (!property._lastVideoIndex) property._lastVideoIndex = -1;
+        let randomIndex;
+        do {
+            randomIndex = Math.floor(Math.random() * property.videoUrls.length);
+        } while (property.videoUrls.length > 1 && randomIndex === property._lastVideoIndex);
+        property._lastVideoIndex = randomIndex;
+        const selectedUrl = property.videoUrls[randomIndex];
+
+        // Add loading indicator
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            z-index: 10;
+        `;
+        loadingIndicator.textContent = 'Loading...';
+        videoContainer.appendChild(loadingIndicator);
+
+        const video = document.createElement('video');
+        video.src = selectedUrl;
+        video.controls = true;
+        video.autoplay = true;
+        video.muted = true; // Start muted like jail videos
+        video.playsInline = true;
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+        video.preload = 'metadata';
+        video.style.width = '100%';
+        video.style.height = '100%';
+        video.style.objectFit = 'cover';
+        video.style.borderRadius = '8px';
+
+        // Unmute the video when it is loaded (exactly like jail video logic)
+        video.addEventListener('loadeddata', () => {
+            video.muted = false;
+            video.play().catch(error => console.error("Failed to play property video:", error));
+        });
+
+        // Add timeout to ensure video loads within reasonable time
+        const videoLoadTimeout = setTimeout(() => {
+            if (video.readyState < 2 && !mediaShown) { // HAVE_CURRENT_DATA
+                console.warn(`Video load timeout for ${selectedUrl}, falling back to image`);
+                loadingIndicator.style.display = 'none';
+                video.style.display = 'none';
+                showImageFallback();
+            }
+        }, 1500); // 1.5 second timeout - faster fallback
+
+        video.addEventListener('loadeddata', () => {
+            clearTimeout(videoLoadTimeout);
+            loadingIndicator.style.display = 'none';
+        });
+
+        // Add canplay event to ensure video is actually playable
+        video.addEventListener('canplay', () => {
+            clearTimeout(videoLoadTimeout);
+            loadingIndicator.style.display = 'none';
+        });
+
+        videoContainer.appendChild(video);
+
+        // --- HORSEBACK RIDING: Sync galloping sound with video ---
+        if (property.name === "Horseback Riding") {
+            // Play sound when video starts playing
+            const playHorseSound = () => {
+                horseGallopingSound.currentTime = 0;
+                horseGallopingSound.playbackRate = 0.6; // Slow down for serene effect
+                horseGallopingSound.play().catch(() => {});
+            };
+            // Pause sound when video pauses
+            const pauseHorseSound = () => {
+                horseGallopingSound.pause();
+            };
+            // Sync on play/pause
+            video.addEventListener('play', playHorseSound);
+            video.addEventListener('pause', pauseHorseSound);
+            // If video ends, pause sound
+            video.addEventListener('ended', pauseHorseSound);
+            // If video is playing on load, play sound
+            video.addEventListener('canplay', () => {
+                if (!video.paused) playHorseSound();
+            });
+            // Pause sound if UI is closed
+            const observer = new MutationObserver(() => {
+                if (!document.body.contains(videoContainer)) {
+                    pauseHorseSound();
+                    observer.disconnect();
+                }
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+        // --- END HORSEBACK RIDING SYNC ---
+
+        // Better error handling - try to load video, fallback to image if it fails
+        video.onerror = () => {
+            if (mediaShown) return; // Prevent multiple fallbacks
+            console.warn(`Failed to load video: ${selectedUrl}, falling back to image`);
+            loadingIndicator.style.display = 'none';
+            video.style.display = 'none';
+            showImageFallback();
+        };
+
+        // Additional error handling for network issues
+        video.addEventListener('error', (e) => {
+            if (mediaShown) return; // Prevent multiple fallbacks
+            console.warn(`Video error for ${selectedUrl}:`, e);
+            loadingIndicator.style.display = 'none';
+            video.style.display = 'none';
+            showImageFallback();
+        });
+
+        // Handle stalled video loading
+        video.addEventListener('stalled', () => {
+            if (mediaShown) return; // Prevent multiple fallbacks
+            console.warn(`Video stalled for ${selectedUrl}, falling back to image`);
+            loadingIndicator.style.display = 'none';
+            video.style.display = 'none';
+            showImageFallback();
+        });
+
+        // Handle suspend event (network issues)
+        video.addEventListener('suspend', () => {
+            if (mediaShown) return; // Prevent multiple fallbacks
+            console.warn(`Video suspended for ${selectedUrl}, falling back to image`);
+            loadingIndicator.style.display = 'none';
+            video.style.display = 'none';
+            showImageFallback();
+        });
+
+        // Check if video file is too small (likely corrupted)
+        video.addEventListener('loadstart', () => {
+            // If video file is less than 1KB, it's probably corrupted
+            fetch(selectedUrl, { method: 'HEAD' })
+                .then(response => {
+                    const contentLength = response.headers.get('content-length');
+                    if (contentLength && parseInt(contentLength) < 1024) {
+                        console.warn(`Video file too small (${contentLength} bytes), likely corrupted: ${selectedUrl}`);
+                        video.style.display = 'none';
+                        if (!mediaShown) showImageFallback();
+                    }
+                })
+                .catch(() => {
+                    // If we can't check the size, try to load anyway
+                });
+        });
+
+        content.appendChild(videoContainer);
+        mediaShown = true;
+    }
+
+    // If no video, show image immediately
+    if (!mediaShown) {
+        showImageFallback();
+    }
+
+    // Add video preloading for better reliability
+    if (property.videoUrls && property.videoUrls.length > 0) {
+        property.videoUrls.forEach(url => {
+            const link = document.createElement('link');
+            link.rel = 'preload';
+            link.as = 'video';
+            link.href = url;
+            document.head.appendChild(link);
+        });
+    }
+
+    // --- Title under video ---
+    const titleDiv = document.createElement('div');
+    titleDiv.className = 'popup-header';
+    titleDiv.style.backgroundColor = "transparent";
+    titleDiv.style.fontSize = '14px';
+    titleDiv.style.padding = '5px';
+    titleDiv.style.margin = '0 0 4px 0';
+    titleDiv.style.width = '100%';
+    titleDiv.style.textAlign = 'center';
+    titleDiv.textContent = property.name;
+    content.appendChild(titleDiv);
+
+    // --- Address under title (if present) ---
+    if (property.address && property.address.length > 0) {
+        const addressDiv = document.createElement('div');
+        addressDiv.className = 'property-address';
+        addressDiv.style.fontSize = '11px';
+        addressDiv.style.color = '#bbb';
+        addressDiv.style.margin = '0 0 6px 0';
+        addressDiv.style.textAlign = 'center';
+        addressDiv.textContent = property.address;
+        content.appendChild(addressDiv);
+    }
+
+    // --- Details and buttons side by side ---
+    const rowContainer = document.createElement('div');
+    rowContainer.style.display = 'flex';
+    rowContainer.style.flexDirection = 'row';
+    rowContainer.style.justifyContent = 'flex-start';
+    rowContainer.style.alignItems = 'stretch';
+    rowContainer.style.gap = '8px';
+    rowContainer.style.width = '100%';
+    rowContainer.style.marginLeft = '0';
+    rowContainer.style.boxSizing = 'border-box';
+
+    // Details (side by side)
+    const detailsContainer = document.createElement('div');
+    detailsContainer.style.flex = '1 1 0';
+    detailsContainer.style.fontSize = '11px';
+    detailsContainer.style.display = 'flex';
+    detailsContainer.style.alignItems = 'flex-start';
+    detailsContainer.style.height = '100%';
+    detailsContainer.style.minWidth = '0';
+
+    // Ticket/concert properties
+    const ticketProperties = [
+        "Las Vegas Grand Prix",
+        "Las Vegas Golden Knights",
+        "Las Vegas Raiders",
+        "Las Vegas Aces",
+        "Horseback Riding",
+        "Maverick Helicopter Rides",
+        "Sphere",
+        "Shriners Children's Open",
+        "Las Vegas Little White Wedding Chapel",
+        "Resorts World Theatre",
+        "House of Blues",
+        "Bet MGM",
+        "Las Vegas Monorail",
+        "Speed Vegas Off Roading"
+    ];
+
+    // Details content
+    let detailsHTML = `<div class='property-details' style='display: flex; flex-direction: column; gap: 6px; height: 100%;'>`;
+    detailsHTML += `<div><strong>Price:</strong> $${property.price || 'N/A'}</div>`;
+    if (property.rent && !ticketProperties.includes(property.name)) {
+        detailsHTML += `<div><strong>Rent:</strong> $${property.rent}</div>`;
+    }
+    if (property.owner) {
+        detailsHTML += `<div><strong>Owner:</strong> ${property.owner.name}</div>`;
+    }
+    if (property.description) {
+        detailsHTML += `<div style='margin-top:8px;'>${property.description}</div>`;
+    }
+    detailsHTML += `</div>`;
+    detailsContainer.innerHTML = detailsHTML;
+
+    // Buttons (side by side)
     const buttonsContainer = document.createElement('div');
+    buttonsContainer.style.flex = '0 0 110px';
     buttonsContainer.style.display = 'flex';
     buttonsContainer.style.flexDirection = 'column';
     buttonsContainer.style.gap = '8px';
@@ -3268,28 +3561,24 @@ function showPropertyUI(position, onClose) {
     buttonsContainer.style.justifyContent = 'flex-start';
     buttonsContainer.style.height = '100%';
 
-    // Close button
-    const closeButton = document.createElement('button');
-    closeButton.className = 'action-button';
-    closeButton.textContent = 'Close';
-    closeButton.onclick = () => {
-        closePopup(overlay);
-        hasHandledProperty = true;
-        if (typeof onClose === 'function') onClose();
-    };
-    buttonsContainer.appendChild(closeButton);
+    // Use the createButtonContainer function to get proper buttons with close button
+    const buttonContainer = createButtonContainer(property);
+    buttonsContainer.appendChild(buttonContainer);
 
-    // Assemble
-    content.appendChild(detailsContainer);
-    content.appendChild(buttonsContainer);
+    rowContainer.appendChild(detailsContainer);
+    rowContainer.appendChild(buttonsContainer);
+    content.appendChild(rowContainer);
+
     popup.appendChild(content);
     overlay.appendChild(popup);
     document.body.appendChild(overlay);
 
+    // Add fade-in animation
     requestAnimationFrame(() => {
         popup.classList.add('fade-in');
     });
 
+    // Restore helicopter audio when UI is closed
     overlay.addEventListener('transitionend', function restoreHeliAudio(e) {
         if (e.propertyName === 'opacity' && overlay.classList.contains('fade-out')) {
             resumeHelicopterAudio();
@@ -3298,7 +3587,7 @@ function showPropertyUI(position, onClose) {
     });
 }
 
-function showJailUI(player, onClose) {
+function showJailUI(player) {
     // Check if the current player is AI
     if (isCurrentPlayerAI()) {
         console.log("AI landed on Jail. Skipping Jail UI for the player.");
@@ -3328,6 +3617,7 @@ function showJailUI(player, onClose) {
     // Add video container on the left
     const videoContainer = document.createElement('div');
     videoContainer.className = 'jail-video-container';
+    // --- FIX: Set fixed size for video container and video ---
     videoContainer.style.width = "220px";
     videoContainer.style.height = "140px";
     videoContainer.style.flex = "0 0 220px";
@@ -3398,7 +3688,7 @@ function showJailUI(player, onClose) {
                 player.jailTurns = 0;
                 showFeedback(`${player.name} paid $50 and got out of Jail.`);
                 closePopup(overlay);
-                if (typeof onClose === 'function') onClose();
+                endTurn();
             } else {
                 showFeedback("Not enough money to pay the fine!");
             }
@@ -3417,7 +3707,7 @@ function showJailUI(player, onClose) {
                 player.jailTurns = 0;
                 showFeedback(`${player.name} rolled doubles and got out of Jail!`);
                 closePopup(overlay);
-                if (typeof onClose === 'function') onClose();
+                endTurn();
             } else {
                 player.jailTurns -= 1;
                 showFeedback(`${player.name} failed to roll doubles. ${player.jailTurns} turn(s) left.`);
@@ -3426,7 +3716,7 @@ function showJailUI(player, onClose) {
                     showFeedback(`${player.name} is released from Jail.`);
                 }
                 closePopup(overlay);
-                if (typeof onClose === 'function') onClose();
+                endTurn();
             }
         };
         buttonContainer.appendChild(rollDiceButton);
@@ -3437,7 +3727,7 @@ function showJailUI(player, onClose) {
         closeButton.textContent = 'Close';
         closeButton.onclick = () => {
             closePopup(overlay);
-            if (typeof onClose === 'function') onClose();
+            endTurn();
         };
         buttonContainer.appendChild(closeButton);
     }
@@ -5920,7 +6210,7 @@ function handlePropertyLanding(player, position) {
 
     if (!property) {
         console.error(`No property found for position ${position}`);
-        setTimeout(() => endTurn(), 500);
+        endTurn();
         return;
     }
 
@@ -5939,90 +6229,109 @@ function handlePropertyLanding(player, position) {
     // Play horse galloping sound for Horseback Riding property
     if (property.name === "Horseback Riding") {
         horseGallopingSound.currentTime = 0;
-        horseGallopingSound.playbackRate = 0.6;
+        horseGallopingSound.playbackRate = 0.6; // Slow down for serene effect
         horseGallopingSound.play().catch(() => {});
     }
 
     // Handle "JAIL" property
     if (property.name === "JAIL") {
-        showJailUI(player, () => endTurn());
+        if (player.inJail) {
+            console.log(`${player.name} is in Jail for ${player.jailTurns} more turn(s).`);
+            showJailUI(player);
+        } else {
+            console.log(`${player.name} is just visiting Jail.`);
+            showJailUI(player);
+        }
         return;
     }
 
-    // Handle Income Tax
+    // Handle Income Tax - use the image-based property UI instead of special handling
     if (property.name === "Income Tax") {
-        showPropertyUI(position, () => endTurn());
+        // Let the normal property UI handle this with the image
+        // Don't mark as handled so showPropertyUI will be called
         return;
     }
 
     // Handle Luxury Tax
     if (property.name === "Luxury Tax") {
         handleLuxuryTax(player);
-        setTimeout(() => endTurn(), 1000);
+        hasHandledProperty = true; // Mark as handled to prevent showPropertyUI from being called
         return;
     }
 
     // Handle GO TO JAIL
     if (property.name === "GO TO JAIL") {
+        console.log(`${player.name} landed on GO TO JAIL`);
         goToJail(player);
-        setTimeout(() => endTurn(), 1000);
         return;
     }
 
     // Handle FREE PARKING
     if (property.name === "FREE PARKING") {
-        showFreeParkingUI(player, () => endTurn());
+        console.log(`${player.name} landed on FREE PARKING`);
+        showFreeParkingUI(player);
         return;
     }
 
     // Handle Chance and Community Chest
     if (property.name === "Chance" || property.name === "Community Cards") {
-        drawCard(property.name, () => endTurn());
+        drawCard(property.name);
         return;
     }
 
     // Handle property ownership scenarios
     if (property.owner && property.owner !== player) {
-        // Utilities
+        console.log(`${player.name} landed on ${property.name}, owned by ${property.owner.name}`);
+
+        // Handle utilities differently
         if (property.type === "utility") {
-            handleUtilitySpace(player, property, () => endTurn());
+            handleUtilitySpace(player, property);
             return;
         }
-        // Railroads
+
+        // Handle railroads differently
         if (property.type === "railroad") {
-            handleRailroadSpace(player, property, () => endTurn());
+            handleRailroadSpace(player, property);
             return;
         }
-        // Ticket/concert properties: do NOT pay rent
+
+        // Handle ticket/concert properties: do NOT pay rent
         if (ticketProperties.includes(property.name)) {
-            showPropertyUI(position, () => endTurn());
+            showPropertyUI(position);
             return;
         }
-        // Regular properties
+        // Handle regular properties
+        const rentAmount = calculateRent(property);
         if (isCurrentPlayerAI()) {
+            // Show property popup for AI so players can see the rent payment
             showPropertyUI(position);
+            // Then handle rent payment after a short delay
             setTimeout(() => {
-                handleRentPayment(player, property, () => endTurn());
-            }, 2000);
+                handleRentPayment(player, property);
+            }, 2000); // Show popup for 2 seconds before AI pays rent
         } else {
-            showPropertyUI(position, () => endTurn());
+            showPropertyUI(position);
         }
     } else if (!property.owner) {
         // Property is unowned
+        console.log(`${player.name} landed on unowned property: ${property.name}`);
         if (isCurrentPlayerAI()) {
+            // Show property popup for AI so players can see what the AI is deciding on
             showPropertyUI(position);
+            // Then handle AI decision after a short delay
             setTimeout(() => {
                 handleAIPropertyDecision(property, () => {
                     setTimeout(() => endTurn(), 1500);
                 });
-            }, 2000);
+            }, 2000); // Show popup for 2 seconds before AI makes decision
         } else {
-            showPropertyUI(position, () => endTurn());
+            showPropertyUI(position);
         }
     } else {
         // Player owns the property
+        console.log(`${player.name} landed on their own property: ${property.name}`);
         if (!isCurrentPlayerAI()) {
-            showPropertyUI(position, () => endTurn());
+            showPropertyUI(position);
         } else {
             setTimeout(() => endTurn(), 1500);
         }
