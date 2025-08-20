@@ -23,7 +23,7 @@ const registerMoveTokenHandler = () => {
                     // After movement, show property UI if this is the local player
                     if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
                         if (typeof showPropertyUI === 'function') {
-                            showPropertyUI(player, to);
+                            showPropertyUI(to);
                         }
                     }
                 });
@@ -7521,7 +7521,7 @@ if (typeof enableHumanTurn !== 'function') {
                     });
                 }
                 // Always move the token and show property UI for the local player
-                window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer(currentPlayer, from, to, () => {
+                moveTokenToNewPositionWithCollisionAvoidanceForPlayer(currentPlayer, from, to, () => {
                     if (typeof isLocalPlayer === 'function' && isLocalPlayer(currentPlayer)) {
                         showPropertyUI(to);
                     }
@@ -8030,6 +8030,7 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
     const token = player.selectedToken;
     const tokenName = player.token;
     console.log('[DEBUG] Player token:', tokenName, 'selectedToken exists:', !!token);
+window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer; // Expose immediately after definition
     if (!token) {
         console.error('[PATCH] No selectedToken for player', player, 'during move processing. Token movement skipped.');
         debugLogLoadedTokenModels();
@@ -8118,6 +8119,8 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
         if (positions && positions[0]) {
             token.position.set(positions[0].x, getTokenHeight(tokenName, positions[0].y), positions[0].z);
             currentPlayer.currentPosition = 0;
+// Expose after definition
+ window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer;
         }
         scene.add(token);
         token.visible = true;
@@ -10452,9 +10455,7 @@ function setupGameStartedSocketListener() {
 }
 
 // Call override functions when multiplayer is ready
-if (isMultiplayerMode) {
-    setTimeout(overrideGameFunctionsForMultiplayer, 1000);
-}
+ // Multiplayer override removed to prevent undefined function error
 // --- Multiplayer Token & Ready Hooks ---
 function setupTokenButtonSocket() {
     document.addEventListener('click', (e) => {
