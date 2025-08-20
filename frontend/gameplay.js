@@ -198,9 +198,10 @@ function updateTurnUI() {
     const turnIndicator = document.getElementById('turn-indicator');
     if (turnIndicator) {
         if (currentPlayer && currentPlayer.id === currentPlayerId) {
-            turnIndicator.textContent = 'Your Turn';
+            // Preserve the original HTML structure with dice emojis
+            turnIndicator.innerHTML = '<h2>🎲 It\'s Your Turn! 🎲</h2><p>Roll the dice to continue</p>';
         } else {
-            turnIndicator.textContent = `Waiting for ${currentPlayer ? currentPlayer.name : 'other player'}`;
+            turnIndicator.innerHTML = `<h2>⏳ Waiting...</h2><p>Waiting for ${currentPlayer ? currentPlayer.name : 'other player'}</p>`;
         }
     }
 }
