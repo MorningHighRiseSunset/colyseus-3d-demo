@@ -224,9 +224,14 @@ function assignSelectedTokenForPlayer(player) {
         return;
     }
     const loadedKeys = Object.keys(window.loadedTokenModels || {});
+    console.log(`[DEBUG] assignSelectedTokenForPlayer: Looking for token '${player.token}' in loadedKeys:`, loadedKeys);
+    
     const tokenKey = loadedKeys.find(
         k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
     );
+    
+    console.log(`[DEBUG] assignSelectedTokenForPlayer: Found tokenKey: '${tokenKey}' for player '${player.name}' with token '${player.token}'`);
+    
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
         player.selectedToken = window.loadedTokenModels[tokenKey].clone();
         player.selectedToken.position.set(0, getTokenHeight(player.token), 0);
@@ -236,6 +241,7 @@ function assignSelectedTokenForPlayer(player) {
         if (typeof processPendingMoves === 'function') processPendingMoves();
     } else {
         console.warn(`[Patch Debug] assignSelectedTokenForPlayer: Could not assign selectedToken for player '${player.name}' with token '${player.token}'`);
+        console.log(`[DEBUG] assignSelectedTokenForPlayer: loadedTokenModels:`, !!window.loadedTokenModels, 'tokenKey:', tokenKey, 'model exists:', !!(window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]));
     }
 }
 
@@ -7377,6 +7383,21 @@ if (typeof enableHumanTurn !== 'function') {
                 scene.remove(dice2);
                 // Hide turn indicator after dice animation completes
                 if (typeof showTurnIndicator === 'function') showTurnIndicator(false);
+                
+                // Emit the moveToken event to the backend
+                if (isMultiplayerMode && socket && currentRoomId && currentPlayerId) {
+                    const currentPlayer = players[currentPlayerIndex];
+                    const from = currentPlayer.currentPosition || 0;
+                    const to = (from + total) % positions.length;
+                    
+                    console.log('[DEBUG] rollDice: Emitting moveToken event:', { from, to, total });
+                    socket.emit('moveToken', {
+                        roomId: currentRoomId,
+                        playerId: currentPlayerId,
+                        from: from,
+                        to: to
+                    });
+                }
                 
                 // Store the callback to be called when the move completes
                 window.pendingMoveCallback = () => {
