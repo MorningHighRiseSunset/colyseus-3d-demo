@@ -7480,11 +7480,11 @@ if (typeof enableHumanTurn !== 'function') {
                 if (typeof showTurnIndicator === 'function') showTurnIndicator(false);
                 
                 // Emit the moveToken event to the backend
+                const currentPlayer = players[currentPlayerIndex];
+                const from = currentPlayer.currentPosition || 0;
+                const to = (from + total) % positions.length;
+                // Emit the moveToken event to the backend (multiplayer sync)
                 if (isMultiplayerMode && socket && currentRoomId && currentPlayerId) {
-                    const currentPlayer = players[currentPlayerIndex];
-                    const from = currentPlayer.currentPosition || 0;
-                    const to = (from + total) % positions.length;
-                    
                     console.log('[DEBUG] rollDice: Emitting moveToken event:', { from, to, total });
                     socket.emit('moveToken', {
                         roomId: currentRoomId,
@@ -7493,14 +7493,15 @@ if (typeof enableHumanTurn !== 'function') {
                         to: to
                     });
                 }
-                
-                // Store the callback to be called when the move completes
-                window.pendingMoveCallback = () => {
-                    console.log('[DEBUG] rollDice: Token movement callback executed');
+                // Always move the token and show property UI for the local player
+                moveTokenToNewPositionWithCollisionAvoidanceForPlayer(currentPlayer, from, to, () => {
+                    if (typeof isLocalPlayer === 'function' && isLocalPlayer(currentPlayer)) {
+                        showPropertyUI(to);
+                    }
                     isTurnInProgress = false;
                     hasMovedToken = true;
-                    console.log('[DEBUG] rollDice: isTurnInProgress set to false');
-                };
+                    console.log('[DEBUG] rollDice: Token movement callback executed');
+                });
                 
                 // Safety timeout to ensure turn state is reset
                 setTimeout(() => {
