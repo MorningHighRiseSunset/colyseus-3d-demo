@@ -701,7 +701,8 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                                 if (!scene.children.includes(t)) scene.add(t);
                                 moveTokenWithCollisionAvoidance(sPos, ePos, t, () => {
                                     player.currentPosition = move.newPos;
-                                    if (player.id === currentPlayerId) {
+                                    // Only call handlePropertyLanding for the player who actually moved
+                                    if (player.id === pid && player.id === currentPlayerId) {
                                         handlePropertyLanding(player, move.newPos);
                                     }
                                 });
@@ -729,7 +730,8 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 if (startPos && endPos) {
                     moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
                         player.currentPosition = newPos;
-                        if (pid === currentPlayerId) {
+                        // Only call handlePropertyLanding for the player who actually moved
+                        if (player.id === playerId && pid === currentPlayerId) {
                             handlePropertyLanding(player, newPos);
                         } else {
                             // showNotification(`${player.name} landed on ${getSquareName(newPos)}`);
