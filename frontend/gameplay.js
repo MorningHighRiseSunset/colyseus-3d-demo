@@ -3759,12 +3759,17 @@ function createButtonContainer(property) {
         buyButton.className = 'action-button buy';
         buyButton.textContent = property.customBuyLabel || 'Buy 1 night for 1500';
         buyButton.onclick = () => {
+            console.log('[DEBUG] Brothel buy button clicked');
             if (currentPlayer.money >= 1500) {
-                currentPlayer.money -= 1500;
-                showFeedback(`${currentPlayer.name} bought 1 night at the Brothel for $1500`);
-                updateMoneyDisplay();
-                closePropertyUI();
-                // Do NOT auto end turn for human players
+                // Create a temporary property object for the Brothel purchase
+                const tempProperty = {
+                    name: 'Brothel',
+                    price: 1500,
+                    owner: null
+                };
+                // Use the buyProperty function to properly handle the purchase and turn end
+                console.log('[DEBUG] Calling buyProperty for Brothel');
+                buyProperty(currentPlayer, tempProperty);
             } else {
                 showFeedback("Not enough money to buy 1 night!");
             }
@@ -3792,12 +3797,11 @@ function createButtonContainer(property) {
         buyButton.className = 'action-button buy';
         buyButton.textContent = property.customBuyLabel;
         buyButton.onclick = () => {
+            console.log('[DEBUG] Custom buy button clicked for:', property.name);
             if (currentPlayer.money >= property.price) {
-                currentPlayer.money -= property.price;
-                showFeedback(`${currentPlayer.name} ${property.customBuyLabel.toLowerCase()} for $${property.price}`);
-                updateMoneyDisplay();
-                closePropertyUI();
-                // Do NOT auto end turn for human players
+                // Use the buyProperty function to properly handle the purchase and turn end
+                console.log('[DEBUG] Calling buyProperty for custom property:', property.name);
+                buyProperty(currentPlayer, property);
             } else {
                 showFeedback("Not enough money!");
             }
@@ -4036,13 +4040,18 @@ function buyProperty(player, property, callback) {
         hasTakenAction = true; // Mark that the player has taken an action
 
         // Close the property UI after purchase
+        console.log('[DEBUG] buyProperty: Closing property UI');
         closePropertyUI();
 
         // End turn if a callback is provided (for AI)
         if (callback) {
             callback(); // Ensure the AI's turn completion logic is triggered
         } else {
-            setTimeout(() => endTurn(), 1000); // End the turn manually for human players
+            console.log('[DEBUG] buyProperty: Scheduling endTurn in 1 second');
+            setTimeout(() => {
+                console.log('[DEBUG] buyProperty: Calling endTurn now');
+                endTurn();
+            }, 1000); // End the turn manually for human players
         }
     } else {
         showFeedback("Not enough money to buy this property!");
@@ -4453,9 +4462,11 @@ function validateTurnOrder() {
 }
 
 function endTurn() {
+    console.log(`[DEBUG] endTurn called. isTurnInProgress: ${isTurnInProgress}`);
     if (isTurnInProgress) {
-        console.log("Turn is still in progress. Cannot end turn yet.");
-        return;
+        console.log("Turn is still in progress. Forcing turn end...");
+        // Force reset the flag to allow turn to end
+        isTurnInProgress = false;
     }
 
     console.log(`Ending turn for Player ${currentPlayerIndex + 1} (${players[currentPlayerIndex].name})`);
@@ -7366,10 +7377,14 @@ if (typeof enableHumanTurn !== 'function') {
                 scene.remove(dice2);
                 // Hide turn indicator after dice animation completes
                 if (typeof showTurnIndicator === 'function') showTurnIndicator(false);
-                moveTokenToNewPositionWithCollisionAvoidance(total, () => {
+                
+                // Store the callback to be called when the move completes
+                window.pendingMoveCallback = () => {
+                    console.log('[DEBUG] rollDice: Token movement callback executed');
                     isTurnInProgress = false;
                     hasMovedToken = true;
-                });
+                    console.log('[DEBUG] rollDice: isTurnInProgress set to false');
+                };
                 
                 // Safety timeout to ensure turn state is reset
                 setTimeout(() => {
@@ -7800,6 +7815,16 @@ if (typeof socket !== 'undefined' && socket) {
                 // Only show property UI for the local player if not already handled
                 if (isLocalPlayer(player) && !hasHandledProperty) {
                     showPropertyUI(to);
+                }
+                // Call the original callback if this is the local player's move
+                if (isLocalPlayer(player) && player.id === currentPlayerId) {
+                    // This should trigger the callback that resets isTurnInProgress
+                    console.log('[DEBUG] Calling original move callback for local player');
+                    if (window.pendingMoveCallback) {
+                        console.log('[DEBUG] Executing pending move callback');
+                        window.pendingMoveCallback();
+                        window.pendingMoveCallback = null; // Clear it after use
+                    }
                 }
             });
         } else {
