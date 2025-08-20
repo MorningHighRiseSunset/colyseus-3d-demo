@@ -3197,15 +3197,10 @@ function showPropertyUI(position) {
         return;
     }
 
-    // Handle tax properties
+    // Handle tax properties - use image-based UI instead of old functions
     if (property.type === "tax") {
-        if (property.name === "Income Tax") {
-            handleIncomeTax(players[currentPlayerIndex]);
-        } else if (property.name === "Luxury Tax") {
-            handleLuxuryTax(players[currentPlayerIndex]);
-        }
-        hasHandledProperty = true;
-        return;
+        // Let the normal property UI handle this with the image
+        // The tax-specific logic will be handled in the button creation below
     }
 
     console.log(`Creating property UI for ${property.name}`);
@@ -3872,6 +3867,59 @@ function createButtonContainer(property) {
             }
         } else if (!property.owner && property.type !== "tax") {
             // Buy Property, Penthouse, or Ticket button (but not for tax properties)
+        } else if (property.type === "tax") {
+            // Handle tax properties with special payment buttons
+            if (property.name === "Income Tax") {
+                const currentPlayer = players[currentPlayerIndex];
+                const tenPercentAmount = Math.floor(currentPlayer.money * 0.1);
+                
+                const pay200Button = document.createElement('button');
+                pay200Button.className = 'action-button pay-tax';
+                pay200Button.textContent = `Pay $200`;
+                pay200Button.onclick = () => {
+                    if (currentPlayer.money >= 200) {
+                        currentPlayer.money -= 200;
+                        showFeedback("Paid $200 in Income Tax");
+                        updateMoneyDisplay();
+                        closePropertyUI();
+                    } else {
+                        showFeedback("Not enough money to pay Income Tax!");
+                    }
+                };
+                topButtons.appendChild(pay200Button);
+                
+                const pay10PercentButton = document.createElement('button');
+                pay10PercentButton.className = 'action-button pay-tax';
+                pay10PercentButton.textContent = `Pay 10% ($${tenPercentAmount})`;
+                pay10PercentButton.onclick = () => {
+                    if (currentPlayer.money >= tenPercentAmount) {
+                        currentPlayer.money -= tenPercentAmount;
+                        showFeedback(`Paid $${tenPercentAmount} (10%) in Income Tax`);
+                        updateMoneyDisplay();
+                        closePropertyUI();
+                    } else {
+                        showFeedback("Not enough money to pay Income Tax!");
+                    }
+                };
+                topButtons.appendChild(pay10PercentButton);
+            } else if (property.name === "Luxury Tax") {
+                const currentPlayer = players[currentPlayerIndex];
+                
+                const payLuxuryTaxButton = document.createElement('button');
+                payLuxuryTaxButton.className = 'action-button pay-tax';
+                payLuxuryTaxButton.textContent = `Pay Luxury Tax ($${property.price})`;
+                payLuxuryTaxButton.onclick = () => {
+                    if (currentPlayer.money >= property.price) {
+                        currentPlayer.money -= property.price;
+                        showFeedback(`Paid $${property.price} in Luxury Tax`);
+                        updateMoneyDisplay();
+                        closePropertyUI();
+                    } else {
+                        showFeedback("Not enough money to pay Luxury Tax!");
+                    }
+                };
+                topButtons.appendChild(payLuxuryTaxButton);
+            }
             const buyButton = document.createElement('button');
             buyButton.className = 'action-button buy';
             if (property.isPenthouse) {
@@ -6197,10 +6245,10 @@ function handlePropertyLanding(player, position) {
         return;
     }
 
-    // Handle Income Tax
+    // Handle Income Tax - use the image-based property UI instead of special handling
     if (property.name === "Income Tax") {
-        handleIncomeTax(player);
-        hasHandledProperty = true; // Mark as handled to prevent showPropertyUI from being called
+        // Let the normal property UI handle this with the image
+        // Don't mark as handled so showPropertyUI will be called
         return;
     }
 
@@ -7858,9 +7906,17 @@ if (typeof socket !== 'undefined' && socket) {
                 console.log('[DEBUG] Move callback - isLocalPlayer:', isLocalPlayer(player), 'hasHandledProperty:', hasHandledProperty, 'player:', player.name, 'to:', to);
                 console.log('[DEBUG] Move callback - player.currentPosition:', player.currentPosition, 'from:', from, 'to:', to);
                 console.log('[DEBUG] Move callback - playerId from socket:', playerId, 'currentPlayerId:', currentPlayerId);
+                console.log('[DEBUG] Move callback - condition check:', {
+                    'player.id === playerId': player.id === playerId,
+                    'player.id === currentPlayerId': player.id === currentPlayerId,
+                    '!hasHandledProperty': !hasHandledProperty,
+                    'willCallShowPropertyUI': player.id === playerId && player.id === currentPlayerId && !hasHandledProperty
+                });
                 if (player.id === playerId && player.id === currentPlayerId && !hasHandledProperty) {
                     console.log('[DEBUG] Calling showPropertyUI for player who actually moved:', player.name, 'position:', to);
                     showPropertyUI(to);
+                } else {
+                    console.log('[DEBUG] NOT calling showPropertyUI for player:', player.name, 'position:', to);
                 }
                 // Call the original callback if this is the local player's move
                 if (isLocalPlayer(player) && player.id === currentPlayerId) {
