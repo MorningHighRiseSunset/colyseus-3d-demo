@@ -1,3 +1,5 @@
+// Expose globally for dice roll logic and other event handlers
+window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer;
 // --- Ensure socket event handler is registered ---
 let moveTokenHandlerRegistered = false;
 const registerMoveTokenHandler = () => {
@@ -5,7 +7,28 @@ const registerMoveTokenHandler = () => {
         console.log('[PropertyUI Debug] Registering socket.on(moveToken) event handler (interval check)');
         socket.on('moveToken', ({ playerId, from, to }) => {
             console.log('[PropertyUI Debug] socket.on(moveToken) called:', { playerId, from, to, currentPlayerId, currentPlayerIndex });
-            // ...existing handler code...
+            // Find the player object
+            const player = players.find(p => p.id === playerId);
+            if (!player) {
+                console.warn('[PropertyUI Debug] No player found for id:', playerId);
+                return;
+            }
+            // Move the token visually (if model is loaded and selectedToken exists)
+            if (typeof moveTokenToNewPositionWithCollisionAvoidanceForPlayer === 'function' && player.selectedToken) {
+                moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
+                    // After movement, show property UI if this is the local player
+                    if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
+                        if (typeof showPropertyUI === 'function') {
+                            showPropertyUI(player, to);
+                        }
+                    }
+                });
+            } else {
+                // If model not loaded, queue the move for later
+                if (typeof pendingMoves !== 'undefined') {
+                    pendingMoves.push({ playerId, from, to });
+                }
+            }
         });
         moveTokenHandlerRegistered = true;
     }
