@@ -573,20 +573,11 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         });
         // If any selectedToken is still missing, assign after models are ready
         safeAssignSelectedTokensToPlayers('playerList socket event');
-        // --- PATCH: Force assign and add ALL players' tokens to scene if missing ---
+        // Remove eager scene.add here to avoid duplicate spawns; tokenPositions will handle initial placement
         players.forEach(player => {
             if (player && player.token && !player.selectedToken && window.loadedTokenModels) {
                 assignSelectedTokenForPlayer(player);
             }
-            if (player && player.selectedToken && typeof scene !== 'undefined' && !scene.children.includes(player.selectedToken)) {
-                scene.add(player.selectedToken);
-                player.selectedToken.visible = true;
-            // Set to starting position
-                const startPos = getBoardSquarePosition(player.currentPosition || 0);
-            if (startPos) {
-                    player.selectedToken.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
-            }
-        }
         });
         console.log('[MP DEBUG] Updated local players array:', players);
         renderPlayersList();
@@ -721,10 +712,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 const startPos = getBoardSquarePosition(oldIndex);
                 const endPos = getBoardSquarePosition(newPos);
                 let token = player.selectedToken;
-                // Remove old token from scene if it exists (but do not re-clone)
-                if (token && scene.children.includes(token)) {
-                    scene.remove(token);
-                }
+                // Do not remove/re-add tokens on every positions broadcast; keep existing instance
                 // Only assign selectedToken if it is missing
                 if ((!token || !token.position) && player.token && window.loadedTokenModels) {
                     assignSelectedTokenForPlayer(player);
@@ -745,31 +733,41 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                                 const sPos = getBoardSquarePosition(move.oldIndex);
                                 const ePos = getBoardSquarePosition(move.newPos);
                                 let t = player.selectedToken;
-                                if (!scene.children.includes(t)) scene.add(t);
-                                moveTokenWithCollisionAvoidance(sPos, ePos, t, () => {
-                                    // Only update position for the player who actually moved
-                                    if (player.id === pid) {
-                                        player.currentPosition = move.newPos;
-                                        // Only call handlePropertyLanding for the local player who actually moved
-                                        if (player.id === currentPlayerId) {
-                                            handlePropertyLanding(player, move.newPos);
-                                        }
+                                // Initial spawn if never spawned
+                                if (!player.hasTokenSpawned) {
+                                    if (!scene.children.includes(t)) scene.add(t);
+                                    if (ePos) {
+                                        t.position.set(ePos.x, getTokenHeight(player.token, ePos.y), ePos.z);
                                     }
-                                });
+                                    player.currentPosition = move.newPos;
+                                    player.hasTokenSpawned = true;
+                                } else if (move.newPos !== move.oldIndex && sPos && ePos) {
+                                    // Animate only if position actually changed
+                                    moveTokenWithCollisionAvoidance(sPos, ePos, t, () => {
+                                        if (player.id === pid) {
+                                            player.currentPosition = move.newPos;
+                                        }
+                                    });
+                                }
                             }
                         }
                     }, { once: true });
                     return;
                 }
-                // Always add token to scene and set its position before moving
-                if (!scene.children.includes(token)) {
-                    scene.add(token);
-                    console.log(`[Patch] Added token to scene for player '${player.name}' (playerId: ${player.id})`);
-                }
-                // Set token position to startPos before animating
-                if (startPos) {
-                    token.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
-                    token.visible = true;
+                // Initial spawn if never spawned: only spawn the current turn player's token
+                if (!player.hasTokenSpawned) {
+                    const currentTurnPlayerId = playerList[currentPlayerIndex]?.id;
+                    if (pid !== currentTurnPlayerId) {
+                        // Defer spawning this player's token until it's their turn
+                        return;
+                    }
+                    if (!scene.children.includes(token)) scene.add(token);
+                    if (endPos) {
+                        token.position.set(endPos.x, getTokenHeight(player.token, endPos.y), endPos.z);
+                        token.visible = true;
+                    }
+                    player.currentPosition = newPos;
+                    player.hasTokenSpawned = true;
                 }
                 // Raise Rolls Royce token above the board
                 if (player.token && player.token.toLowerCase().includes('rolls')) {
@@ -777,18 +775,10 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 }
                 // Always move token to correct position (only in response to server event)
                 // Only animate and show UI if both positions are valid
-                if (startPos && endPos) {
+                if (startPos && endPos && newPos !== oldIndex) {
                     moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
-                        // Only update position for the player who actually moved
-                        if (player.id === playerId) {
-                            player.currentPosition = newPos;
-                            // Only call handlePropertyLanding for the local player who actually moved
-                            if (pid === currentPlayerId) {
-                                handlePropertyLanding(player, newPos);
-                            }
-                        } else {
-                            // showNotification(`${player.name} landed on ${getSquareName(newPos)}`);
-                        }
+                        // Only update position; property handling is triggered by moveToken, not tokenPositions
+                        player.currentPosition = newPos;
                     });
                 } else {
                     console.warn('[Patch] Could not find valid start or end position for player', player, 'startPos:', startPos, 'endPos:', endPos);
@@ -7879,17 +7869,8 @@ if (typeof socket !== 'undefined' && socket) {
         console.log('[DEBUG] Found player:', player);
         console.log('[DEBUG] All players in array:', players.map(p => ({ id: p.id, name: p.name, currentPosition: p.currentPosition })));
         
-        // Only process the move for the player who actually moved
-        console.log('[DEBUG] Checking if should process moveToken event:', {
-            playerId,
-            currentPlayerId,
-            shouldProcess: playerId === currentPlayerId
-        });
-        if (playerId !== currentPlayerId) {
-            console.log('[DEBUG] Ignoring moveToken event for non-local player:', playerId, 'currentPlayerId:', currentPlayerId);
-            return;
-        }
-        console.log('[DEBUG] Processing moveToken event for local player:', playerId);
+        // Process the move on all clients, but only for the moving player's token
+        console.log('[DEBUG] Processing moveToken for playerId:', playerId, 'on client currentPlayerId:', currentPlayerId);
         
         if (!player) {
             // Queue the move until the player is available
@@ -7904,8 +7885,8 @@ if (typeof socket !== 'undefined' && socket) {
             if (!player.selectedToken) {
                 assignSelectedTokenForPlayer(player);
             }
-            // Ensure token is in the scene
-            if (player.selectedToken && !player.selectedToken.parent) {
+            // Ensure token is in the scene ONLY for the moving player
+            if (player.id === playerId && player.selectedToken && !player.selectedToken.parent) {
                 scene.add(player.selectedToken);
                 player.selectedToken.visible = true;
                 player.selectedToken.traverse(child => { child.visible = true; });
@@ -7974,8 +7955,8 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
         debugLogLoadedTokenModels();
         return;
     }
-    // Ensure token is in the scene
-    if (!token.parent) {
+    // Ensure token is in the scene ONLY for the moving player
+    if (player.id === playerId && !token.parent) {
         scene.add(token);
         token.visible = true;
         token.traverse(child => { child.visible = true; });
