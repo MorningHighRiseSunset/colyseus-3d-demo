@@ -5,9 +5,10 @@
 // After the definition of moveTokenToNewPositionWithCollisionAvoidanceForPlayer, add:
 // window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer;
 // --- Ensure socket event handler is registered ---
+window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer; // Ensure socket and dice handlers can access it immediately
 let moveTokenHandlerRegistered = false;
 const registerMoveTokenHandler = () => {
-    if (typeof socket !== 'undefined' && socket && !moveTokenHandlerRegistered) {
+    if (typeof socket !== 'undefined' && socket && !moveTokenHandlerRegistered && typeof moveTokenToNewPositionWithCollisionAvoidanceForPlayer === 'function') {
         console.log('[PropertyUI Debug] Registering socket.on(moveToken) event handler (interval check)');
         socket.on('moveToken', ({ playerId, from, to }) => {
             console.log('[PropertyUI Debug] socket.on(moveToken) called:', { playerId, from, to, currentPlayerId, currentPlayerIndex });
@@ -558,10 +559,16 @@ function renderPlayersList() {
         avatar.className = 'player-avatar';
         avatar.textContent = p.name.charAt(0).toUpperCase();
         info.appendChild(avatar);
-        // Only show name and token (remove $undefined/money)
+        // Show name and money
+        const details = document.createElement('div');
+        details.className = 'player-details';
         const nameDiv = document.createElement('div');
         nameDiv.textContent = p.name;
-        info.appendChild(nameDiv);
+        const moneyDiv = document.createElement('div');
+        moneyDiv.textContent = `$${p.money}`;
+        details.appendChild(nameDiv);
+        details.appendChild(moneyDiv);
+        info.appendChild(details);
         // Show chosen token
         const tokenSpan = document.createElement('span');
         tokenSpan.className = 'player-token';
@@ -3256,15 +3263,17 @@ function showPropertyUI(position) {
     // Create overlay and popup
     const overlay = document.createElement('div');
     overlay.className = 'property-overlay';
-
-    // Lower helicopter audio when UI is shown
-    pauseHelicopterAudio();
-
+    // Ensure overlay is added to document
     const popup = document.createElement('div');
     popup.className = 'property-popup';
     popup.style.width = '340px';
     popup.style.maxWidth = '95vw';
     popup.style.margin = '0 auto';
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+
+    // Lower helicopter audio when UI is shown
+    pauseHelicopterAudio();
 
     // PATCH: Debug log after overlay is appended
     setTimeout(() => {
@@ -7520,15 +7529,14 @@ if (typeof enableHumanTurn !== 'function') {
                         to: to
                     });
                 }
-                // Always move the token and show property UI for the local player
-                moveTokenToNewPositionWithCollisionAvoidanceForPlayer(currentPlayer, from, to, () => {
-                    if (typeof isLocalPlayer === 'function' && isLocalPlayer(currentPlayer)) {
-                        showPropertyUI(to);
-                    }
-                    isTurnInProgress = false;
-                    hasMovedToken = true;
-                    console.log('[DEBUG] rollDice: Token movement callback executed');
-                });
+                // Local move for origin client (in case server does not echo back)
+                if (typeof window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer === 'function') {
+                    window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer(currentPlayer, from, to, () => {
+                        if (typeof isLocalPlayer === 'function' && isLocalPlayer(currentPlayer)) {
+                            showPropertyUI(to);
+                        }
+                    });
+                }
                 
                 // Safety timeout to ensure turn state is reset
                 setTimeout(() => {
@@ -7981,7 +7989,7 @@ if (typeof socket !== 'undefined' && socket) {
             }
             // Always update token position for all players
             console.log(`[PATCH] Moving token for player '${player.name}' (playerId: ${player.id}) from ${from} to ${to}`);
-            moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
+            window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
                 console.log(`[PATCH] Move complete for player '${player.name}' (playerId: ${player.id})`);
                 // Only show property UI for the player who actually moved (not just any local player)
                 console.log('[DEBUG] Move callback - isLocalPlayer:', isLocalPlayer(player), 'hasHandledProperty:', hasHandledProperty, 'player:', player.name, 'to:', to);
