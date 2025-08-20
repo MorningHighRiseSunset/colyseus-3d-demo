@@ -507,17 +507,22 @@ function renderPlayersList() {
         return;
     }
         playerListUI.innerHTML = ''; // Clear existing player list
-    playerList.forEach(p => {
+    playerList.forEach((p, idx) => {
         const info = document.createElement('div');
         info.className = 'player-info' + (p.id === currentPlayerId ? ' current-player' : '');
         const avatar = document.createElement('div');
         avatar.className = 'player-avatar';
         avatar.textContent = p.name.charAt(0).toUpperCase();
         info.appendChild(avatar);
-        // Only show name and token (remove $undefined/money)
+        // Show name
         const nameDiv = document.createElement('div');
         nameDiv.textContent = p.name;
         info.appendChild(nameDiv);
+        // Show money
+        const moneyDiv = document.createElement('div');
+        moneyDiv.className = 'player-money';
+        moneyDiv.textContent = `$${p.money || 0}`;
+        info.appendChild(moneyDiv);
         // Show chosen token
         const tokenSpan = document.createElement('span');
         tokenSpan.className = 'player-token';
@@ -2808,12 +2813,17 @@ function stopWalkAnimation(token) {
 
 function updateMoneyDisplay() {
     try {
-        const moneyElement = document.getElementById("player-money");
+        let moneyElement = document.getElementById("player-money");
+        const multiplayerUI = document.getElementById("multiplayer-ui");
         if (!moneyElement) {
-            const moneyDisplay = document.createElement("div");
-            moneyDisplay.id = "player-money";
-            moneyDisplay.className = "money-display";
-            document.body.appendChild(moneyDisplay);
+            moneyElement = document.createElement("div");
+            moneyElement.id = "player-money";
+            moneyElement.className = "money-display";
+            if (multiplayerUI) {
+                multiplayerUI.insertBefore(moneyElement, multiplayerUI.firstChild);
+            } else {
+                document.body.appendChild(moneyElement);
+            }
         }
 
         if (currentPlayerIndex < 0 || currentPlayerIndex >= players.length) {
@@ -2829,7 +2839,7 @@ function updateMoneyDisplay() {
 
         const playerType = isCurrentPlayerAI() ? 'AI ' : '';
         const moneyText = `${playerType}Player ${currentPlayerIndex + 1}'s Turn - Money: $${currentPlayer.money}`;
-        document.getElementById("player-money").textContent = moneyText;
+        moneyElement.textContent = moneyText;
 
         checkBankruptcy(currentPlayer);
     } catch (error) {
@@ -3158,6 +3168,17 @@ function showPropertyUI(position) {
         console.error(`No property found for position ${position} (propertyName: ${propertyName})`);
         console.log('Available properties:', properties.map(p => p.name));
         hasHandledProperty = true;
+        // Fallback: show a simple popup for unknown squares
+        const fallbackOverlay = document.createElement('div');
+        fallbackOverlay.className = 'property-overlay';
+        const fallbackPopup = document.createElement('div');
+        fallbackPopup.className = 'property-popup';
+        fallbackPopup.textContent = `No property data for this square.`;
+        fallbackOverlay.appendChild(fallbackPopup);
+        document.body.appendChild(fallbackOverlay);
+        setTimeout(() => {
+            if (fallbackOverlay.parentElement) fallbackOverlay.parentElement.removeChild(fallbackOverlay);
+        }, 1500);
         return;
     }
 
