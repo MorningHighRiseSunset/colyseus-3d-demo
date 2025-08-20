@@ -9123,7 +9123,7 @@ function updateEndTurnButtonVisibility() {
 }
 
 // --- Track property UI state ---
-let propertyUIOpen = false;
+var propertyUIOpen = false;
 
 // Patch showPropertyUI to set propertyUIOpen = true
 const origShowPropertyUI = window.showPropertyUI;
