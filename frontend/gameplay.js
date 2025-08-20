@@ -5920,7 +5920,7 @@ function handlePropertyLanding(player, position) {
 
     if (!property) {
         console.error(`No property found for position ${position}`);
-        endTurn();
+        setTimeout(() => endTurn(), 500);
         return;
     }
 
@@ -5939,109 +5939,90 @@ function handlePropertyLanding(player, position) {
     // Play horse galloping sound for Horseback Riding property
     if (property.name === "Horseback Riding") {
         horseGallopingSound.currentTime = 0;
-        horseGallopingSound.playbackRate = 0.6; // Slow down for serene effect
+        horseGallopingSound.playbackRate = 0.6;
         horseGallopingSound.play().catch(() => {});
     }
 
     // Handle "JAIL" property
     if (property.name === "JAIL") {
-        if (player.inJail) {
-            console.log(`${player.name} is in Jail for ${player.jailTurns} more turn(s).`);
-            showJailUI(player);
-        } else {
-            console.log(`${player.name} is just visiting Jail.`);
-            showJailUI(player);
-        }
+        showJailUI(player, () => endTurn());
         return;
     }
 
-    // Handle Income Tax - use the image-based property UI instead of special handling
+    // Handle Income Tax
     if (property.name === "Income Tax") {
-        // Let the normal property UI handle this with the image
-        // Don't mark as handled so showPropertyUI will be called
+        showPropertyUI(position, () => endTurn());
         return;
     }
 
     // Handle Luxury Tax
     if (property.name === "Luxury Tax") {
         handleLuxuryTax(player);
-        hasHandledProperty = true; // Mark as handled to prevent showPropertyUI from being called
+        setTimeout(() => endTurn(), 1000);
         return;
     }
 
     // Handle GO TO JAIL
     if (property.name === "GO TO JAIL") {
-        console.log(`${player.name} landed on GO TO JAIL`);
         goToJail(player);
+        setTimeout(() => endTurn(), 1000);
         return;
     }
 
     // Handle FREE PARKING
     if (property.name === "FREE PARKING") {
-        console.log(`${player.name} landed on FREE PARKING`);
-        showFreeParkingUI(player);
+        showFreeParkingUI(player, () => endTurn());
         return;
     }
 
     // Handle Chance and Community Chest
     if (property.name === "Chance" || property.name === "Community Cards") {
-        drawCard(property.name);
+        drawCard(property.name, () => endTurn());
         return;
     }
 
     // Handle property ownership scenarios
     if (property.owner && property.owner !== player) {
-        console.log(`${player.name} landed on ${property.name}, owned by ${property.owner.name}`);
-
-        // Handle utilities differently
+        // Utilities
         if (property.type === "utility") {
-            handleUtilitySpace(player, property);
+            handleUtilitySpace(player, property, () => endTurn());
             return;
         }
-
-        // Handle railroads differently
+        // Railroads
         if (property.type === "railroad") {
-            handleRailroadSpace(player, property);
+            handleRailroadSpace(player, property, () => endTurn());
             return;
         }
-
-        // Handle ticket/concert properties: do NOT pay rent
+        // Ticket/concert properties: do NOT pay rent
         if (ticketProperties.includes(property.name)) {
-            showPropertyUI(position);
+            showPropertyUI(position, () => endTurn());
             return;
         }
-        // Handle regular properties
-        const rentAmount = calculateRent(property);
+        // Regular properties
         if (isCurrentPlayerAI()) {
-            // Show property popup for AI so players can see the rent payment
             showPropertyUI(position);
-            // Then handle rent payment after a short delay
             setTimeout(() => {
-                handleRentPayment(player, property);
-            }, 2000); // Show popup for 2 seconds before AI pays rent
+                handleRentPayment(player, property, () => endTurn());
+            }, 2000);
         } else {
-            showPropertyUI(position);
+            showPropertyUI(position, () => endTurn());
         }
     } else if (!property.owner) {
         // Property is unowned
-        console.log(`${player.name} landed on unowned property: ${property.name}`);
         if (isCurrentPlayerAI()) {
-            // Show property popup for AI so players can see what the AI is deciding on
             showPropertyUI(position);
-            // Then handle AI decision after a short delay
             setTimeout(() => {
                 handleAIPropertyDecision(property, () => {
                     setTimeout(() => endTurn(), 1500);
                 });
-            }, 2000); // Show popup for 2 seconds before AI makes decision
+            }, 2000);
         } else {
-            showPropertyUI(position);
+            showPropertyUI(position, () => endTurn());
         }
     } else {
         // Player owns the property
-        console.log(`${player.name} landed on their own property: ${property.name}`);
         if (!isCurrentPlayerAI()) {
-            showPropertyUI(position);
+            showPropertyUI(position, () => endTurn());
         } else {
             setTimeout(() => endTurn(), 1500);
         }
