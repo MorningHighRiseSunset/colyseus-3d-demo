@@ -99,6 +99,12 @@ io.on('connection', (socket) => {
     io.to(roomId).emit('turnUpdate', { currentTurnPlayerId });
   });
 
+  // Player action notifications
+  socket.on('playerAction', ({ roomId, playerId, action, details }) => {
+    if (!rooms[roomId]) return;
+    io.to(roomId).emit('playerAction', { playerId, action, details });
+  });
+
   socket.on('disconnecting', () => {
     Object.keys(socket.rooms).forEach(roomId => {
       if (rooms[roomId] && rooms[roomId].players[socket.id]) {

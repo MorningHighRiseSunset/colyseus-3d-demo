@@ -744,6 +744,14 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         });
     });
 
+    // --- Player Action Notifications ---
+    socket.on('playerAction', ({ playerId, action, details }) => {
+        const player = playerList.find(p => p.id === playerId);
+        if (player && player.id !== currentPlayerId) {
+            showPlayerActionNotification(player.name, action, details);
+        }
+    });
+
     // --- Multiplayer Turn Sync: Listen for server turn updates and update local turn state ---
     socket.on('turnUpdate', ({ currentTurnPlayerId }) => {
         console.log('[MP DEBUG] Received turnUpdate from server:', currentTurnPlayerId);
@@ -2016,6 +2024,7 @@ function startTurn() {
 
     // Reset turn-related flags
     hasDrawnCard = false;
+    hasHandledProperty = false; // Reset property handling flag
 
     // Reset property-specific flags
     properties.forEach(property => {
@@ -3228,6 +3237,17 @@ function showPropertyUI(position) {
         return;
     }
 
+    // Handle tax properties
+    if (property.type === "tax") {
+        if (property.name === "Income Tax") {
+            handleIncomeTax(players[currentPlayerIndex]);
+        } else if (property.name === "Luxury Tax") {
+            handleLuxuryTax(players[currentPlayerIndex]);
+        }
+        hasHandledProperty = true;
+        return;
+    }
+
     console.log(`Creating property UI for ${property.name}`);
     
     // Create overlay and popup
@@ -3828,8 +3848,8 @@ function createButtonContainer(property) {
                 };
                 topButtons.appendChild(payRentButton);
             }
-        } else if (!property.owner) {
-            // Buy Property, Penthouse, or Ticket button
+        } else if (!property.owner && property.type !== "tax") {
+            // Buy Property, Penthouse, or Ticket button (but not for tax properties)
             const buyButton = document.createElement('button');
             buyButton.className = 'action-button buy';
             if (property.isPenthouse) {
@@ -4003,6 +4023,16 @@ function buyProperty(player, property, callback) {
 
         // Show feedback to the current player
         showFeedback(`${player.name} bought ${property.name} for $${property.price}`);
+        
+        // Show notification for other players
+        if (isMultiplayerMode && socket) {
+            socket.emit('playerAction', {
+                roomId: currentRoomId,
+                playerId: currentPlayerId,
+                action: 'bought property',
+                details: `${property.name} for $${property.price}`
+            });
+        }
     
         updateMoneyDisplay();
         updateBoards();
@@ -6142,12 +6172,14 @@ function handlePropertyLanding(player, position) {
     // Handle Income Tax
     if (property.name === "Income Tax") {
         handleIncomeTax(player);
+        hasHandledProperty = true; // Mark as handled to prevent showPropertyUI from being called
         return;
     }
 
     // Handle Luxury Tax
     if (property.name === "Luxury Tax") {
         handleLuxuryTax(player);
+        hasHandledProperty = true; // Mark as handled to prevent showPropertyUI from being called
         return;
     }
 
@@ -7275,8 +7307,7 @@ function rollDice() {
     allowedToRoll = false; // Prevent further rolls until this one is done
     isTurnInProgress = true; // Mark the turn as in progress
     hasTakenAction = true; // Mark that the player has taken an action
-    // Hide turn indicator immediately after rolling (for local player)
-    if (typeof showTurnIndicator === 'function') showTurnIndicator(false);
+    // Don't hide turn indicator immediately - let it show during the roll animation
 // Patch: Provide a stub for enableHumanTurn if missing to prevent errors
 if (typeof enableHumanTurn !== 'function') {
     function enableHumanTurn(player) {
@@ -7295,6 +7326,16 @@ if (typeof enableHumanTurn !== 'function') {
     const roll2 = Math.floor(Math.random() * 6) + 1;
     const total = roll1 + roll2;
     console.log(`Dice rolled: ${roll1} and ${roll2} (Total: ${total})`);
+    
+    // Show notification for other players about the dice roll
+    if (isMultiplayerMode && socket) {
+        socket.emit('playerAction', {
+            roomId: currentRoomId,
+            playerId: currentPlayerId,
+            action: 'rolled dice',
+            details: `${roll1} + ${roll2} = ${total}`
+        });
+    }
 
     // Create dice with these numbers
     const dice1 = createDie(roll1);
@@ -7329,6 +7370,8 @@ if (typeof enableHumanTurn !== 'function') {
             setTimeout(() => {
                 scene.remove(dice1);
                 scene.remove(dice2);
+                // Hide turn indicator after dice animation completes
+                if (typeof showTurnIndicator === 'function') showTurnIndicator(false);
                 moveTokenToNewPositionWithCollisionAvoidance(total, () => {
                     isTurnInProgress = false;
                 });
@@ -7751,8 +7794,8 @@ if (typeof socket !== 'undefined' && socket) {
             console.log(`[PATCH] Moving token for player '${player.name}' (playerId: ${player.id}) from ${from} to ${to}`);
             moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
                 console.log(`[PATCH] Move complete for player '${player.name}' (playerId: ${player.id})`);
-                // Only show property UI for the local player
-                if (isLocalPlayer(player)) {
+                // Only show property UI for the local player if not already handled
+                if (isLocalPlayer(player) && !hasHandledProperty) {
                     showPropertyUI(to);
                 }
             });
@@ -7812,8 +7855,8 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
     function postMoveLogic() {
         // Always call finishMove for all players to keep state in sync
         finishMove(player, to, false);
-        // Only show property UI for the local player
-        if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
+        // Only show property UI for the local player if not already handled
+        if (typeof isLocalPlayer === 'function' && isLocalPlayer(player) && !hasHandledProperty) {
             showPropertyUI(to);
         }
         if (isWoman) stopWalkAnimation(token);
@@ -8074,6 +8117,76 @@ function showTurnIndicator(show) {
     }
 }
 
+// Show animated notification for other players' actions
+function showPlayerActionNotification(playerName, action, details = '') {
+    const notification = document.createElement('div');
+    notification.className = 'player-action-notification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        z-index: 10000;
+        font-family: 'Arial', sans-serif;
+        font-size: 18px;
+        font-weight: bold;
+        text-align: center;
+        max-width: 400px;
+        opacity: 0;
+        animation: slideInNotification 0.5s ease-out forwards;
+    `;
+    
+    notification.innerHTML = `
+        <div style="margin-bottom: 10px; font-size: 24px;">🎲</div>
+        <div style="margin-bottom: 5px;">${playerName}</div>
+        <div style="font-size: 16px; opacity: 0.9;">${action}</div>
+        ${details ? `<div style="font-size: 14px; opacity: 0.8; margin-top: 5px;">${details}</div>` : ''}
+    `;
+    
+    // Add CSS animation
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes slideInNotification {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+        @keyframes slideOutNotification {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -50%) scale(0.8);
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    
+    document.body.appendChild(notification);
+    
+    // Remove notification after 3 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideOutNotification 0.5s ease-in forwards';
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 500);
+    }, 3000);
+}
+
 function updateOtherPlayersBoard(currentPlayer) {
     const otherPlayersList = document.getElementById("other-players-list");
     if (!otherPlayersList) {
@@ -8207,7 +8320,7 @@ function handleIncomeTax(player) {
 
         const message = document.createElement('div');
         message.className = 'income-tax-message';
-        message.textContent = `${player.name}, you must pay $200 or 10% of your total worth.`;
+        message.textContent = `${player.name}, you must pay $200 or 10% of your total worth ($${tenPercentTax}).`;
 
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'button-container';
@@ -8220,6 +8333,15 @@ function handleIncomeTax(player) {
             if (player.money >= 200) {
                 player.money -= 200;
                 showFeedback(`${player.name} paid $200 in Income Tax.`);
+                // Show notification for other players
+                if (isMultiplayerMode && socket) {
+                    socket.emit('playerAction', {
+                        roomId: currentRoomId,
+                        playerId: currentPlayerId,
+                        action: 'paid Income Tax',
+                        details: '$200'
+                    });
+                }
                 updateMoneyDisplay();
             } else {
                 showFeedback("Not enough money to pay $200!");
@@ -8236,6 +8358,15 @@ function handleIncomeTax(player) {
             if (player.money >= tenPercentTax) {
                 player.money -= tenPercentTax;
                 showFeedback(`${player.name} paid $${tenPercentTax} in Income Tax.`);
+                // Show notification for other players
+                if (isMultiplayerMode && socket) {
+                    socket.emit('playerAction', {
+                        roomId: currentRoomId,
+                        playerId: currentPlayerId,
+                        action: 'paid Income Tax',
+                        details: `$${tenPercentTax} (10% of total worth)`
+                    });
+                }
                 updateMoneyDisplay();
             } else {
                 showFeedback("Not enough money to pay 10%!");
