@@ -1,3 +1,4 @@
+console.log('[PropertyUI Debug] gameplay.js loaded and running');
     // PATCH: Set propertyUIOpen true when UI is created
     if (typeof propertyUIOpen !== 'undefined') propertyUIOpen = true;
 // --- DEBUG: Player List and Turn State ---
@@ -7894,6 +7895,7 @@ function isLocalPlayer(player) {
 
 // Socket handler: animate token movement for all clients
 if (typeof socket !== 'undefined' && socket) {
+    console.log('[PropertyUI Debug] Registering socket.on(moveToken) event handler');
     socket.on('moveToken', ({ playerId, from, to }) => {
     console.log('[PropertyUI Debug] socket.on(moveToken) called:', { playerId, from, to, currentPlayerId, currentPlayerIndex });
     console.log('[PropertyUI Debug] moveTokenToNewPositionWithCollisionAvoidanceForPlayer called:', { player, from, to, currentPlayerId });
