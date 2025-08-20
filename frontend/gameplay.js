@@ -7993,9 +7993,15 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
     function postMoveLogic() {
         // Only call finishMove for the player who actually moved
         if (player.id === playerId) {
-        finishMove(player, to, false);
+            finishMove(player, to, false);
+            // PATCH: Always show property UI for local player after move
+            if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
+                console.log('[PATCH] Showing property UI after move for local player:', player, 'at position:', to);
+                showPropertyUI(to);
+            } else {
+                console.log('[PATCH] Not showing property UI: not local player.', player);
+            }
         }
-        // REMOVED: showPropertyUI call from here - it's handled in the main moveToken callback
         if (isWoman) stopWalkAnimation(token);
         if (callback) callback();
     }
