@@ -3306,17 +3306,25 @@ function showPropertyUI(position) {
             content.appendChild(imageContainer);
             mediaShown = true;
         } else {
-            // No image, show a placeholder
+            // No image, show a better placeholder
             const placeholder = document.createElement('div');
             placeholder.style.width = '160px';
             placeholder.style.height = '90px';
-            placeholder.style.background = '#333';
+            placeholder.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
             placeholder.style.display = 'flex';
+            placeholder.style.flexDirection = 'column';
             placeholder.style.justifyContent = 'center';
             placeholder.style.alignItems = 'center';
             placeholder.style.color = '#fff';
             placeholder.style.borderRadius = '8px';
-            placeholder.textContent = 'No preview available';
+            placeholder.style.fontSize = '12px';
+            placeholder.style.textAlign = 'center';
+            placeholder.style.padding = '8px';
+            placeholder.innerHTML = `
+                <div style="font-size: 24px; margin-bottom: 4px;">🎰</div>
+                <div style="font-weight: bold;">${property.name}</div>
+                <div style="font-size: 10px; opacity: 0.8;">Las Vegas Experience</div>
+            `;
             content.appendChild(placeholder);
             mediaShown = true;
         }
@@ -3344,6 +3352,23 @@ function showPropertyUI(position) {
         property._lastVideoIndex = randomIndex;
         const selectedUrl = property.videoUrls[randomIndex];
 
+        // Add loading indicator
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.style.cssText = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 12px;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            z-index: 10;
+        `;
+        loadingIndicator.textContent = 'Loading...';
+        videoContainer.appendChild(loadingIndicator);
+
         const video = document.createElement('video');
         video.src = selectedUrl;
         video.controls = true;
@@ -3368,13 +3393,21 @@ function showPropertyUI(position) {
         const videoLoadTimeout = setTimeout(() => {
             if (video.readyState < 2) { // HAVE_CURRENT_DATA
                 console.warn(`Video load timeout for ${selectedUrl}, falling back to image`);
+                loadingIndicator.style.display = 'none';
                 video.style.display = 'none';
                 showImageFallback();
             }
-        }, 2000); // 2 second timeout - reduced for faster fallback
+        }, 1500); // 1.5 second timeout - faster fallback
 
         video.addEventListener('loadeddata', () => {
             clearTimeout(videoLoadTimeout);
+            loadingIndicator.style.display = 'none';
+        });
+
+        // Add canplay event to ensure video is actually playable
+        video.addEventListener('canplay', () => {
+            clearTimeout(videoLoadTimeout);
+            loadingIndicator.style.display = 'none';
         });
 
         videoContainer.appendChild(video);
@@ -3414,6 +3447,7 @@ function showPropertyUI(position) {
         // Better error handling - try to load video, fallback to image if it fails
         video.onerror = () => {
             console.warn(`Failed to load video: ${selectedUrl}, falling back to image`);
+            loadingIndicator.style.display = 'none';
             video.style.display = 'none';
             showImageFallback();
         };
@@ -3421,6 +3455,23 @@ function showPropertyUI(position) {
         // Additional error handling for network issues
         video.addEventListener('error', (e) => {
             console.warn(`Video error for ${selectedUrl}:`, e);
+            loadingIndicator.style.display = 'none';
+            video.style.display = 'none';
+            showImageFallback();
+        });
+
+        // Handle stalled video loading
+        video.addEventListener('stalled', () => {
+            console.warn(`Video stalled for ${selectedUrl}, falling back to image`);
+            loadingIndicator.style.display = 'none';
+            video.style.display = 'none';
+            showImageFallback();
+        });
+
+        // Handle suspend event (network issues)
+        video.addEventListener('suspend', () => {
+            console.warn(`Video suspended for ${selectedUrl}, falling back to image`);
+            loadingIndicator.style.display = 'none';
             video.style.display = 'none';
             showImageFallback();
         });
@@ -6150,6 +6201,16 @@ function handlePropertyLanding(player, position) {
     }
 
     console.log(`${player.name} landed on: ${property.name}`, property);
+
+    // Show notification for other players about the landing
+    if (isMultiplayerMode && socket && player.id === currentPlayerId) {
+        socket.emit('playerAction', {
+            roomId: currentRoomId,
+            playerId: currentPlayerId,
+            action: 'landed on',
+            details: property.name
+        });
+    }
 
     // Play horse galloping sound for Horseback Riding property
     if (property.name === "Horseback Riding") {
