@@ -20,7 +20,7 @@ function syncPlayersWithServerList(serverPlayerList) {
             local.token = serverPlayer.token || local.token;
             return local;
         } else {
-            // Create new player object
+            // Create new player object 
             return {
                 name: serverPlayer.name,
                 id: serverPlayer.id,
@@ -93,7 +93,7 @@ import { DRACOLoader } from './libs/DRACOLoader.js';
 const tokenModels = [
     { name: 'RollsRoyce', path: 'Models/RollsRoyce/rollsRoyceCarAnim.glb', scale: [0.9, 0.9, 0.9] },
     { name: 'Helicopter', path: 'Models/Helicopter/helicopter.glb', scale: [0.01, 0.01, 0.01] },
-    { name: 'Hat', path: 'Models/TopHat/tophat.glb', scale: [0.5, 0.5, 0.5] },
+    { name: 'TopHat', path: 'Models/TopHat/tophat.glb', scale: [0.5, 0.5, 0.5] },
     { name: 'Football', path: 'Models/Football/football.glb', scale: [0.1, 0.1, 0.1] },
     { name: 'Burger', path: 'Models/Cheeseburger/cheeseburger.glb', scale: [3.5, 3.5, 3.5] },
     { name: 'Nike', path: 'Models/Shoe/shoe.glb', scale: [1.5, 1.5, 1.5] },
@@ -176,8 +176,12 @@ function followCurrentTurnToken(retryCount = 0) {
             controls.target.set(pos.x, pos.y, pos.z);
         }
         console.log('[PATCH] Camera now follows token for:', player.name, pos);
-    } else if (retryCount < 10) {
-        setTimeout(() => followCurrentTurnToken(retryCount + 1), 200);
+    } else if (retryCount < 20) {
+        // Try to assign the token if it's missing
+        if (player && player.token && !player.selectedToken && window.loadedTokenModels) {
+            assignSelectedTokenForPlayer(player);
+        }
+        setTimeout(() => followCurrentTurnToken(retryCount + 1), 300);
     } else {
         console.warn('[PATCH] Could not follow token for current player after retries:', player);
     }
@@ -225,12 +229,15 @@ function assignSelectedTokenForPlayer(player) {
     }
     const loadedKeys = Object.keys(window.loadedTokenModels || {});
     console.log(`[DEBUG] assignSelectedTokenForPlayer: Looking for token '${player.token}' in loadedKeys:`, loadedKeys);
+    console.log(`[DEBUG] assignSelectedTokenForPlayer: loadedTokenModels keys:`, Object.keys(window.loadedTokenModels || {}));
+    console.log(`[DEBUG] assignSelectedTokenForPlayer: player.token:`, player.token, 'typeof:', typeof player.token);
     
     const tokenKey = loadedKeys.find(
         k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
     );
     
     console.log(`[DEBUG] assignSelectedTokenForPlayer: Found tokenKey: '${tokenKey}' for player '${player.name}' with token '${player.token}'`);
+    console.log(`[DEBUG] assignSelectedTokenForPlayer: Available keys in loadedTokenModels:`, Object.keys(window.loadedTokenModels || {}));
     
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
         player.selectedToken = window.loadedTokenModels[tokenKey].clone();
@@ -574,12 +581,12 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             if (player && player.selectedToken && typeof scene !== 'undefined' && !scene.children.includes(player.selectedToken)) {
                 scene.add(player.selectedToken);
                 player.selectedToken.visible = true;
-                // Set to starting position
+            // Set to starting position
                 const startPos = getBoardSquarePosition(player.currentPosition || 0);
-                if (startPos) {
+            if (startPos) {
                     player.selectedToken.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
-                }
             }
+        }
         });
         console.log('[MP DEBUG] Updated local players array:', players);
         renderPlayersList();
@@ -808,7 +815,10 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 assignSelectedTokenForPlayer(turnPlayer);
             }
             // Always follow the current turn's token for all clients
-            followCurrentTurnToken();
+            // Add a small delay to allow token assignment to complete
+            setTimeout(() => {
+                followCurrentTurnToken();
+            }, 100);
             // Only call startTurn for the local player whose turn it is
             if (turnPlayer && turnPlayer.id === currentPlayerId && typeof startTurn === 'function') {
                 console.log('[MP DEBUG] Calling startTurn() for local player:', turnPlayer.name, turnPlayer);
@@ -4572,20 +4582,20 @@ function endTurn() {
     }
 
     // Camera follow logic for turn changes
-    if (cameraFollowMode) {
-        setTimeout(() => {
-            const currentPlayer = players[currentPlayerIndex];
-            if (currentPlayer && currentPlayer.selectedToken) {
-                controls.target.copy(currentPlayer.selectedToken.position);
-                camera.position.lerp(new THREE.Vector3(
-                    currentPlayer.selectedToken.position.x + 4,
-                    currentPlayer.selectedToken.position.y + 7,
-                    currentPlayer.selectedToken.position.z + 4
-                ), 1.0);
-                controls.update();
-            }
-        }, 400);
-    }
+        if (cameraFollowMode) {
+            setTimeout(() => {
+                const currentPlayer = players[currentPlayerIndex];
+                if (currentPlayer && currentPlayer.selectedToken) {
+                    controls.target.copy(currentPlayer.selectedToken.position);
+                    camera.position.lerp(new THREE.Vector3(
+                        currentPlayer.selectedToken.position.x + 4,
+                        currentPlayer.selectedToken.position.y + 7,
+                        currentPlayer.selectedToken.position.z + 4
+                    ), 1.0);
+                    controls.update();
+                }
+            }, 400);
+        }
 }
 
 function startPlayerTurn(player) {
@@ -10226,12 +10236,12 @@ function createTokens(callback) {
             console.log('[MP DEBUG] Token button clicked:', name);
             if (socket && currentRoomId && currentPlayerId) {
                 console.log('[MP DEBUG] Emitting selectToken:', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
-                socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
-                btn.classList.add('picked');
-                btn.disabled = true;
-                const playerName = playerList.find(p => p.id === currentPlayerId)?.name || 'Player';
+            socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
+            btn.classList.add('picked');
+            btn.disabled = true;
+            const playerName = playerList.find(p => p.id === currentPlayerId)?.name || 'Player';
                 if (readyStatus) readyStatus.textContent = `Token ${name} selected for ${playerName}`;
-                if (readyBtn) readyBtn.style.display = '';
+            if (readyBtn) readyBtn.style.display = '';
             } else {
                 console.warn('[MP DEBUG] Socket not ready for token selection - socket:', !!socket, 'roomId:', currentRoomId, 'playerId:', currentPlayerId);
             }
