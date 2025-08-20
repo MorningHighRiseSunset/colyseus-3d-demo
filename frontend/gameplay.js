@@ -7829,6 +7829,7 @@ if (typeof socket !== 'undefined' && socket) {
         console.log('[DEBUG] Looking for player with id:', playerId);
         const player = players.find(p => p.id === playerId);
         console.log('[DEBUG] Found player:', player);
+        console.log('[DEBUG] All players in array:', players.map(p => ({ id: p.id, name: p.name, currentPosition: p.currentPosition })));
         if (!player) {
             // Queue the move until the player is available
             if (!pendingMoves[`${playerId}`]) pendingMoves[`${playerId}`] = [];
@@ -7926,8 +7927,10 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
         }, 2000); // Log after 2 seconds to see if it moved
     }
     function postMoveLogic() {
-        // Always call finishMove for all players to keep state in sync
-        finishMove(player, to, false);
+        // Only call finishMove for the player who actually moved
+        if (player.id === playerId) {
+            finishMove(player, to, false);
+        }
         // REMOVED: showPropertyUI call from here - it's handled in the main moveToken callback
         if (isWoman) stopWalkAnimation(token);
         if (callback) callback();
