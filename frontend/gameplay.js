@@ -747,10 +747,13 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                                 let t = player.selectedToken;
                                 if (!scene.children.includes(t)) scene.add(t);
                                 moveTokenWithCollisionAvoidance(sPos, ePos, t, () => {
-                                    player.currentPosition = move.newPos;
-                                    // Only call handlePropertyLanding for the player who actually moved
-                                    if (player.id === pid && player.id === currentPlayerId) {
-                                        handlePropertyLanding(player, move.newPos);
+                                    // Only update position for the player who actually moved
+                                    if (player.id === pid) {
+                                        player.currentPosition = move.newPos;
+                                        // Only call handlePropertyLanding for the local player who actually moved
+                                        if (player.id === currentPlayerId) {
+                                            handlePropertyLanding(player, move.newPos);
+                                        }
                                     }
                                 });
                             }
@@ -776,10 +779,13 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 // Only animate and show UI if both positions are valid
                 if (startPos && endPos) {
                     moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
-                        player.currentPosition = newPos;
-                        // Only call handlePropertyLanding for the player who actually moved
-                        if (player.id === playerId && pid === currentPlayerId) {
-                            handlePropertyLanding(player, newPos);
+                        // Only update position for the player who actually moved
+                        if (player.id === playerId) {
+                            player.currentPosition = newPos;
+                            // Only call handlePropertyLanding for the local player who actually moved
+                            if (pid === currentPlayerId) {
+                                handlePropertyLanding(player, newPos);
+                            }
                         } else {
                             // showNotification(`${player.name} landed on ${getSquareName(newPos)}`);
                         }
@@ -6150,6 +6156,7 @@ function handleAISpecialProperty(property) {
 }
 
 function handlePropertyLanding(player, position) {
+    console.log('[DEBUG] handlePropertyLanding called for player:', player.name, 'position:', position, 'player.currentPosition:', player.currentPosition);
     const propertyName = placeNames[position];
     const property = properties.find(p => p.name === propertyName);
 
@@ -7848,6 +7855,7 @@ if (typeof socket !== 'undefined' && socket) {
                 console.log(`[PATCH] Move complete for player '${player.name}' (playerId: ${player.id})`);
                 // Only show property UI for the local player if not already handled
                 console.log('[DEBUG] Move callback - isLocalPlayer:', isLocalPlayer(player), 'hasHandledProperty:', hasHandledProperty, 'player:', player.name, 'to:', to);
+                console.log('[DEBUG] Move callback - player.currentPosition:', player.currentPosition, 'from:', from, 'to:', to);
                 if (isLocalPlayer(player) && !hasHandledProperty) {
                     console.log('[DEBUG] Calling showPropertyUI for local player:', player.name, 'position:', to);
                     showPropertyUI(to);
