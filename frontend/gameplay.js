@@ -7878,6 +7878,13 @@ if (typeof socket !== 'undefined' && socket) {
         const player = players.find(p => p.id === playerId);
         console.log('[DEBUG] Found player:', player);
         console.log('[DEBUG] All players in array:', players.map(p => ({ id: p.id, name: p.name, currentPosition: p.currentPosition })));
+        
+        // Only process the move for the player who actually moved
+        if (playerId !== currentPlayerId) {
+            console.log('[DEBUG] Ignoring moveToken event for non-local player:', playerId, 'currentPlayerId:', currentPlayerId);
+            return;
+        }
+        
         if (!player) {
             // Queue the move until the player is available
             if (!pendingMoves[`${playerId}`]) pendingMoves[`${playerId}`] = [];
