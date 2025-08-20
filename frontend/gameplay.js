@@ -1,3 +1,16 @@
+// --- Ensure socket event handler is registered ---
+let moveTokenHandlerRegistered = false;
+const registerMoveTokenHandler = () => {
+    if (typeof socket !== 'undefined' && socket && !moveTokenHandlerRegistered) {
+        console.log('[PropertyUI Debug] Registering socket.on(moveToken) event handler (interval check)');
+        socket.on('moveToken', ({ playerId, from, to }) => {
+            console.log('[PropertyUI Debug] socket.on(moveToken) called:', { playerId, from, to, currentPlayerId, currentPlayerIndex });
+            // ...existing handler code...
+        });
+        moveTokenHandlerRegistered = true;
+    }
+};
+setInterval(registerMoveTokenHandler, 500);
 console.log('[PropertyUI Debug] gameplay.js loaded and running');
     // PATCH: Set propertyUIOpen true when UI is created
     if (typeof propertyUIOpen !== 'undefined') propertyUIOpen = true;
