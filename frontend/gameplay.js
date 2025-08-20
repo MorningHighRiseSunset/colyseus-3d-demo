@@ -174,14 +174,12 @@ function followCurrentTurnToken(retryCount = 0) {
         camera.lookAt(pos.x, pos.y, pos.z);
         if (typeof controls.target !== 'undefined') {
             controls.target.set(pos.x, pos.y, pos.z);
-            controls.update();
         }
         console.log('[PATCH] Camera now follows token for:', player.name, pos);
     } else if (retryCount < 10) {
-        // Retry after a short delay if token is not ready
         setTimeout(() => followCurrentTurnToken(retryCount + 1), 200);
     } else {
-        console.warn('[PATCH] Camera follow failed: token not ready for', player ? player.name : 'unknown');
+        console.warn('[PATCH] Could not follow token for current player after retries:', player);
     }
 }
 
@@ -200,9 +198,9 @@ function updateTurnUI() {
     const turnIndicator = document.getElementById('turn-indicator');
     if (turnIndicator) {
         if (currentPlayer && currentPlayer.id === currentPlayerId) {
-            turnIndicator.style.display = '';
+            turnIndicator.textContent = 'Your Turn';
         } else {
-            turnIndicator.style.display = 'none';
+            turnIndicator.textContent = `Waiting for ${currentPlayer ? currentPlayer.name : 'other player'}`;
         }
     }
 }
@@ -859,21 +857,39 @@ function setupReadyUpButton() {
 function overrideRollDiceForMultiplayer() {
     if (typeof window.rollDice === 'function') {
         const originalRollDice = window.rollDice;
-        window.rollDice = function() {
-            if (isMultiplayerMode && socket) {
-                // Only allow dice roll if it's your turn
-                if (playerList[currentPlayerIndex]?.id === currentPlayerId) {
-                    animateDiceRoll();
-                    originalRollDice();
-                } else {
-                    alert('Wait for your turn!');
-                    return;
-                }
-            } else {
-                animateDiceRoll();
-                originalRollDice();
+        window.rollDice = function () {
+            const currentPlayer = players[currentPlayerIndex];
+            // Only allow dice roll for the local human player whose turn it is
+            if (!currentPlayer || currentPlayer.id !== currentPlayerId || currentPlayer.isAI) {
+                console.log('[PATCH] Dice roll ignored: not local player turn');
+                return;
             }
-        }
+            if (!allowedToRoll || isTokenMoving || isTurnInProgress === false) {
+                console.log('[PATCH] Dice roll ignored: not allowed or token moving or turn not in progress');
+                return;
+            }
+            // Animate dice roll UI
+            animateDiceRoll();
+
+            // Generate dice result (replace with your actual dice logic if needed)
+            const diceValue = Math.floor(Math.random() * 6) + 1;
+            hasRolledDice = true;
+            allowedToRoll = false;
+
+            // Emit dice roll to server for multiplayer sync
+            if (socket && isMultiplayerMode) {
+                socket.emit('rollDice', {
+                    roomId: currentRoomId,
+                    playerId: currentPlayerId,
+                    diceValue
+                });
+            }
+
+            // Proceed with local move logic (if singleplayer or after server confirmation)
+            // moveTokenForCurrentPlayer(diceValue); // Uncomment if you want immediate local move
+
+            console.log(`[PATCH] Dice rolled: ${diceValue} by ${currentPlayer.name}`);
+        };
     } else {
         console.warn('window.rollDice is not defined yet.');
     }
