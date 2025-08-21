@@ -235,15 +235,15 @@ function assignSelectedTokenForPlayer(player) {
         return;
     }
     const loadedKeys = Object.keys(window.loadedTokenModels || {});
-    console.log(`[DEBUG] assignSelectedTokenForPlayer: Looking for token '${player.token}' in loadedKeys:`, loadedKeys);
+    console.log(`[DEBUG] assignSelectedTokenForPlayer: Looking for token '${player.token}' for playerId: ${player.id} in loadedKeys:`, loadedKeys);
     console.log(`[DEBUG] assignSelectedTokenForPlayer: loadedTokenModels keys:`, Object.keys(window.loadedTokenModels || {}));
-    console.log(`[DEBUG] assignSelectedTokenForPlayer: player.token:`, player.token, 'typeof:', typeof player.token);
+    console.log(`[DEBUG] assignSelectedTokenForPlayer: player.token:`, player.token, 'typeof:', typeof player.token, '| player:', player);
     
     const tokenKey = loadedKeys.find(
         k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
     );
     
-    console.log(`[DEBUG] assignSelectedTokenForPlayer: Found tokenKey: '${tokenKey}' for player '${player.name}' with token '${player.token}'`);
+    console.log(`[DEBUG] assignSelectedTokenForPlayer: Found tokenKey: '${tokenKey}' for player '${player.name}' (playerId: ${player.id}) with token '${player.token}'`);
     console.log(`[DEBUG] assignSelectedTokenForPlayer: Available keys in loadedTokenModels:`, Object.keys(window.loadedTokenModels || {}));
     
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
@@ -254,8 +254,8 @@ function assignSelectedTokenForPlayer(player) {
         // Process any pending moves now that the token is assigned
         if (typeof processPendingMoves === 'function') processPendingMoves();
     } else {
-        console.warn(`[Patch Debug] assignSelectedTokenForPlayer: Could not assign selectedToken for player '${player.name}' with token '${player.token}'`);
-        console.log(`[DEBUG] assignSelectedTokenForPlayer: loadedTokenModels:`, !!window.loadedTokenModels, 'tokenKey:', tokenKey, 'model exists:', !!(window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]));
+    console.warn(`[Patch Debug] assignSelectedTokenForPlayer: Could not assign selectedToken for player '${player.name}' (playerId: ${player.id}) with token '${player.token}'`);
+    console.log(`[DEBUG] assignSelectedTokenForPlayer: loadedTokenModels:`, !!window.loadedTokenModels, 'tokenKey:', tokenKey, 'model exists:', !!(window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]), '| player:', player);
     }
 }
 
@@ -703,13 +703,19 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     // --- Patch: Queue moves if model not loaded, ensure currentPosition is set ---
     const pendingMoves = {};
     socket.on('tokenPositions', (positions) => {
-        // Only process tokenPositions for the current player whose turn it is
+    // Only process tokenPositions for the current player whose turn it is
+    console.log('[DEBUG] tokenPositions event received:', positions, '| currentPlayerId:', currentPlayerId);
         const pid = currentPlayerId;
-        if (!positions.hasOwnProperty(pid)) return;
+        if (!positions.hasOwnProperty(pid)) {
+            console.log(`[DEBUG] tokenPositions: positions does not have currentPlayerId (${pid}). Ignoring.`);
+            return;
+        }
         const newPos = positions[pid];
         const idx = playerList.findIndex(p => p.id === pid);
+        console.log(`[DEBUG] tokenPositions: Processing for playerId: ${pid} | newPos: ${newPos} | idx: ${idx}`);
         if (idx !== -1 && players[idx] && typeof newPos === 'number') {
             const player = players[idx];
+            console.log(`[DEBUG] tokenPositions: Found player object:`, player);
             if (typeof player.currentPosition !== 'number' || isNaN(player.currentPosition)) {
                 player.currentPosition = 0;
             }
@@ -718,28 +724,38 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             const endPos = getBoardSquarePosition(newPos);
             let token = player.selectedToken;
             if (token && scene.children.includes(token)) {
+                console.log(`[DEBUG] tokenPositions: Removing token from scene for playerId: ${player.id}`);
                 scene.remove(token);
             }
             if ((!token || !token.position) && player.token && window.loadedTokenModels) {
+                console.log(`[DEBUG] tokenPositions: Assigning selectedToken for playerId: ${player.id}`);
                 assignSelectedTokenForPlayer(player);
                 token = player.selectedToken;
             }
-            if (!token) return;
+            if (!token) {
+                console.log(`[DEBUG] tokenPositions: No token found for playerId: ${player.id}. Skipping.`);
+                return;
+            }
             if (!scene.children.includes(token)) {
+                console.log(`[DEBUG] tokenPositions: Adding token to scene for playerId: ${player.id}`);
                 scene.add(token);
                 console.log(`[Patch] Added token to scene for player '${player.name}' (playerId: ${player.id})`);
             }
             if (startPos) {
+                console.log(`[DEBUG] tokenPositions: Setting token position for playerId: ${player.id} | startPos:`, startPos);
                 token.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
                 token.visible = true;
             }
             if (player.token && player.token.toLowerCase().includes('rolls')) {
+                console.log(`[DEBUG] tokenPositions: RollsRoyce token detected for playerId: ${player.id}. Setting Y to 2.3`);
                 token.position.y = 2.3;
             }
             if (startPos && endPos) {
+                console.log(`[DEBUG] tokenPositions: Moving token for playerId: ${player.id} from`, startPos, 'to', endPos);
                 moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
                     player.currentPosition = newPos;
                     if (pid === currentPlayerId) {
+                        console.log(`[DEBUG] tokenPositions: handlePropertyLanding for playerId: ${player.id} at position: ${newPos}`);
                         handlePropertyLanding(player, newPos);
                     }
                 });
