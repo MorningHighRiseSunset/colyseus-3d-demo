@@ -705,20 +705,47 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     const pendingMoves = {};
     socket.on('tokenPositions', (positions) => {
     // Update all player tokens on every client
-    // Only move the current player's token and trigger property landing for all clients
-    const currentPid = currentPlayerId;
-    if (positions[currentPid] !== undefined) {
-        const newPos = positions[currentPid];
-        const idx = playerList.findIndex(p => p.id === currentPid);
+    // Move the current player's token and spawn a visual-only copy for other players
+    Object.keys(positions).forEach(pid => {
+        const newPos = positions[pid];
+        const idx = playerList.findIndex(p => p.id === pid);
         if (idx !== -1 && players[idx] && typeof newPos === 'number') {
             const player = players[idx];
+            let token = player.selectedToken;
+            // If this is not the current player, spawn a ghost token for display only
+            if (pid !== currentPlayerId) {
+                // Remove real token if it exists
+                if (token && scene.children.includes(token)) {
+                    scene.remove(token);
+                }
+                // Spawn or update ghost token
+                if (!player.ghostToken && player.token && window.loadedTokenModels) {
+                    player.ghostToken = window.loadedTokenModels[player.token].clone();
+                    player.ghostToken.material = player.ghostToken.material?.clone?.() || player.ghostToken.material;
+                    player.ghostToken.material.opacity = 0.5;
+                    player.ghostToken.material.transparent = true;
+                    scene.add(player.ghostToken);
+                }
+                if (player.ghostToken) {
+                    const ghostPos = getBoardSquarePosition(newPos);
+                    player.ghostToken.position.set(ghostPos.x, getTokenHeight(player.token, ghostPos.y), ghostPos.z);
+                    player.ghostToken.visible = true;
+                }
+                return;
+            } else {
+                // Remove ghost token if it exists
+                if (player.ghostToken && scene.children.includes(player.ghostToken)) {
+                    scene.remove(player.ghostToken);
+                    player.ghostToken = null;
+                }
+            }
+            // For the current player, move the real token and trigger game logic
             if (typeof player.currentPosition !== 'number' || isNaN(player.currentPosition)) {
                 player.currentPosition = 0;
             }
             const oldIndex = player.currentPosition;
             const startPos = getBoardSquarePosition(oldIndex);
             const endPos = getBoardSquarePosition(newPos);
-            let token = player.selectedToken;
             if (token && scene.children.includes(token)) {
                 scene.remove(token);
             }
@@ -740,12 +767,12 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             if (startPos && endPos) {
                 moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
                     player.currentPosition = newPos;
-                    // Only handle property landing and turn logic for the current player on all clients
+                    // Only handle property landing and turn logic for the current player
                     handlePropertyLanding(player, newPos);
                 });
             }
         }
-    }
+    });
     });
 
     // --- Player Action Notifications ---
