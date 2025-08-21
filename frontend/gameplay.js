@@ -175,7 +175,8 @@ function allPlayersHaveTokens() {
 
 function followCurrentTurnToken(retryCount = 0) {
     const player = players[currentPlayerIndex];
-    if (player && player.selectedToken && typeof camera !== 'undefined' && typeof controls !== 'undefined' && scene.children.includes(player.selectedToken)) {
+    // Only follow the camera for the current player on their own client
+    if (player && player.id === currentPlayerId && player.selectedToken && typeof camera !== 'undefined' && typeof controls !== 'undefined' && scene.children.includes(player.selectedToken)) {
         const pos = player.selectedToken.position;
         camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
         camera.lookAt(pos.x, pos.y, pos.z);
@@ -185,7 +186,7 @@ function followCurrentTurnToken(retryCount = 0) {
         console.log('[PATCH] Camera now follows token for:', player.name, pos);
     } else if (retryCount < 20) {
         // Try to assign the token if it's missing
-        if (player && player.token && !player.selectedToken && window.loadedTokenModels) {
+        if (player && player.id === currentPlayerId && player.token && !player.selectedToken && window.loadedTokenModels) {
             assignSelectedTokenForPlayer(player);
         }
         setTimeout(() => followCurrentTurnToken(retryCount + 1), 300);
@@ -705,14 +706,14 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     socket.on('tokenPositions', (positions) => {
     // Update all player tokens on every client
     Object.keys(positions).forEach(pid => {
+        // Only update token position for the current player during their turn
+        if (pid !== currentPlayerId) {
+            return;
+        }
         const newPos = positions[pid];
         const idx = playerList.findIndex(p => p.id === pid);
         if (idx !== -1 && players[idx] && typeof newPos === 'number') {
             const player = players[idx];
-            // Only spawn and focus token for the current player
-            if (pid !== currentPlayerId && !player.selectedToken) {
-                return;
-            }
             if (typeof player.currentPosition !== 'number' || isNaN(player.currentPosition)) {
                 player.currentPosition = 0;
             }
@@ -742,9 +743,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
                     player.currentPosition = newPos;
                     // Only handle property landing and turn logic for the current player on their own client
-                    if (pid === currentPlayerId && player.id === currentPlayerId) {
-                        handlePropertyLanding(player, newPos);
-                    }
+                    handlePropertyLanding(player, newPos);
                 });
             }
         }
@@ -6159,6 +6158,10 @@ function handleAISpecialProperty(property) {
 
 function handlePropertyLanding(player, position) {
     console.log('[DEBUG] handlePropertyLanding called for player:', player.name, 'position:', position, 'player.currentPosition:', player.currentPosition);
+    // Only allow property landing and endTurn for the current player on their own client
+    if (player.id !== currentPlayerId) {
+        return;
+    }
     const propertyName = placeNames[position];
     const property = properties.find(p => p.name === propertyName);
 
