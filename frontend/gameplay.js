@@ -737,8 +737,8 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             if (startPos && endPos) {
                 moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
                     player.currentPosition = newPos;
-                    // Only handle property landing for the current player
-                    if (pid === currentPlayerId) {
+                    // Only handle property landing and turn logic for the current player on their own client
+                    if (pid === currentPlayerId && player.id === currentPlayerId) {
                         handlePropertyLanding(player, newPos);
                     }
                 });
