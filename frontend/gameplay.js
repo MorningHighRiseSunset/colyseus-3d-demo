@@ -102,9 +102,13 @@ function processPendingMoves() {
         const tokenName = player.token;
         if (window.loadedTokenModels[tokenName] && player.selectedToken) {
             // Model and selectedToken are ready, process move
+            console.log('[Patch Debug] Processing pending move:', { playerId, from, to, player });
             moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
                 if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
+                    console.log('[Patch Debug] Calling showPropertyUI from processPendingMoves callback:', { to, player });
                     showPropertyUI(to);
+                } else {
+                    console.log('[Patch Debug] Not local player, not calling showPropertyUI:', { to, player });
                 }
             });
             pendingMoves.splice(i, 1);
@@ -3165,7 +3169,7 @@ function showPropertyUI(position) {
     // Only show property UI for the local player
     const currentPlayer = players[currentPlayerIndex];
     if (typeof isLocalPlayer === 'function' && !isLocalPlayer(currentPlayer)) {
-        console.log('[Patch] Not showing property UI for remote player.', {
+        console.log('[Patch Debug] Not showing property UI for remote player.', {
             currentPlayer,
             currentPlayerIndex,
             position
@@ -3191,7 +3195,7 @@ function showPropertyUI(position) {
     console.log(`[PropertyUI Debug] showPropertyUI called for position`, position);
     // Check if current player is AI first
     if (isCurrentPlayerAI()) {
-        console.log('[PropertyUI Debug] AI player - skipping property UI', {
+        console.log('[Patch Debug] AI player - skipping property UI', {
             position,
             propertyName: placeNames[position],
             properties
@@ -3218,8 +3222,8 @@ function showPropertyUI(position) {
     });
 
     if (!property) {
-        console.error('[PropertyUI Debug] No property found for position', position, 'propertyName:', propertyName);
-        console.log('[PropertyUI Debug] Available properties:', properties.map(p => p.name));
+        console.error('[Patch Debug] No property found for position', position, 'propertyName:', propertyName);
+        console.log('[Patch Debug] Available properties:', properties.map(p => p.name));
         hasHandledProperty = true;
         return;
     }
