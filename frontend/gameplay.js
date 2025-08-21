@@ -3292,10 +3292,10 @@ function showPropertyUI(position) {
     content.style.fontSize = '13px';
     // Append content to popup and show UI
     popup.appendChild(content);
-// Append content to popup so the UI is visible
-popup.appendChild(content);
     overlay.appendChild(popup);
     document.body.appendChild(overlay);
+    // Mark property UI as open
+    window.propertyUIOpen = true;
     // Show property popup with fade-in animation
     popup.classList.add('fade-in');
 
