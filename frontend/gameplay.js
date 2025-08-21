@@ -3165,16 +3165,6 @@ function handleRailroadSpace(player, property) {
 }
 
 function showPropertyUI(position) {
-    // Only show property UI for the local player
-    const currentPlayer = players[currentPlayerIndex];
-    if (typeof isLocalPlayer === 'function' && !isLocalPlayer(currentPlayer)) {
-        console.log('[Patch Debug] Not showing property UI for remote player.', {
-            currentPlayer,
-            currentPlayerIndex,
-            position
-        });
-        return;
-    }
     // Debug: Check if multiple property UIs are being triggered
     const overlays = document.querySelectorAll('.property-overlay');
     if (overlays.length > 0) {
@@ -9204,6 +9194,11 @@ function updateEndTurnButtonVisibility() {
 window.propertyUIOpen = false;
 
 // Wrap showPropertyUI to set propertyUIOpen = true
+// DEBUG: Force-show property UI on load for testing
+window.addEventListener('load', () => {
+    console.log('[Patch Debug] Forcing test property UI for position 1');
+    showPropertyUI(1);
+});
 (function() {
     const origShowPropertyUI = showPropertyUI;
     showPropertyUI = function(...args) {
@@ -9217,6 +9212,11 @@ init();
 setupPropertiesToggleButton();
 
 // --- Helicopter Hover Animation State ---
+// TEST: automatically show Property UI after startup
+setTimeout(() => {
+    console.log('[Patch Debug] Test showPropertyUI for position 1');
+    showPropertyUI(1);
+}, 1000);
 function startHelicopterHover(animatedModel, position) {
     if (!animatedModel) return;
     stopHelicopterHover();
