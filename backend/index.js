@@ -90,12 +90,18 @@ io.on('connection', (socket) => {
   });
 
   socket.on('moveToken', ({ roomId, playerId, from, to }) => {
-    if (!rooms[roomId]) return;
-    rooms[roomId].positions[playerId] = to;
+  if (!rooms[roomId]) return;
+  // Only allow token movement for the current turn player
+  const currentTurnPlayerId = Object.keys(rooms[roomId].players)[rooms[roomId].currentTurnIndex];
+  if (playerId !== currentTurnPlayerId) {
+    console.log('[BACKEND PATCH] Ignoring moveToken for non-current player:', playerId);
+    return;
+  }
+  rooms[roomId].positions[playerId] = to;
   io.to(roomId).emit('moveToken', { playerId, from, to });
-  // Emit tokenPositions for all players so all clients see every token move
-  io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
-    // DO NOT ADVANCE TURN HERE!
+  // Emit only the current player's token position
+  io.to(roomId).emit('tokenPositions', { [playerId]: to });
+  // DO NOT ADVANCE TURN HERE!
   });
 
   // New: Only advance turn when client explicitly ends their turn
