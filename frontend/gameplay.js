@@ -698,7 +698,47 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     // --- Patch: Queue moves if model not loaded, ensure currentPosition is set ---
     const pendingMoves = {};
     socket.on('tokenPositions', (positions) => {
-    // PATCH: Disabled all token spawning logic in tokenPositions event
+        // Only process the current player whose turn it is
+        const pid = currentPlayerId;
+        const newPos = positions[pid];
+        const idx = playerList.findIndex(p => p.id === pid);
+        if (idx !== -1 && players[idx] && typeof newPos === 'number') {
+            const player = players[idx];
+            if (typeof player.currentPosition !== 'number' || isNaN(player.currentPosition)) {
+                player.currentPosition = 0;
+            }
+            const oldIndex = player.currentPosition;
+            const startPos = getBoardSquarePosition(oldIndex);
+            const endPos = getBoardSquarePosition(newPos);
+            let token = player.selectedToken;
+            if (token && scene.children.includes(token)) {
+                scene.remove(token);
+            }
+            if ((!token || !token.position) && player.token && window.loadedTokenModels) {
+                assignSelectedTokenForPlayer(player);
+                token = player.selectedToken;
+            }
+            if (!token) return;
+            if (!scene.children.includes(token)) {
+                scene.add(token);
+                console.log(`[Patch] Added token to scene for player '${player.name}' (playerId: ${player.id})`);
+            }
+            if (startPos) {
+                token.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
+                token.visible = true;
+            }
+            if (player.token && player.token.toLowerCase().includes('rolls')) {
+                token.position.y = 2.3;
+            }
+            if (startPos && endPos) {
+                moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
+                    player.currentPosition = newPos;
+                    if (pid === currentPlayerId) {
+                        handlePropertyLanding(player, newPos);
+                    }
+                });
+            }
+        }
     });
 
     // --- Player Action Notifications ---
