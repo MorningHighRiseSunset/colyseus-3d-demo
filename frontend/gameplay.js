@@ -37,8 +37,6 @@ const registerMoveTokenHandler = () => {
 };
 setInterval(registerMoveTokenHandler, 500);
 console.log('[PropertyUI Debug] gameplay.js loaded and running');
-    // PATCH: Set propertyUIOpen true when UI is created
-    if (typeof propertyUIOpen !== 'undefined') propertyUIOpen = true;
 // --- DEBUG: Player List and Turn State ---
 function debugLogPlayerState(context) {
     console.log(`[DEBUG] ${context} | currentPlayerId:`, currentPlayerId, '| currentPlayerIndex:', currentPlayerIndex, '| players:', players, '| playerList:', playerList);
@@ -3187,9 +3185,10 @@ function showPropertyUI(position) {
         if (overlay && overlay.parentElement) {
             console.log('[PropertyUI Debug] Removing existing overlay:', overlay);
             overlay.parentElement.removeChild(overlay);
-            // PATCH: Reset propertyUIOpen when overlay is removed
-            if (typeof propertyUIOpen !== 'undefined') propertyUIOpen = false;
-            updateEndTurnButtonVisibility && updateEndTurnButtonVisibility();
+            // Reset propertyUIOpen when overlay is removed
+            window.propertyUIOpen = false;
+            updateEndTurnButtonVisibility();
+         
         }
     });
     console.log(`[PropertyUI Debug] showPropertyUI called for position`, position);
@@ -3296,6 +3295,8 @@ function showPropertyUI(position) {
 popup.appendChild(content);
     overlay.appendChild(popup);
     document.body.appendChild(overlay);
+    // Show property popup with fade-in animation
+    popup.classList.add('fade-in');
 
     // --- Video on top ---
     let mediaShown = false;
@@ -9189,7 +9190,7 @@ function updateEndTurnButtonVisibility() {
     if (!btn) return;
     // Only show if it's the local player's turn and they've rolled/moved and property UI is closed
     const currentPlayer = players[currentPlayerIndex];
-    if (currentPlayer && currentPlayer.id === currentPlayerId && hasRolledDice && !propertyUIOpen) {
+    if (currentPlayer && currentPlayer.id === currentPlayerId && hasRolledDice && !window.propertyUIOpen) {
         btn.style.display = '';
         btn.disabled = false;
     } else {
@@ -9199,15 +9200,17 @@ function updateEndTurnButtonVisibility() {
 }
 
 // --- Track property UI state ---
-var propertyUIOpen = false;
+window.propertyUIOpen = false;
 
-// Patch showPropertyUI to set propertyUIOpen = true
-const origShowPropertyUI = window.showPropertyUI;
-window.showPropertyUI = function(...args) {
-    propertyUIOpen = true;
-    if (origShowPropertyUI) origShowPropertyUI.apply(this, args);
-    updateEndTurnButtonVisibility();
-};
+// Wrap showPropertyUI to set propertyUIOpen = true
+(function() {
+    const origShowPropertyUI = showPropertyUI;
+    showPropertyUI = function(...args) {
+        window.propertyUIOpen = true;
+        origShowPropertyUI.apply(this, args);
+        updateEndTurnButtonVisibility();
+    };
+})();
 
 init();
 setupPropertiesToggleButton();
