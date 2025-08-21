@@ -705,13 +705,11 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     const pendingMoves = {};
     socket.on('tokenPositions', (positions) => {
     // Update all player tokens on every client
-    Object.keys(positions).forEach(pid => {
-        // Only update token position for the current player during their turn
-        if (pid !== currentPlayerId) {
-            return;
-        }
-        const newPos = positions[pid];
-        const idx = playerList.findIndex(p => p.id === pid);
+    // Only move the current player's token and trigger property landing for all clients
+    const currentPid = currentPlayerId;
+    if (positions[currentPid] !== undefined) {
+        const newPos = positions[currentPid];
+        const idx = playerList.findIndex(p => p.id === currentPid);
         if (idx !== -1 && players[idx] && typeof newPos === 'number') {
             const player = players[idx];
             if (typeof player.currentPosition !== 'number' || isNaN(player.currentPosition)) {
@@ -742,12 +740,12 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             if (startPos && endPos) {
                 moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
                     player.currentPosition = newPos;
-                    // Only handle property landing and turn logic for the current player on their own client
+                    // Only handle property landing and turn logic for the current player on all clients
                     handlePropertyLanding(player, newPos);
                 });
             }
         }
-    });
+    }
     });
 
     // --- Player Action Notifications ---
