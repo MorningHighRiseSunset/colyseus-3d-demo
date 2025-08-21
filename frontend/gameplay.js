@@ -362,10 +362,15 @@ function setupMultiplayerReadyUI() {
             const isHost = playerList[0]?.id === currentPlayerId;
             console.log('[MP DEBUG] Ready states - allReady:', allReady, 'isHost:', isHost, 'playerList.length:', playerList.length);
             startBtn.style.display = (isHost && allReady) ? '' : 'none';
-            // Ready button is always visible, only disabled if this player is ready
+            // Ready button is always visible for the current player until they press it
             const iAmReady = readyStates[currentPlayerId];
-            readyBtn.disabled = !!iAmReady;
-            readyBtn.textContent = iAmReady ? 'Ready' : 'Ready Up';
+            if (playerList.find(p => p.id === currentPlayerId)) {
+                readyBtn.style.display = '';
+                readyBtn.disabled = !!iAmReady;
+                readyBtn.textContent = iAmReady ? 'Ready' : 'Ready Up';
+            } else {
+                readyBtn.style.display = 'none';
+            }
             console.log('[MP DEBUG] Start button display:', startBtn.style.display, 'Ready button disabled:', readyBtn.disabled);
         });
     }

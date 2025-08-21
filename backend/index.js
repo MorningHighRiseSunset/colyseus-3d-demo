@@ -101,7 +101,12 @@ io.on('connection', (socket) => {
   socket.on('endTurn', ({ roomId, playerId, nextPlayerIndex }) => {
     if (!rooms[roomId]) return;
     const playerIds = Object.keys(rooms[roomId].players);
-    
+    // Only advance turn if all players are ready
+    const allReady = playerIds.every(pid => rooms[roomId].ready[pid]);
+    if (!allReady) {
+      console.log('[BACKEND PATCH] Not all players are ready. Not advancing turn.');
+      return;
+    }
     // Use the nextPlayerIndex from the frontend if provided, otherwise increment
     if (nextPlayerIndex !== undefined && nextPlayerIndex >= 0 && nextPlayerIndex < playerIds.length) {
       rooms[roomId].currentTurnIndex = nextPlayerIndex;
@@ -110,7 +115,6 @@ io.on('connection', (socket) => {
       // Advance to next player (wrap around)
       rooms[roomId].currentTurnIndex = (rooms[roomId].currentTurnIndex + 1) % playerIds.length;
     }
-    
     const currentTurnPlayerId = playerIds[rooms[roomId].currentTurnIndex];
     io.to(roomId).emit('turnUpdate', { currentTurnPlayerId });
   });
