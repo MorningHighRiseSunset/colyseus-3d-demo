@@ -21,6 +21,7 @@ const registerMoveTokenHandler = () => {
                     // After movement, show property UI if this is the local player
                     if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
                         if (typeof showPropertyUI === 'function') {
+                            console.log('[PropertyUI Debug] [Handler] Calling showPropertyUI from socket.on(moveToken):', to);
                             showPropertyUI(to);
                         }
                     }
