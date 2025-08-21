@@ -709,6 +709,10 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         const idx = playerList.findIndex(p => p.id === pid);
         if (idx !== -1 && players[idx] && typeof newPos === 'number') {
             const player = players[idx];
+            // Only spawn and focus token for the current player
+            if (pid !== currentPlayerId && !player.selectedToken) {
+                return;
+            }
             if (typeof player.currentPosition !== 'number' || isNaN(player.currentPosition)) {
                 player.currentPosition = 0;
             }
