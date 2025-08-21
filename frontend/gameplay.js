@@ -700,6 +700,67 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             btn.disabled = !isPicker || btn.classList.contains('picked');
             console.log('[MP DEBUG] Token button:', btn.textContent, 'disabled:', btn.disabled);
         });
+
+        // Handle ready states
+        socket.on('playerReadyStates', (states) => {
+            console.log('[MP DEBUG] playerReadyStates:', states);
+            Object.keys(states).forEach(pid => {
+                const p = playerList.find(pl => pl.id === pid);
+                if (p) p.ready = states[pid];
+            });
+            renderPlayersList();
+            updateStartButtonVisibility();
+            const btn = document.getElementById('readyUpBtn');
+            if (states[currentPlayerId] && btn) btn.disabled = true;
+        });
+
+        // Ready-up Button emit
+        const readyBtn = document.getElementById('readyUpBtn');
+        if (readyBtn) {
+            readyBtn.addEventListener('click', () => {
+                socket.emit('playerReady', { roomId: currentRoomId, playerId: currentPlayerId });
+                readyBtn.disabled = true;
+            });
+        }
+
+        // On Game Start
+        socket.on('gameStarted', ({ hostName, roomId }) => {
+            console.log('[MP DEBUG] gameStarted:', hostName, roomId);
+            gameStarted = true;
+            const tokenUI = document.getElementById('token-selection-ui');
+            if (tokenUI) tokenUI.style.display = 'none';
+            const startBtn = document.getElementById('startGameBtn');
+            if (startBtn) startBtn.style.display = 'none';
+            if (currentPlayerIndex === 0) {
+                const rollBtn = document.querySelector('.dice-button');
+                if (rollBtn) {
+                    rollBtn.style.display = '';
+                    rollBtn.disabled = false;
+                }
+            }
+        });
+
+        // On Turn Update
+        socket.on('turnUpdate', ({ currentTurnPlayerId }) => {
+            console.log('[MP DEBUG] turnUpdate:', currentTurnPlayerId);
+            const rollBtn = document.querySelector('.dice-button');
+            if (rollBtn) {
+                if (currentTurnPlayerId === currentPlayerId) {
+                    rollBtn.style.display = '';
+                    rollBtn.disabled = false;
+                } else {
+                    rollBtn.style.display = 'none';
+                }
+            }
+        });
+
+        // Start Game Button emit
+        const startBtn = document.getElementById('startGameBtn');
+        if (startBtn) {
+            startBtn.addEventListener('click', () => {
+                socket.emit('startGame', { roomId: currentRoomId, playerId: currentPlayerId, playerName });
+            });
+        }
     });
 
     // Handle game start broadcast
@@ -9212,11 +9273,6 @@ init();
 setupPropertiesToggleButton();
 
 // --- Helicopter Hover Animation State ---
-// TEST: automatically show Property UI after startup
-setTimeout(() => {
-    console.log('[Patch Debug] Test showPropertyUI for position 1');
-    showPropertyUI(1);
-}, 1000);
 function startHelicopterHover(animatedModel, position) {
     if (!animatedModel) return;
     stopHelicopterHover();

@@ -875,9 +875,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 10005; /* Raised to ensure overlay sits above 3D canvas and UI */
 }
 .property-popup {
+  z-index: 10010; /* Ensure popup is above overlay backdrop */
   background: #fff;
   border-radius: 8px;
   padding: 16px;
