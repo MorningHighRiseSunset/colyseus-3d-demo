@@ -3260,9 +3260,12 @@ function showPropertyUI(position) {
     // Create overlay and popup
     const overlay = document.createElement('div');
     overlay.className = 'property-overlay';
-    // Ensure overlay is added to document
-    overlay.appendChild(popup);
-    document.body.appendChild(overlay);
+    // Create popup container
+    const popup = document.createElement('div');
+    popup.className = 'property-popup';
+    popup.style.width = '340px';
+    popup.style.maxWidth = '95vw';
+    popup.style.margin = '0 auto';
 
     // Lower helicopter audio when UI is shown
     pauseHelicopterAudio();
@@ -3283,6 +3286,12 @@ function showPropertyUI(position) {
     content.style.alignItems = 'center';
     content.style.gap = '8px';
     content.style.fontSize = '13px';
+    // Append content to popup and show UI
+    popup.appendChild(content);
+// Append content to popup so the UI is visible
+popup.appendChild(content);
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
 
     // --- Video on top ---
     let mediaShown = false;
@@ -8119,8 +8128,7 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
         if (positions && positions[0]) {
             token.position.set(positions[0].x, getTokenHeight(tokenName, positions[0].y), positions[0].z);
             currentPlayer.currentPosition = 0;
-// Expose after definition
-// ...existing code...
+
         }
         scene.add(token);
         token.visible = true;
