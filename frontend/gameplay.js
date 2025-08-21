@@ -721,9 +721,20 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 // Spawn or update ghost token
                 if (!player.ghostToken && player.token && window.loadedTokenModels) {
                     player.ghostToken = window.loadedTokenModels[player.token].clone();
-                    player.ghostToken.material = player.ghostToken.material?.clone?.() || player.ghostToken.material;
-                    player.ghostToken.material.opacity = 0.5;
-                    player.ghostToken.material.transparent = true;
+                    // Handle material assignment for ghost token
+                    if (player.ghostToken.material) {
+                        if (Array.isArray(player.ghostToken.material)) {
+                            player.ghostToken.material.forEach(mat => {
+                                if (mat) {
+                                    mat.opacity = 0.5;
+                                    mat.transparent = true;
+                                }
+                            });
+                        } else {
+                            player.ghostToken.material.opacity = 0.5;
+                            player.ghostToken.material.transparent = true;
+                        }
+                    }
                     scene.add(player.ghostToken);
                 }
                 if (player.ghostToken) {
