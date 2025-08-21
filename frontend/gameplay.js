@@ -58,15 +58,22 @@ function processPendingMoves() {
         // Always re-fetch the player object by ID from the latest players array
         const player = players.find(p => p.id === playerId);
         if (!player) continue;
-        const tokenName = player.token;
-        if (window.loadedTokenModels[tokenName] && player.selectedToken) {
-            // Model and selectedToken are ready, process move
-            moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
-                if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
-                    showPropertyUI(to);
+            const currentPlayerId = player.id; // Ensure currentPlayerId is defined
+            if (window.loadedTokenModels[player.token] && player.selectedToken) {
+                // Only move and end turn for the current player
+                if (currentPlayerId === player.id) {
+                    moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
+                        if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
+                            showPropertyUI(to);
+                        }
+                    });
+                } else {
+                    // For other players, just move their token, don't end turn
+                    moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
+                        // ...existing code...
+                    });
                 }
-            });
-            pendingMoves.splice(i, 1);
+                pendingMoves.splice(i, 1);
         }
     }
 }
