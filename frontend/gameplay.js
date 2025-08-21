@@ -580,21 +580,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         });
         // If any selectedToken is still missing, assign after models are ready
         safeAssignSelectedTokensToPlayers('playerList socket event');
-        // --- PATCH: Force assign and add ALL players' tokens to scene if missing ---
-        players.forEach(player => {
-            if (player && player.token && !player.selectedToken && window.loadedTokenModels) {
-                assignSelectedTokenForPlayer(player);
-            }
-            if (player && player.selectedToken && typeof scene !== 'undefined' && !scene.children.includes(player.selectedToken)) {
-                scene.add(player.selectedToken);
-                player.selectedToken.visible = true;
-            // Set to starting position
-                const startPos = getBoardSquarePosition(player.currentPosition || 0);
-            if (startPos) {
-                    player.selectedToken.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
-            }
-        }
-        });
+    // --- PATCH: Only spawn token for current player when their turn begins ---
         console.log('[MP DEBUG] Updated local players array:', players);
         renderPlayersList();
         // Show “Start Game” only for host (first player)
