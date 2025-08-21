@@ -704,86 +704,114 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     // --- Patch: Queue moves if model not loaded, ensure currentPosition is set ---
     const pendingMoves = {};
     socket.on('tokenPositions', (positions) => {
-    // Update all player tokens on every client
-    // Move the current player's token and spawn a visual-only copy for other players
-    Object.keys(positions).forEach(pid => {
-        const newPos = positions[pid];
-        const idx = playerList.findIndex(p => p.id === pid);
-        if (idx !== -1 && players[idx] && typeof newPos === 'number') {
-            const player = players[idx];
-            let token = player.selectedToken;
-            // If this is not the current player, spawn a ghost token for display only
-            if (pid !== currentPlayerId) {
-                // Remove real token if it exists
+        Object.keys(positions).forEach(pid => {
+            const newPos = positions[pid];
+            const idx = playerList.findIndex(p => p.id === pid);
+            if (idx !== -1 && players[idx] && typeof newPos === 'number') {
+                const player = players[idx];
+                let token = player.selectedToken;
+                // If this is not the current player, spawn a ghost token for display only
+                if (pid !== currentPlayerId) {
+                    // Remove real token if it exists
+                    if (token && scene.children.includes(token)) {
+                        scene.remove(token);
+                    }
+                    // Spawn or update ghost token
+                    if (!player.ghostToken && player.token && window.loadedTokenModels) {
+                        player.ghostToken = window.loadedTokenModels[player.token].clone();
+                        // Handle material assignment for ghost token
+                        if (player.ghostToken.material) {
+                            if (Array.isArray(player.ghostToken.material)) {
+                                player.ghostToken.material.forEach(mat => {
+                                    if (mat) {
+                                        mat.opacity = 0.5;
+                                        mat.transparent = true;
+                                    }
+                                });
+                            } else {
+                                player.ghostToken.material.opacity = 0.5;
+                                player.ghostToken.material.transparent = true;
+                            }
+                        }
+                        // --- PATCH: Setup animation mixer and play idle/wheels animation for ghost token ---
+                        if (player.ghostToken.userData && player.ghostToken.userData.mixer && player.ghostToken.userData.actions) {
+                            player.ghostToken.userData.actions.forEach(action => {
+                                action.reset();
+                                action.play();
+                            });
+                        }
+                        scene.add(player.ghostToken);
+                    }
+                    if (player.ghostToken) {
+                        const ghostPos = getBoardSquarePosition(newPos);
+                        player.ghostToken.position.set(ghostPos.x, getTokenHeight(player.token, ghostPos.y), ghostPos.z);
+                        player.ghostToken.visible = true;
+                        // --- PATCH: Animate ghost token movement and idle ---
+                        if (player.token && player.token.toLowerCase().includes('rolls')) {
+                            player.ghostToken.position.y = 2.3;
+                            // Wheels animation: ensure mixer is updated in main loop
+                            if (player.ghostToken.userData && player.ghostToken.userData.mixer) {
+                                player.ghostToken.userData.mixer.update(1/60);
+                            }
+                        }
+                        // --- PATCH: Camera follows ghost token if it's another player's turn ---
+                        if (currentPlayerIndex === idx && player.ghostToken && cameraFollowMode) {
+                            const pos = player.ghostToken.position;
+                            camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
+                            camera.lookAt(pos.x, pos.y, pos.z);
+                            if (typeof controls.target !== 'undefined') {
+                                controls.target.set(pos.x, pos.y, pos.z);
+                            }
+                        }
+                    }
+                    return;
+                } else {
+                    // Remove ghost token if it exists
+                    if (player.ghostToken && scene.children.includes(player.ghostToken)) {
+                        scene.remove(player.ghostToken);
+                        player.ghostToken = null;
+                    }
+                }
+                // For the current player, move the real token and trigger game logic
+                if (typeof player.currentPosition !== 'number' || isNaN(player.currentPosition)) {
+                    player.currentPosition = 0;
+                }
+                const oldIndex = player.currentPosition;
+                const startPos = getBoardSquarePosition(oldIndex);
+                const endPos = getBoardSquarePosition(newPos);
                 if (token && scene.children.includes(token)) {
                     scene.remove(token);
                 }
-                // Spawn or update ghost token
-                if (!player.ghostToken && player.token && window.loadedTokenModels) {
-                    player.ghostToken = window.loadedTokenModels[player.token].clone();
-                    // Handle material assignment for ghost token
-                    if (player.ghostToken.material) {
-                        if (Array.isArray(player.ghostToken.material)) {
-                            player.ghostToken.material.forEach(mat => {
-                                if (mat) {
-                                    mat.opacity = 0.5;
-                                    mat.transparent = true;
-                                }
+                if ((!token || !token.position) && player.token && window.loadedTokenModels) {
+                    assignSelectedTokenForPlayer(player);
+                    token = player.selectedToken;
+                }
+                if (!token) return;
+                if (!scene.children.includes(token)) {
+                    scene.add(token);
+                }
+                if (startPos) {
+                    token.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
+                    token.visible = true;
+                }
+                if (player.token && player.token.toLowerCase().includes('rolls')) {
+                    token.position.y = 2.3;
+                }
+                if (startPos && endPos) {
+                    moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
+                        player.currentPosition = newPos;
+                        // --- PATCH: Start idle/wheels animation for RollsRoyce and other tokens after move ---
+                        if (token.userData && token.userData.mixer && token.userData.actions) {
+                            token.userData.actions.forEach(action => {
+                                action.reset();
+                                action.play();
                             });
-                        } else {
-                            player.ghostToken.material.opacity = 0.5;
-                            player.ghostToken.material.transparent = true;
                         }
-                    }
-                    scene.add(player.ghostToken);
-                }
-                if (player.ghostToken) {
-                    const ghostPos = getBoardSquarePosition(newPos);
-                    player.ghostToken.position.set(ghostPos.x, getTokenHeight(player.token, ghostPos.y), ghostPos.z);
-                    player.ghostToken.visible = true;
-                }
-                return;
-            } else {
-                // Remove ghost token if it exists
-                if (player.ghostToken && scene.children.includes(player.ghostToken)) {
-                    scene.remove(player.ghostToken);
-                    player.ghostToken = null;
+                        handlePropertyLanding(player, newPos);
+                    });
                 }
             }
-            // For the current player, move the real token and trigger game logic
-            if (typeof player.currentPosition !== 'number' || isNaN(player.currentPosition)) {
-                player.currentPosition = 0;
-            }
-            const oldIndex = player.currentPosition;
-            const startPos = getBoardSquarePosition(oldIndex);
-            const endPos = getBoardSquarePosition(newPos);
-            if (token && scene.children.includes(token)) {
-                scene.remove(token);
-            }
-            if ((!token || !token.position) && player.token && window.loadedTokenModels) {
-                assignSelectedTokenForPlayer(player);
-                token = player.selectedToken;
-            }
-            if (!token) return;
-            if (!scene.children.includes(token)) {
-                scene.add(token);
-            }
-            if (startPos) {
-                token.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
-                token.visible = true;
-            }
-            if (player.token && player.token.toLowerCase().includes('rolls')) {
-                token.position.y = 2.3;
-            }
-            if (startPos && endPos) {
-                moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
-                    player.currentPosition = newPos;
-                    // Only handle property landing and turn logic for the current player
-                    handlePropertyLanding(player, newPos);
-                });
-            }
-        }
-    });
+        });
     });
 
     // --- Player Action Notifications ---
