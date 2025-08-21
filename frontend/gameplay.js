@@ -3261,11 +3261,6 @@ function showPropertyUI(position) {
     const overlay = document.createElement('div');
     overlay.className = 'property-overlay';
     // Ensure overlay is added to document
-    const popup = document.createElement('div');
-    popup.className = 'property-popup';
-    popup.style.width = '340px';
-    popup.style.maxWidth = '95vw';
-    popup.style.margin = '0 auto';
     overlay.appendChild(popup);
     document.body.appendChild(overlay);
 
