@@ -92,8 +92,12 @@ io.on('connection', (socket) => {
   socket.on('moveToken', ({ roomId, playerId, from, to }) => {
     if (!rooms[roomId]) return;
     rooms[roomId].positions[playerId] = to;
-    io.to(roomId).emit('moveToken', { playerId, from, to });
-    io.to(roomId).emit('tokenPositions', rooms[roomId].positions);
+  io.to(roomId).emit('moveToken', { playerId, from, to });
+  // Only emit tokenPositions for the current player whose turn it is
+  const currentTurnPlayerId = Object.keys(rooms[roomId].players)[rooms[roomId].currentTurnIndex];
+  const singlePosition = {};
+  singlePosition[currentTurnPlayerId] = rooms[roomId].positions[currentTurnPlayerId];
+  io.to(roomId).emit('tokenPositions', singlePosition);
     // DO NOT ADVANCE TURN HERE!
   });
 
