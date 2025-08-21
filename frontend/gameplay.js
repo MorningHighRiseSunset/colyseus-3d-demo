@@ -2,10 +2,7 @@
 // ...existing code...
 // ...existing code...
 // ...existing code...
-// After the definition of moveTokenToNewPositionWithCollisionAvoidanceForPlayer, add:
-// window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer;
 // --- Ensure socket event handler is registered ---
-window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer; // Ensure socket and dice handlers can access it immediately
 let moveTokenHandlerRegistered = false;
 const registerMoveTokenHandler = () => {
     if (typeof socket !== 'undefined' && socket && !moveTokenHandlerRegistered && typeof moveTokenToNewPositionWithCollisionAvoidanceForPlayer === 'function') {
@@ -8038,7 +8035,7 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
     const token = player.selectedToken;
     const tokenName = player.token;
     console.log('[DEBUG] Player token:', tokenName, 'selectedToken exists:', !!token);
-window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer; // Expose immediately after definition
+    window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer; // Expose immediately after definition
     if (!token) {
         console.error('[PATCH] No selectedToken for player', player, 'during move processing. Token movement skipped.');
         debugLogLoadedTokenModels();
@@ -8128,7 +8125,7 @@ window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPos
             token.position.set(positions[0].x, getTokenHeight(tokenName, positions[0].y), positions[0].z);
             currentPlayer.currentPosition = 0;
 // Expose after definition
- window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer;
+// ...existing code...
         }
         scene.add(token);
         token.visible = true;
@@ -10490,7 +10487,3 @@ if (socket) {
         renderPlayersList();
     });
 }
-
-
-// Expose to window for socket handler
-window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer;
