@@ -1,43 +1,3 @@
-// ...existing code...
-// ...existing code...
-// ...existing code...
-// ...existing code...
-// --- Ensure socket event handler is registered ---
-let moveTokenHandlerRegistered = false;
-const registerMoveTokenHandler = () => {
-    if (typeof socket !== 'undefined' && socket && !moveTokenHandlerRegistered && typeof moveTokenToNewPositionWithCollisionAvoidanceForPlayer === 'function') {
-        console.log('[PropertyUI Debug] Registering socket.on(moveToken) event handler (interval check)');
-        socket.on('moveToken', ({ playerId, from, to }) => {
-            console.log('[PropertyUI Debug] socket.on(moveToken) called:', { playerId, from, to, currentPlayerId, currentPlayerIndex });
-            // Find the player object
-            const player = players.find(p => p.id === playerId);
-            if (!player) {
-                console.warn('[PropertyUI Debug] No player found for id:', playerId);
-                return;
-            }
-            // Move the token visually (if model is loaded and selectedToken exists)
-            if (typeof moveTokenToNewPositionWithCollisionAvoidanceForPlayer === 'function' && player.selectedToken) {
-                moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
-                    // After movement, show property UI if this is the local player
-                    if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
-                        if (typeof showPropertyUI === 'function') {
-                            console.log('[PropertyUI Debug] [Handler] Calling showPropertyUI from socket.on(moveToken):', to);
-                            showPropertyUI(to);
-                        }
-                    }
-                });
-            } else {
-                // If model not loaded, queue the move for later
-                if (typeof pendingMoves !== 'undefined') {
-                    pendingMoves.push({ playerId, from, to });
-                }
-            }
-        });
-        moveTokenHandlerRegistered = true;
-    }
-};
-setInterval(registerMoveTokenHandler, 500);
-console.log('[PropertyUI Debug] gameplay.js loaded and running');
 // --- DEBUG: Player List and Turn State ---
 function debugLogPlayerState(context) {
     console.log(`[DEBUG] ${context} | currentPlayerId:`, currentPlayerId, '| currentPlayerIndex:', currentPlayerIndex, '| players:', players, '| playerList:', playerList);
@@ -60,7 +20,7 @@ function syncPlayersWithServerList(serverPlayerList) {
             local.token = serverPlayer.token || local.token;
             return local;
         } else {
-            // Create new player object
+            // Create new player object 
             return {
                 name: serverPlayer.name,
                 id: serverPlayer.id,
@@ -101,13 +61,9 @@ function processPendingMoves() {
         const tokenName = player.token;
         if (window.loadedTokenModels[tokenName] && player.selectedToken) {
             // Model and selectedToken are ready, process move
-            console.log('[Patch Debug] Processing pending move:', { playerId, from, to, player });
             moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
                 if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
-                    console.log('[Patch Debug] Calling showPropertyUI from processPendingMoves callback:', { to, player });
                     showPropertyUI(to);
-                } else {
-                    console.log('[Patch Debug] Not local player, not calling showPropertyUI:', { to, player });
                 }
             });
             pendingMoves.splice(i, 1);
@@ -233,7 +189,6 @@ function followCurrentTurnToken(retryCount = 0) {
 
 function updateTurnUI() {
     const rollButton = document.querySelector('.dice-button');
-    hasHandledProperty = false; // PATCH: Reset property UI flag for each move
     const currentPlayer = players[currentPlayerIndex];
     if (rollButton) {
         // Only show dice button if it's the local player's turn and not AI
@@ -559,16 +514,10 @@ function renderPlayersList() {
         avatar.className = 'player-avatar';
         avatar.textContent = p.name.charAt(0).toUpperCase();
         info.appendChild(avatar);
-        // Show name and money
-        const details = document.createElement('div');
-        details.className = 'player-details';
+        // Only show name and token (remove $undefined/money)
         const nameDiv = document.createElement('div');
         nameDiv.textContent = p.name;
-        const moneyDiv = document.createElement('div');
-        moneyDiv.textContent = `$${p.money}`;
-        details.appendChild(nameDiv);
-        details.appendChild(moneyDiv);
-        info.appendChild(details);
+        info.appendChild(nameDiv);
         // Show chosen token
         const tokenSpan = document.createElement('span');
         tokenSpan.className = 'player-token';
@@ -624,11 +573,20 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
         });
         // If any selectedToken is still missing, assign after models are ready
         safeAssignSelectedTokensToPlayers('playerList socket event');
-        // Remove eager scene.add here to avoid duplicate spawns; tokenPositions will handle initial placement
+        // --- PATCH: Force assign and add ALL players' tokens to scene if missing ---
         players.forEach(player => {
             if (player && player.token && !player.selectedToken && window.loadedTokenModels) {
                 assignSelectedTokenForPlayer(player);
             }
+            if (player && player.selectedToken && typeof scene !== 'undefined' && !scene.children.includes(player.selectedToken)) {
+                scene.add(player.selectedToken);
+                player.selectedToken.visible = true;
+            // Set to starting position
+                const startPos = getBoardSquarePosition(player.currentPosition || 0);
+            if (startPos) {
+                    player.selectedToken.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
+            }
+        }
         });
         console.log('[MP DEBUG] Updated local players array:', players);
         renderPlayersList();
@@ -700,67 +658,6 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             btn.disabled = !isPicker || btn.classList.contains('picked');
             console.log('[MP DEBUG] Token button:', btn.textContent, 'disabled:', btn.disabled);
         });
-
-        // Handle ready states
-        socket.on('playerReadyStates', (states) => {
-            console.log('[MP DEBUG] playerReadyStates:', states);
-            Object.keys(states).forEach(pid => {
-                const p = playerList.find(pl => pl.id === pid);
-                if (p) p.ready = states[pid];
-            });
-            renderPlayersList();
-            updateStartButtonVisibility();
-            const btn = document.getElementById('readyUpBtn');
-            if (states[currentPlayerId] && btn) btn.disabled = true;
-        });
-
-        // Ready-up Button emit
-        const readyBtn = document.getElementById('readyUpBtn');
-        if (readyBtn) {
-            readyBtn.addEventListener('click', () => {
-                socket.emit('playerReady', { roomId: currentRoomId, playerId: currentPlayerId });
-                readyBtn.disabled = true;
-            });
-        }
-
-        // On Game Start
-        socket.on('gameStarted', ({ hostName, roomId }) => {
-            console.log('[MP DEBUG] gameStarted:', hostName, roomId);
-            gameStarted = true;
-            const tokenUI = document.getElementById('token-selection-ui');
-            if (tokenUI) tokenUI.style.display = 'none';
-            const startBtn = document.getElementById('startGameBtn');
-            if (startBtn) startBtn.style.display = 'none';
-            if (currentPlayerIndex === 0) {
-                const rollBtn = document.querySelector('.dice-button');
-                if (rollBtn) {
-                    rollBtn.style.display = '';
-                    rollBtn.disabled = false;
-                }
-            }
-        });
-
-        // On Turn Update
-        socket.on('turnUpdate', ({ currentTurnPlayerId }) => {
-            console.log('[MP DEBUG] turnUpdate:', currentTurnPlayerId);
-            const rollBtn = document.querySelector('.dice-button');
-            if (rollBtn) {
-                if (currentTurnPlayerId === currentPlayerId) {
-                    rollBtn.style.display = '';
-                    rollBtn.disabled = false;
-                } else {
-                    rollBtn.style.display = 'none';
-                }
-            }
-        });
-
-        // Start Game Button emit
-        const startBtn = document.getElementById('startGameBtn');
-        if (startBtn) {
-            startBtn.addEventListener('click', () => {
-                socket.emit('startGame', { roomId: currentRoomId, playerId: currentPlayerId, playerName });
-            });
-        }
     });
 
     // Handle game start broadcast
@@ -824,7 +721,10 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 const startPos = getBoardSquarePosition(oldIndex);
                 const endPos = getBoardSquarePosition(newPos);
                 let token = player.selectedToken;
-                // Do not remove/re-add tokens on every positions broadcast; keep existing instance
+                // Remove old token from scene if it exists (but do not re-clone)
+                if (token && scene.children.includes(token)) {
+                    scene.remove(token);
+                }
                 // Only assign selectedToken if it is missing
                 if ((!token || !token.position) && player.token && window.loadedTokenModels) {
                     assignSelectedTokenForPlayer(player);
@@ -845,41 +745,31 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                                 const sPos = getBoardSquarePosition(move.oldIndex);
                                 const ePos = getBoardSquarePosition(move.newPos);
                                 let t = player.selectedToken;
-                                // Initial spawn if never spawned
-                                if (!player.hasTokenSpawned) {
                                 if (!scene.children.includes(t)) scene.add(t);
-                                    if (ePos) {
-                                        t.position.set(ePos.x, getTokenHeight(player.token, ePos.y), ePos.z);
-                                    }
-                                    player.currentPosition = move.newPos;
-                                    player.hasTokenSpawned = true;
-                                } else if (move.newPos !== move.oldIndex && sPos && ePos) {
-                                    // Animate only if position actually changed
                                 moveTokenWithCollisionAvoidance(sPos, ePos, t, () => {
-                                        if (player.id === pid) {
-                                    player.currentPosition = move.newPos;
+                                    // Only update position for the player who actually moved
+                                    if (player.id === pid) {
+                                        player.currentPosition = move.newPos;
+                                        // Only call handlePropertyLanding for the local player who actually moved
+                                        if (player.id === currentPlayerId) {
+                                            handlePropertyLanding(player, move.newPos);
+                                        }
                                     }
                                 });
-                                }
                             }
                         }
                     }, { once: true });
                     return;
                 }
-                // Initial spawn if never spawned: only spawn the current turn player's token
-                if (!player.hasTokenSpawned) {
-                    const currentTurnPlayerId = playerList[currentPlayerIndex]?.id;
-                    if (pid !== currentTurnPlayerId) {
-                        // Defer spawning this player's token until it's their turn
-                        return;
-                    }
-                    if (!scene.children.includes(token)) scene.add(token);
-                    if (endPos) {
-                        token.position.set(endPos.x, getTokenHeight(player.token, endPos.y), endPos.z);
+                // Always add token to scene and set its position before moving
+                if (!scene.children.includes(token)) {
+                    scene.add(token);
+                    console.log(`[Patch] Added token to scene for player '${player.name}' (playerId: ${player.id})`);
+                }
+                // Set token position to startPos before animating
+                if (startPos) {
+                    token.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
                     token.visible = true;
-                    }
-                    player.currentPosition = newPos;
-                    player.hasTokenSpawned = true;
                 }
                 // Raise Rolls Royce token above the board
                 if (player.token && player.token.toLowerCase().includes('rolls')) {
@@ -887,10 +777,18 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 }
                 // Always move token to correct position (only in response to server event)
                 // Only animate and show UI if both positions are valid
-                if (startPos && endPos && newPos !== oldIndex) {
+                if (startPos && endPos) {
                     moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
-                        // Only update position; property handling is triggered by moveToken, not tokenPositions
-                        player.currentPosition = newPos;
+                        // Only update position for the player who actually moved
+                        if (player.id === playerId) {
+                            player.currentPosition = newPos;
+                            // Only call handlePropertyLanding for the local player who actually moved
+                            if (pid === currentPlayerId) {
+                                handlePropertyLanding(player, newPos);
+                            }
+                        } else {
+                            // showNotification(`${player.name} landed on ${getSquareName(newPos)}`);
+                        }
                     });
                 } else {
                     console.warn('[Patch] Could not find valid start or end position for player', player, 'startPos:', startPos, 'endPos:', endPos);
@@ -925,7 +823,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             // Always follow the current turn's token for all clients
             // Add a small delay to allow token assignment to complete
             setTimeout(() => {
-            followCurrentTurnToken();
+                followCurrentTurnToken();
             }, 100);
             // Only call startTurn for the local player whose turn it is
             if (turnPlayer && turnPlayer.id === currentPlayerId && typeof startTurn === 'function') {
@@ -3226,6 +3124,12 @@ function handleRailroadSpace(player, property) {
 }
 
 function showPropertyUI(position) {
+    // Only show property UI for the local player
+    const currentPlayer = players[currentPlayerIndex];
+    if (typeof isLocalPlayer === 'function' && !isLocalPlayer(currentPlayer)) {
+        console.log('[Patch] Not showing property UI for remote player.');
+        return;
+    }
     // Debug: Check if multiple property UIs are being triggered
     const overlays = document.querySelectorAll('.property-overlay');
     if (overlays.length > 0) {
@@ -3235,22 +3139,14 @@ function showPropertyUI(position) {
     const existingOverlays = document.querySelectorAll('.property-overlay');
     existingOverlays.forEach(overlay => {
         if (overlay && overlay.parentElement) {
-            console.log('[PropertyUI Debug] Removing existing overlay:', overlay);
             overlay.parentElement.removeChild(overlay);
-            // Reset propertyUIOpen when overlay is removed
-            window.propertyUIOpen = false;
-            updateEndTurnButtonVisibility();
-         
         }
     });
-    console.log(`[PropertyUI Debug] showPropertyUI called for position`, position);
+    console.log(`showPropertyUI called for position ${position}`);
+    
     // Check if current player is AI first
     if (isCurrentPlayerAI()) {
-        console.log('[Patch Debug] AI player - skipping property UI', {
-            position,
-            propertyName: placeNames[position],
-            properties
-        });
+        console.log("AI player - skipping property UI");
         const propertyName = placeNames[position];
         const property = properties.find(p => p.name === propertyName);
         if (property) {
@@ -3264,17 +3160,13 @@ function showPropertyUI(position) {
     }
 
     const propertyName = placeNames[position];
+    console.log(`Property name at position ${position}: ${propertyName}`);
     const property = properties.find(p => p.name === propertyName);
-    console.log('[PropertyUI Debug] Property lookup:', {
-        position,
-        propertyName,
-        property,
-        propertiesList: properties.map(p => p.name)
-    });
+    console.log(`Found property:`, property);
 
     if (!property) {
-        console.error('[Patch Debug] No property found for position', position, 'propertyName:', propertyName);
-        console.log('[Patch Debug] Available properties:', properties.map(p => p.name));
+        console.error(`No property found for position ${position} (propertyName: ${propertyName})`);
+        console.log('Available properties:', properties.map(p => p.name));
         hasHandledProperty = true;
         return;
     }
@@ -3311,28 +3203,20 @@ function showPropertyUI(position) {
         // The tax-specific logic will be handled in the button creation below
     }
 
-    console.log('[PropertyUI Debug] Creating property UI for', property.name, 'at position', position);
+    console.log(`Creating property UI for ${property.name}`);
+    
     // Create overlay and popup
     const overlay = document.createElement('div');
     overlay.className = 'property-overlay';
-    // Create popup container
+
+    // Lower helicopter audio when UI is shown
+    pauseHelicopterAudio();
+
     const popup = document.createElement('div');
     popup.className = 'property-popup';
     popup.style.width = '340px';
     popup.style.maxWidth = '95vw';
     popup.style.margin = '0 auto';
-
-    // Lower helicopter audio when UI is shown
-    pauseHelicopterAudio();
-
-    // PATCH: Debug log after overlay is appended
-    setTimeout(() => {
-        if (document.body.contains(overlay)) {
-            console.log('[PropertyUI Debug] Overlay appended to body:', overlay);
-        } else {
-            console.warn('[PropertyUI Debug] Overlay NOT appended to body:', overlay);
-        }
-    }, 100);
 
     const content = document.createElement('div');
     content.className = 'property-content';
@@ -3341,14 +3225,6 @@ function showPropertyUI(position) {
     content.style.alignItems = 'center';
     content.style.gap = '8px';
     content.style.fontSize = '13px';
-    // Append content to popup and show UI
-    popup.appendChild(content);
-    overlay.appendChild(popup);
-    document.body.appendChild(overlay);
-    // Mark property UI as open
-    window.propertyUIOpen = true;
-    // Show property popup with fade-in animation
-    popup.classList.add('fade-in');
 
     // --- Video on top ---
     let mediaShown = false;
@@ -7574,11 +7450,11 @@ if (typeof enableHumanTurn !== 'function') {
                 if (typeof showTurnIndicator === 'function') showTurnIndicator(false);
                 
                 // Emit the moveToken event to the backend
-                const currentPlayer = players[currentPlayerIndex];
-                const from = currentPlayer.currentPosition || 0;
-                const to = (from + total) % positions.length;
-                // Emit the moveToken event to the backend (multiplayer sync)
                 if (isMultiplayerMode && socket && currentRoomId && currentPlayerId) {
+                    const currentPlayer = players[currentPlayerIndex];
+                    const from = currentPlayer.currentPosition || 0;
+                    const to = (from + total) % positions.length;
+                    
                     console.log('[DEBUG] rollDice: Emitting moveToken event:', { from, to, total });
                     socket.emit('moveToken', {
                         roomId: currentRoomId,
@@ -7587,14 +7463,14 @@ if (typeof enableHumanTurn !== 'function') {
                         to: to
                     });
                 }
-                // Local move for origin client (in case server does not echo back)
-                if (typeof window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer === 'function') {
-                    window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer(currentPlayer, from, to, () => {
-                        if (typeof isLocalPlayer === 'function' && isLocalPlayer(currentPlayer)) {
-                            showPropertyUI(to);
-                        }
-                    });
-                }
+                
+                // Store the callback to be called when the move completes
+                window.pendingMoveCallback = () => {
+                    console.log('[DEBUG] rollDice: Token movement callback executed');
+                    isTurnInProgress = false;
+                    hasMovedToken = true;
+                    console.log('[DEBUG] rollDice: isTurnInProgress set to false');
+                };
                 
                 // Safety timeout to ensure turn state is reset
                 setTimeout(() => {
@@ -7901,21 +7777,7 @@ function moveTokenWithCollisionAvoidance(startPos, endPos, token, callback) {
     const path = calculatePathWithCollisionAvoidance(startIndex, endIndex, playerIndex);
     
     // Move along the calculated path
-    moveTokenAlongPath(path, token, function() {
-        // After token finishes moving, show property UI for local player
-        const playerIndex = players.findIndex(p => p.selectedToken === token);
-        if (playerIndex !== -1) {
-            const player = players[playerIndex];
-            if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
-                // Use the final position index as the destination
-                const endIndex = positions.findIndex(pos => Math.abs(pos.x - endPos.x) < 0.1 && Math.abs(pos.z - endPos.z) < 0.1);
-                if (endIndex !== -1) {
-                    showPropertyUI(endIndex);
-                }
-            }
-        }
-        if (callback) callback();
-    });
+    moveTokenAlongPath(path, token, callback);
 }
 
 // Move token along a calculated path
@@ -8002,10 +7864,7 @@ function isLocalPlayer(player) {
 
 // Socket handler: animate token movement for all clients
 if (typeof socket !== 'undefined' && socket) {
-    console.log('[PropertyUI Debug] Registering socket.on(moveToken) event handler');
     socket.on('moveToken', ({ playerId, from, to }) => {
-    console.log('[PropertyUI Debug] socket.on(moveToken) called:', { playerId, from, to, currentPlayerId, currentPlayerIndex });
-    console.log('[PropertyUI Debug] moveTokenToNewPositionWithCollisionAvoidanceForPlayer called:', { player, from, to, currentPlayerId });
         console.log('[DEBUG] moveToken event received:', {
             playerId,
             from,
@@ -8020,10 +7879,11 @@ if (typeof socket !== 'undefined' && socket) {
         console.log('[DEBUG] Found player:', player);
         console.log('[DEBUG] All players in array:', players.map(p => ({ id: p.id, name: p.name, currentPosition: p.currentPosition })));
         
-        // PATCH: Reset property UI flag for each move
-        hasHandledProperty = false;
-        // Process the move on all clients, but only for the moving player's token
-        console.log('[DEBUG] Processing moveToken for playerId:', playerId, 'on client currentPlayerId:', currentPlayerId);
+        // Only process the move for the player who actually moved
+        if (playerId !== currentPlayerId) {
+            console.log('[DEBUG] Ignoring moveToken event for non-local player:', playerId, 'currentPlayerId:', currentPlayerId);
+            return;
+        }
         
         if (!player) {
             // Queue the move until the player is available
@@ -8038,8 +7898,8 @@ if (typeof socket !== 'undefined' && socket) {
             if (!player.selectedToken) {
                 assignSelectedTokenForPlayer(player);
             }
-            // Ensure token is in the scene ONLY for the moving player
-            if (player.id === playerId && player.selectedToken && !player.selectedToken.parent) {
+            // Ensure token is in the scene
+            if (player.selectedToken && !player.selectedToken.parent) {
                 scene.add(player.selectedToken);
                 player.selectedToken.visible = true;
                 player.selectedToken.traverse(child => { child.visible = true; });
@@ -8047,16 +7907,23 @@ if (typeof socket !== 'undefined' && socket) {
             }
             // Always update token position for all players
             console.log(`[PATCH] Moving token for player '${player.name}' (playerId: ${player.id}) from ${from} to ${to}`);
-            window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
+            moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
                 console.log(`[PATCH] Move complete for player '${player.name}' (playerId: ${player.id})`);
                 // Only show property UI for the player who actually moved (not just any local player)
                 console.log('[DEBUG] Move callback - isLocalPlayer:', isLocalPlayer(player), 'hasHandledProperty:', hasHandledProperty, 'player:', player.name, 'to:', to);
                 console.log('[DEBUG] Move callback - player.currentPosition:', player.currentPosition, 'from:', from, 'to:', to);
                 console.log('[DEBUG] Move callback - playerId from socket:', playerId, 'currentPlayerId:', currentPlayerId);
-                // Always show property UI for the local player after move
-                if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
-                    console.log('[PropertyUI] Showing property UI for local player:', player.name, 'position:', to);
+                console.log('[DEBUG] Move callback - condition check:', {
+                    'player.id === playerId': player.id === playerId,
+                    'player.id === currentPlayerId': player.id === currentPlayerId,
+                    '!hasHandledProperty': !hasHandledProperty,
+                    'willCallShowPropertyUI': player.id === playerId && player.id === currentPlayerId && !hasHandledProperty
+                });
+                if (player.id === playerId && player.id === currentPlayerId && !hasHandledProperty) {
+                    console.log('[DEBUG] Calling showPropertyUI for player who actually moved:', player.name, 'position:', to);
                     showPropertyUI(to);
+                } else {
+                    console.log('[DEBUG] NOT calling showPropertyUI for player:', player.name, 'position:', to);
                 }
                 // Call the original callback if this is the local player's move
                 if (isLocalPlayer(player) && player.id === currentPlayerId) {
@@ -8082,7 +7949,6 @@ if (typeof socket !== 'undefined' && socket) {
 
 // New: moveTokenToNewPositionWithCollisionAvoidanceForPlayer (for socket handler)
 function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, callback) {
-    console.log('[Patch Debug] moveTokenToNewPositionWithCollisionAvoidanceForPlayer called:', { player, from, to });
     // Always use player.selectedToken for movement; never create a new token for remote players
     console.log('[DEBUG] moveTokenToNewPositionWithCollisionAvoidanceForPlayer called for player:', player);
     console.log(`[DEBUG] from: ${from}, to: ${to}`);
@@ -8097,14 +7963,13 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
     const token = player.selectedToken;
     const tokenName = player.token;
     console.log('[DEBUG] Player token:', tokenName, 'selectedToken exists:', !!token);
-    window.moveTokenToNewPositionWithCollisionAvoidanceForPlayer = moveTokenToNewPositionWithCollisionAvoidanceForPlayer; // Expose immediately after definition
     if (!token) {
         console.error('[PATCH] No selectedToken for player', player, 'during move processing. Token movement skipped.');
         debugLogLoadedTokenModels();
         return;
     }
-    // Ensure token is in the scene ONLY for the moving player
-    if (player.id === playerId && !token.parent) {
+    // Ensure token is in the scene
+    if (!token.parent) {
         scene.add(token);
         token.visible = true;
         token.traverse(child => { child.visible = true; });
@@ -8128,18 +7993,10 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
         // Only call finishMove for the player who actually moved
         if (player.id === playerId) {
             finishMove(player, to, false);
-            // PATCH: Always show property UI after move (debug)
-            console.log('[Patch Debug] Forcing showPropertyUI after move:', { player, to, currentPlayerId });
-            showPropertyUI(to);
-        } else {
-            console.log('[PropertyUI Debug] Not calling finishMove/showPropertyUI: player.id !== playerId', { player, playerId });
         }
+        // REMOVED: showPropertyUI call from here - it's handled in the main moveToken callback
         if (isWoman) stopWalkAnimation(token);
-        if (callback) {
-            console.log('[Patch Debug] moveToken callback fired, calling showPropertyUI:', { player, to });
-            showPropertyUI(to);
-            callback();
-        }
+        if (callback) callback();
     }
     if (tokenName === "football") {
         const startPos = positions[from];
@@ -8186,7 +8043,6 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
         if (positions && positions[0]) {
             token.position.set(positions[0].x, getTokenHeight(tokenName, positions[0].y), positions[0].z);
             currentPlayer.currentPosition = 0;
-
         }
         scene.add(token);
         token.visible = true;
@@ -9242,7 +9098,7 @@ function updateEndTurnButtonVisibility() {
     if (!btn) return;
     // Only show if it's the local player's turn and they've rolled/moved and property UI is closed
     const currentPlayer = players[currentPlayerIndex];
-    if (currentPlayer && currentPlayer.id === currentPlayerId && hasRolledDice && !window.propertyUIOpen) {
+    if (currentPlayer && currentPlayer.id === currentPlayerId && hasRolledDice && !propertyUIOpen) {
         btn.style.display = '';
         btn.disabled = false;
     } else {
@@ -9252,22 +9108,15 @@ function updateEndTurnButtonVisibility() {
 }
 
 // --- Track property UI state ---
-window.propertyUIOpen = false;
+let propertyUIOpen = false;
 
-// Wrap showPropertyUI to set propertyUIOpen = true
-// DEBUG: Force-show property UI on load for testing
-window.addEventListener('load', () => {
-    console.log('[Patch Debug] Forcing test property UI for position 1');
-    showPropertyUI(1);
-});
-(function() {
-    const origShowPropertyUI = showPropertyUI;
-    showPropertyUI = function(...args) {
-        window.propertyUIOpen = true;
-        origShowPropertyUI.apply(this, args);
-        updateEndTurnButtonVisibility();
-    };
-})();
+// Patch showPropertyUI to set propertyUIOpen = true
+const origShowPropertyUI = window.showPropertyUI;
+window.showPropertyUI = function(...args) {
+    propertyUIOpen = true;
+    if (origShowPropertyUI) origShowPropertyUI.apply(this, args);
+    updateEndTurnButtonVisibility();
+};
 
 init();
 setupPropertiesToggleButton();
@@ -10528,7 +10377,9 @@ function setupGameStartedSocketListener() {
 }
 
 // Call override functions when multiplayer is ready
- // Multiplayer override removed to prevent undefined function error
+if (isMultiplayerMode) {
+    setTimeout(overrideGameFunctionsForMultiplayer, 1000);
+}
 // --- Multiplayer Token & Ready Hooks ---
 function setupTokenButtonSocket() {
     document.addEventListener('click', (e) => {
@@ -10555,3 +10406,4 @@ if (socket) {
         renderPlayersList();
     });
 }
+
