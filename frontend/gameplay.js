@@ -8029,6 +8029,7 @@ if (typeof socket !== 'undefined' && socket) {
 
 // New: moveTokenToNewPositionWithCollisionAvoidanceForPlayer (for socket handler)
 function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, callback) {
+    console.log('[Patch Debug] moveTokenToNewPositionWithCollisionAvoidanceForPlayer called:', { player, from, to });
     // Always use player.selectedToken for movement; never create a new token for remote players
     console.log('[DEBUG] moveTokenToNewPositionWithCollisionAvoidanceForPlayer called for player:', player);
     console.log(`[DEBUG] from: ${from}, to: ${to}`);
@@ -8074,18 +8075,18 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
         // Only call finishMove for the player who actually moved
         if (player.id === playerId) {
             finishMove(player, to, false);
-            // PATCH: Always show property UI for local player after move
-            if (typeof isLocalPlayer === 'function' && isLocalPlayer(player)) {
-                console.log('[PropertyUI Debug] Calling showPropertyUI after move for local player:', { player, to, currentPlayerId });
-                showPropertyUI(to);
-            } else {
-                console.log('[PropertyUI Debug] Not showing property UI: not local player.', { player, to, currentPlayerId });
-            }
+            // PATCH: Always show property UI after move (debug)
+            console.log('[Patch Debug] Forcing showPropertyUI after move:', { player, to, currentPlayerId });
+            showPropertyUI(to);
         } else {
             console.log('[PropertyUI Debug] Not calling finishMove/showPropertyUI: player.id !== playerId', { player, playerId });
         }
         if (isWoman) stopWalkAnimation(token);
-        if (callback) callback();
+        if (callback) {
+            console.log('[Patch Debug] moveToken callback fired, calling showPropertyUI:', { player, to });
+            showPropertyUI(to);
+            callback();
+        }
     }
     if (tokenName === "football") {
         const startPos = positions[from];
