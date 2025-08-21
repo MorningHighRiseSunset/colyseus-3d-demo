@@ -754,8 +754,8 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     }, { once: true });
                     return;
                 }
-                // Always add token to scene and set its position before moving
-                if (!scene.children.includes(token)) {
+                // Only add token to scene for the current player whose turn it is
+                if (!scene.children.includes(token) && player.id === currentPlayerId) {
                     scene.add(token);
                     console.log(`[Patch] Added token to scene for player '${player.name}' (playerId: ${player.id})`);
                 }
@@ -10296,17 +10296,20 @@ function createTokens(callback) {
         btn.className = 'token-button';
         btn.setAttribute('data-token-name', name);
         btn.innerText = name;
-        btn.disabled = true; // enabled by nextTurnToPick
+        // Disable button if token is already picked by any player
+        const pickedBy = playerList.find(p => p.token === name);
+        btn.disabled = !!pickedBy;
+        if (pickedBy) btn.classList.add('picked');
         btn.addEventListener('click', () => {
             console.log('[MP DEBUG] Token button clicked:', name);
             if (socket && currentRoomId && currentPlayerId) {
                 console.log('[MP DEBUG] Emitting selectToken:', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
-            socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
-            btn.classList.add('picked');
-            btn.disabled = true;
-            const playerName = playerList.find(p => p.id === currentPlayerId)?.name || 'Player';
+                socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
+                btn.classList.add('picked');
+                btn.disabled = true;
+                const playerName = playerList.find(p => p.id === currentPlayerId)?.name || 'Player';
                 if (readyStatus) readyStatus.textContent = `Token ${name} selected for ${playerName}`;
-            if (readyBtn) readyBtn.style.display = '';
+                if (readyBtn) readyBtn.style.display = '';
             } else {
                 console.warn('[MP DEBUG] Socket not ready for token selection - socket:', !!socket, 'roomId:', currentRoomId, 'playerId:', currentPlayerId);
             }
