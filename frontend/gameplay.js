@@ -155,6 +155,14 @@ function updateAllTokenMixers(delta) {
 const _origAnimate = typeof animate === 'function' ? animate : null;
 function animate() {
     const delta = clock.getDelta();
+    players.forEach(player => {
+        if (player.selectedToken && player.selectedToken.userData.mixer) {
+            player.selectedToken.userData.mixer.update(delta);
+        }
+        if (player.ghostToken && player.ghostToken.userData.mixer) {
+            player.ghostToken.userData.mixer.update(delta);
+        }
+    });
     updateAllTokenMixers(delta);
     if (_origAnimate) _origAnimate();
     else if (typeof renderer !== 'undefined' && typeof scene !== 'undefined' && typeof camera !== 'undefined') {
@@ -1182,27 +1190,42 @@ window.addEventListener('keydown', (e) => {
 });
 
 const images = [
-    "Images/p-las-vegas-motor-speedway_55_660x440_201404181828.webp", // Grand Prix
+    "frontend/Images/p-las-vegas-motor-speedway_55_660x440_201404181828.webp", // Grand Prix
     "https://s3-us-west-1.amazonaws.com/exr-static/upload/vegassupercars/off_road/track_overview/gallery/SV_OFF_ROAD_TRACK_GALLERY_7.jpg", // Speed Vegas Off Roading
-    "Images/230613231941-04-knights-stanley-cup-061323.jpg", // Las Vegas Golden Knights
-    // Las Vegas Monorail
-    "Images/702-helicopters.webp", // Maverick Helicopter Rides
-    // Brothel
-    "Images/693695_050215-ap-mayweather-img.jpg",
-    //"Images/Screenshot 2024-12-12 033702.png", 
-    "", // Brothel
-    "Images/1.png", // Luxury Tax
-    // Bellagio
-    "Images/11929141633_b4ab5fd45e_k.webp", // Horseback Riding
-    "Images/raidersimage.png", // Las Vegas Raiders
+    "frontend/Images/230613231941-04-knights-stanley-cup-061323.jpg", // Las Vegas Golden Knights
+    "frontend/Images/702-helicopters.webp", // Maverick Helicopter Rides
+    "frontend/Images/-1x-1.webp", // BetMGM
+    "frontend/Images/01je2cjc09h0eq0z3pgh.webp", // Resorts World Theatre
+    "frontend/Images/693695_050215-ap-mayweather-img.jpg",
+    "frontend/Images/Screenshot 2024-12-12 033702.png", 
+    "frontend/Images/1.png", // Luxury Tax
+    "frontend/Images/11929141633_b4ab5fd45e_k.webp", // Horseback Riding
+    "frontend/Images/raidersimage.png", // Las Vegas Raiders
     "https://s.abcnews.com/images/Sports/las-vegas-aces-gty-thg-180808_hpMain_16x9_992.jpg", // Las Vegas Aces
-    "", // Resorts World Theatre
-    "Images/themirage.jpg", // Mirage
-    "Images/unnamed.png",
-    "Images/berry1.webp", // Nascar
+    "frontend/Images/themirage.jpg", // Mirage
+    "frontend/Images/unnamed.png",
+    "frontend/Images/9b.jpg", // New York New York
+    "frontend/Images/17509129_web1_INMATE-WHISPERER-FEB28-23__001-1.webp", // Jail
+    "frontend/Images/berry1.webp", // Nascar
+    "frontend/Images/BetMGM-Jamie-Foxx.webp", // BetMGM
+    "frontend/Images/bellagio.jpg", // Bellagio
+    "frontend/Images/hq720.jpg", // Santa Fe Hotel and Casino
     "https://upload.wikimedia.org/wikipedia/commons/c/c1/Wynn_2_%282%29.jpg", // Wynn Las Vegas
-    "Images/unnamed (1).png",
+    "frontend/Images/unnamed (1).png",
     "https://shrinerschildrensopen.com/wp-content/uploads/2022/10/ShrinersChildrens-18-hole-2022.jpg", // Shriners Children's Open
+    "frontend/Images/bachelor-party.jpg", // Bachelor & Bachelorette Parties
+    "frontend/Images/Las+Vegas+Elopement+Wedding+Champagne+Pop.webp", // Las Vegas Little White Wedding Chapel
+    "frontend/Images/thesphere.jpg", // Sphere
+    "frontend/Images/Las_Vegas_Strip_Map_Blog.jpg", // Las Vegas Strip Map (position 37)
+    "frontend/Images/welcome-to-caesars-palace.jpg", // Caesars Palace
+    "frontend/Images/house-of-blues.jpg", // House of Blues
+    "frontend/Images/LVACES.jpg", // Las Vegas Aces
+    "frontend/Images/PIX-1-Exosphere-Architecture.jpg", // Sphere
+    "frontend/Images/cosmopolitan.jpg", // Cosmopolitan
+    "frontend/Images/monorail.jpg", // Las Vegas Monorail (position 38)
+    "frontend/Images/speed-vegas.jpg", // Speed Vegas Off Roading (position 39)
+    "frontend/Images/chance-card.jpg", // Chance (position 40)
+    "frontend/Images/golden-knights.jpg" // Las Vegas Golden Knights (position 41)
 ];
 
 const ticketProperties = [
@@ -4773,152 +4796,154 @@ function initializePlayers() {
     console.log("Players initialized:", players);
 }
 
-// Legacy token UI removed
 function createPlayerTokenSelectionUI(playerIndex) {
-    // Legacy UI removed – token selection is now driven entirely by sockets
-    return;
-    // Disable legacy token UI in multiplayer mode
-    if (isMultiplayerMode) return;
+    // Token image mapping (using frontend/images/)
+    const tokenImages = {
+        "hat": "frontend/images/image-removebg-preview (6).png",
+        "woman": "frontend/images/image-removebg-preview (8).png",
+        "rolls royce": "frontend/images/image-removebg-preview.png",
+        "speed boat": "frontend/images/image-removebg-preview (3).png",
+        "football": "frontend/images/image-removebg-preview (7).png",
+        "helicopter": "frontend/images/image-removebg-preview (1).png",
+        "burger": "frontend/images/image-removebg-preview (9).png",
+        "nike": "frontend/images/image-removebg-preview (10).png"
+    };
 
-    // SAFETY: Remove any stray play/start game button from previous page
-    const playBtn = document.getElementById('play-button');
-    if (playBtn) playBtn.remove();
-    const startBtn = document.getElementById('start-game');
-    if (startBtn) startBtn.remove();
+    // Create the token selection UI container
+    const container = document.createElement("div");
+    container.className = "token-selection-container";
+    container.style.display = "flex";
+    container.style.flexWrap = "wrap";
+    container.style.justifyContent = "center";
+    container.style.alignItems = "center";
+    container.style.gap = "16px";
+    container.style.margin = "32px auto";
+    container.style.width = "100%";
 
-    tokenSelectionUI = document.createElement("div");
-    tokenSelectionUI.id = "token-selection-ui"; // match HTML modal id
-    tokenSelectionUI.className = "token-selection-ui";
-    tokenSelectionUI.style.position = "fixed";
-    tokenSelectionUI.style.top = "10px";
-    tokenSelectionUI.style.left = "20px";
-    tokenSelectionUI.style.padding = "15px";
-    tokenSelectionUI.style.borderRadius = "10px";
-    tokenSelectionUI.style.color = "white";
-    tokenSelectionUI.style.textAlign = "center";
-    tokenSelectionUI.style.zIndex = "1000";
-    tokenSelectionUI.style.width = "300px";
-    tokenSelectionUI.style.maxHeight = "400px";
+    tokens.forEach((token, index) => {
+        const tokenButton = document.createElement("div");
+        tokenButton.className = "token-button";
+        tokenButton.style.backgroundColor = players.some(player => player.tokenName === token.name) ? "#555" : "#333";
+        tokenButton.style.pointerEvents = players.some(player => player.tokenName === token.name) ? "none" : "auto";
+        tokenButton.style.position = "relative";
+        tokenButton.style.transition = "all 0.3s ease";
+        tokenButton.style.display = "flex";
+        tokenButton.style.flexDirection = "column";
+        tokenButton.style.alignItems = "center";
+        tokenButton.style.justifyContent = "center";
+        tokenButton.style.padding = "10px 0";
+        tokenButton.style.margin = "4px";
+        tokenButton.style.borderRadius = "8px";
+        tokenButton.style.width = "150px";
+        tokenButton.style.height = "100px";
+        tokenButton.style.cursor = "pointer";
 
-    const title = document.createElement("h2");
-    title.textContent = "Select Tokens";
-    title.className = "flash-title";
-    title.style.marginBottom = "15px";
-    title.style.fontSize = "18px";
-    tokenSelectionUI.appendChild(title);
+        // Create token image (above title)
+        const tokenImg = document.createElement("img");
+        tokenImg.src = tokenImages[token.name.toLowerCase()] || "";
+        tokenImg.alt = token.displayName;
+        tokenImg.style.width = "60px";
+        tokenImg.style.height = "50px";
+        tokenImg.style.marginBottom = "8px";
+        tokenImg.style.borderRadius = "4px";
+        tokenImg.style.objectFit = "contain";
+        tokenImg.style.display = "block";
+        tokenImg.style.margin = "0 auto 8px auto";
+        tokenButton.appendChild(tokenImg);
 
-    const tokenGrid = document.createElement("div");
-    tokenGrid.style.display = (window.innerWidth < 700) ? "flex" : "grid";
-    tokenGrid.style.flexDirection = (window.innerWidth < 700) ? "column" : "";
-    tokenGrid.style.gridTemplateColumns = (window.innerWidth < 700) ? "" : "repeat(2, 1fr)";
-    tokenGrid.style.gap = (window.innerWidth < 700) ? "2vw" : "8px";
-    tokenGrid.style.padding = (window.innerWidth < 700) ? "2vw" : "5px";
+        // Create token name label (title)
+        const tokenName = document.createElement("div");
+        tokenName.textContent = token.displayName;
+        tokenName.style.fontSize = "12px";
+        tokenName.style.fontWeight = "bold";
+        tokenName.style.textAlign = "center";
+        tokenName.style.color = players.some(player => player.tokenName === token.name) ? "#888" : "#fff";
+        tokenName.style.minHeight = "20px";
+        tokenName.style.maxWidth = "100%";
+        tokenButton.appendChild(tokenName);
 
-    if (window.innerWidth < 700) {
-        tokenGrid.style.maxHeight = "60vh";
-        tokenGrid.style.overflowY = "auto";
-    }
+        // Create AI button
+        const aiButton = document.createElement("button");
+        aiButton.className = "ai-button";
+        aiButton.textContent = aiPlayers.has(token.name) ? "Disable PC" : "Click to Enable PC";
+        aiButton.classList.toggle("active", aiPlayers.has(token.name));
+        aiButton.style.marginTop = "5px";
+        aiButton.style.padding = "4px 8px";
+        aiButton.style.borderRadius = "4px";
+        aiButton.style.border = "none";
+        aiButton.style.cursor = "pointer";
+        aiButton.style.backgroundColor = aiPlayers.has(token.name) ? "#4CAF50" : "#666";
+        aiButton.style.color = "#fff";
+        tokenButton.appendChild(aiButton);
 
-    availableTokens.forEach((token, index) => {
-        const tokenButton = createTokenButton(token, index);
-        tokenGrid.appendChild(tokenButton);
+        // Add AI indicator
+        const aiIndicator = document.createElement("div");
+        aiIndicator.className = "ai-indicator";
+        aiIndicator.classList.toggle("active", aiPlayers.has(token.name));
+        aiIndicator.style.position = "absolute";
+        aiIndicator.style.top = "5px";
+        aiIndicator.style.right = "5px";
+        aiIndicator.style.width = "10px";
+        aiIndicator.style.height = "10px";
+        aiIndicator.style.borderRadius = "50%";
+        aiIndicator.style.backgroundColor = aiPlayers.has(token.name) ? "#4CAF50" : "transparent";
+        tokenButton.appendChild(aiIndicator);
+
+        // Handle AI button click
+        aiButton.onclick = (e) => {
+            e.stopPropagation();
+            if (aiPlayers.has(token.name)) {
+                aiPlayers.delete(token.name);
+            } else {
+                aiPlayers.add(token.name);
+            }
+            // Optionally update UI here
+        };
+
+        // Handle token selection
+        tokenButton.addEventListener("click", () => {
+            selectToken(token.name);
+        });
+
+        // Add hover effect
+        tokenButton.addEventListener('mouseover', () => {
+            tokenButton.style.backgroundColor = "#444";
+        });
+        tokenButton.addEventListener('mouseout', () => {
+            tokenButton.style.backgroundColor = players.some(player => player.tokenName === token.name) ? "#555" : "#333";
+        });
+
+        // Add "Taken" overlay if token is already selected
+        const owner = players.find(player => player.tokenName === token.name);
+        if (owner) {
+            const takenOverlay = document.createElement("div");
+            takenOverlay.textContent = "Taken";
+            takenOverlay.style.position = "absolute";
+            takenOverlay.style.top = "0";
+            takenOverlay.style.left = "0";
+            takenOverlay.style.width = "100%";
+            takenOverlay.style.height = "100%";
+            takenOverlay.style.background = "rgba(0,0,0,0.5)";
+            takenOverlay.style.color = "#fff";
+            takenOverlay.style.display = "flex";
+            takenOverlay.style.alignItems = "center";
+            takenOverlay.style.justifyContent = "center";
+            takenOverlay.style.fontSize = "18px";
+            takenOverlay.style.fontWeight = "bold";
+            takenOverlay.style.borderRadius = "8px";
+            tokenButton.appendChild(takenOverlay);
+        }
+
+        container.appendChild(tokenButton);
     });
 
-    const startButton = document.createElement("button");
-    startButton.id = "start-game"; // Ensure only one exists
-    startButton.textContent = "Start Game";
-    startButton.className = "action-button";
-    startButton.style.marginTop = "15px";
-    startButton.disabled = true; // Start disabled
-    startButton.style.opacity = "0.7";
-    startButton.onclick = finalizePlayerSelection;
-
-    // Add flashing effect and arrows
-    startButton.style.position = "relative";
-    startButton.style.transition = "box-shadow 0.3s, background 0.3s";
-    startButton.style.boxShadow = "0 0 0 0 #fff";
-    startButton.style.background = "#444";
-
-    // Create arrow elements
-    const arrowUp = document.createElement("div");
-    arrowUp.innerHTML = "&#8595;";
-    arrowUp.style.position = "absolute";
-    arrowUp.style.top = "-30px";
-    arrowUp.style.left = "50%";
-    arrowUp.style.transform = "translateX(-50%)";
-    arrowUp.style.fontSize = "28px";
-    arrowUp.style.color = "#ff0";
-    arrowUp.style.display = "none";
-    arrowUp.className = "arrow-flash";
-
-    const arrowDown = document.createElement("div");
-    arrowDown.innerHTML = "&#8593;";
-    arrowDown.style.position = "absolute";
-    arrowDown.style.bottom = "-30px";
-    arrowDown.style.left = "50%";
-    arrowDown.style.transform = "translateX(-50%) rotate(180deg)";
-    arrowDown.style.fontSize = "28px";
-    arrowDown.style.color = "#ff0";
-    arrowDown.style.display = "none";
-    arrowDown.className = "arrow-flash";
-
-    startButton.appendChild(arrowUp);
-    startButton.appendChild(arrowDown);
-
-    // Add flashing animation via CSS
-    const style = document.createElement("style");
-    style.textContent = `
-        @keyframes flashButton {
-            0% { box-shadow: 0 0 10px 2px #fff, 0 0 30px 10px #ff0; background: #444; }
-            50% { box-shadow: 0 0 30px 10px #ff0, 0 0 10px 2px #fff; background: #666; }
-            100% { box-shadow: 0 0 10px 2px #fff, 0 0 30px 10px #ff0; background: #444; }
-        }
-        .flash-active {
-            animation: flashButton 1s infinite;
-        }
-        .arrow-flash {
-            animation: arrowFlash 1s infinite;
-        }
-        @keyframes arrowFlash {
-            0% { color: #ff0; opacity: 1; }
-            50% { color: #fff; opacity: 0.6; }
-            100% { color: #ff0; opacity: 1; }
-        }
-    `;
-    document.head.appendChild(style);
-
-    tokenSelectionUI.appendChild(tokenGrid);
-    tokenSelectionUI.appendChild(startButton);
-    document.body.appendChild(tokenSelectionUI);
-
-    // Update button state on load
-    updateStartButtonVisibility();
-
-    // Overwrite updateStartButtonVisibility to handle flashing and arrows
-    window.updateStartButtonVisibility = function() {
-        const count = humanPlayerCount + aiPlayers.size;
-        // Check if all selected tokens are loaded
-        let allTokensLoaded = true;
-        for (const player of players) {
-            if (player.tokenName && (!window.loadedTokenModels || !window.loadedTokenModels[player.tokenName])) {
-                allTokensLoaded = false;
-                break;
-            }
-        }
-        if (count >= 2 && count <= 4 && allTokensLoaded) {
-            startButton.disabled = false;
-            startButton.style.opacity = "1";
-            startButton.classList.add("flash-active");
-            arrowUp.style.display = "block";
-            arrowDown.style.display = "block";
-        } else {
-            startButton.disabled = true;
-            startButton.style.opacity = "0.7";
-            startButton.classList.remove("flash-active");
-            arrowUp.style.display = "none";
-            arrowDown.style.display = "none";
-        }
-    };
+    // Add the container to the document (replace existing if needed)
+    const existing = document.querySelector('.token-selection-container');
+    if (existing) {
+        existing.parentNode.replaceChild(container, existing);
+    } else {
+        document.body.appendChild(container);
+    }
 }
 
 function finalizePlayerSelection() {
@@ -5408,8 +5433,10 @@ function finalizeMove(token, endPos, callback) {
     const tokenName = token.userData.tokenName;
     if (tokenName === "hat") startHatIdle(token);
     else if (tokenName === "burger") startBurgerIdle(token);
-    // Rolls Royce and helicopter handled in their own movement functions
-    // Woman uses built-in GLTF idle
+    else if (tokenName === "football") startFootballIdle(token);
+    else if (tokenName === "nike") startNikeIdle(token);
+    else if (tokenName === "rolls royce") startRollsRoyceIdle(token, endPos);
+    else if (tokenName === "helicopter") startHelicopterHover(token, endPos);
 
     if (callback) callback();
 }
@@ -9186,59 +9213,28 @@ window.showPropertyUI = function(...args) {
 init();
 setupPropertiesToggleButton();
 
-// --- Helicopter Hover Animation State ---
-function startHelicopterHover(animatedModel, position) {
-    if (!animatedModel) return;
-    stopHelicopterHover();
-    animatedModel.visible = true;
-    // Play all actions (rotors)
-    if (animatedModel.userData.actions) {
-        animatedModel.userData.actions.forEach(action => action.play());
+// Helicopter idle animation
+function startHelicopterHover(token) {
+    const animatedModel = token.userData.animatedModel;
+    if (animatedModel && animatedModel.animations && animatedModel.animations.length > 0) {
+        if (!animatedModel.userData.mixer) {
+            animatedModel.userData.mixer = new THREE.AnimationMixer(animatedModel);
+        }
+        const mixer = animatedModel.userData.mixer;
+        const idleClip = animatedModel.animations.find(a => a.name.toLowerCase().includes('idle') || a.name.toLowerCase().includes('rotor')) || animatedModel.animations[0];
+        if (idleClip) {
+            const action = mixer.clipAction(idleClip);
+            action.reset();
+            action.play();
+        }
+        animatedModel.userData.updateIdle = (delta) => mixer.update(delta);
     }
-    // Start helicopter sound only if this is actually a helicopter token
-    if (animatedModel.userData.tokenName === "helicopter") {
-        helicopterSound.currentTime = 0;
-        helicopterSound.play().catch(() => {});
-    }
-    let t = 0;
-    const hoverRadius = 1.1 + Math.random() * 0.5; // Small circle
-    const hoverSpeed = 0.7 + Math.random() * 0.3; // Slightly random speed
-    const hoverHeight = 3.5;
-    const baseY = hoverHeight;
-    const baseX = position.x;
-    const baseZ = position.z;
-
-    function animate() {
-        t += 1 / 60;
-        // Circle or figure-eight path
-        const angle = t * hoverSpeed;
-        const x = baseX + Math.cos(angle) * hoverRadius * 0.7;
-        const z = baseZ + Math.sin(angle * 1.2) * hoverRadius * 0.5;
-        const y = baseY + Math.sin(angle * 2.1) * 0.35 + Math.cos(angle * 1.3) * 0.18;
-        animatedModel.position.set(x, y, z);
-
-        // Gentle yaw oscillation
-        const yaw = Math.sin(angle * 1.1) * 0.18;
-        animatedModel.rotation.set(
-            Math.sin(angle * 0.7) * 0.08, // Subtle banking
-            Math.PI + Math.PI / 2 + yaw,
-            0
-        );
-        if (animatedModel.userData.mixer) animatedModel.userData.mixer.update(1 / 60);
-        helicopterHoverAnim = requestAnimationFrame(animate);
-    }
-    helicopterHoverAnim = requestAnimationFrame(animate);
 }
-
-function stopHelicopterHover() {
-    if (helicopterHoverAnim) {
-        cancelAnimationFrame(helicopterHoverAnim);
-        helicopterHoverAnim = null;
-    }
-    // Stop helicopter sound only if it's currently playing
-    if (helicopterSound && !helicopterSound.paused) {
-        helicopterSound.pause();
-        helicopterSound.currentTime = 0;
+function stopHelicopterHover(token) {
+    const animatedModel = token.userData.animatedModel;
+    if (animatedModel && animatedModel.userData.mixer) {
+        animatedModel.userData.mixer.stopAllAction();
+        animatedModel.userData.updateIdle = null;
     }
 }
 
@@ -9575,123 +9571,105 @@ Object.defineProperty(window, 'loadedTokenModels', {
 });
 
 // --- Rolls Royce Idle Animation State ---
-function startRollsRoyceIdle(animatedModel, position) {
-    if (!animatedModel) return;
-    stopRollsRoyceIdle();
-    animatedModel.visible = true;
-    // Play all actions (wheels)
-    if (animatedModel.userData.actions) {
-        animatedModel.userData.actions.forEach(action => action.play());
+// Rolls Royce idle animation
+function startRollsRoyceIdle(token) {
+    const animatedModel = token.userData.animatedModel;
+    if (animatedModel && animatedModel.animations && animatedModel.animations.length > 0) {
+        if (!animatedModel.userData.mixer) {
+            animatedModel.userData.mixer = new THREE.AnimationMixer(animatedModel);
+        }
+        const mixer = animatedModel.userData.mixer;
+        const idleClip = animatedModel.animations.find(a => a.name.toLowerCase().includes('idle') || a.name.toLowerCase().includes('wheel')) || animatedModel.animations[0];
+        if (idleClip) {
+            const action = mixer.clipAction(idleClip);
+            action.reset();
+            action.play();
+        }
+        animatedModel.userData.updateIdle = (delta) => mixer.update(delta);
     }
-    // Start engine sound if not already playing
-    if (accelerationSound.paused) {
-        accelerationSound.currentTime = 0;
-        accelerationSound.play().catch(() => {});
+}
+function stopRollsRoyceIdle(token) {
+    const animatedModel = token.userData.animatedModel;
+    if (animatedModel && animatedModel.userData.mixer) {
+        animatedModel.userData.mixer.stopAllAction();
+        animatedModel.userData.updateIdle = null;
     }
-    // Place the car at the stopped position
-    animatedModel.position.set(position.x, position.y, position.z);
-    let t = 0;
-    function animate() {
-        t += 1 / 60;
-        // Simulate a gentle engine rev: rock the car up/down and a little side-to-side
-        const revAmount = Math.sin(t * 2.5) * 0.04; // up/down
-        const tiltAmount = Math.sin(t * 1.7) * 0.02; // side tilt
-        animatedModel.position.y = position.y + revAmount;
-        animatedModel.rotation.set(tiltAmount, animatedModel.rotation.y, 0);
-        if (animatedModel.userData.mixer) animatedModel.userData.mixer.update(1 / 60);
-        rollsRoyceIdleAnim = requestAnimationFrame(animate);
-    }
-    rollsRoyceIdleAnim = requestAnimationFrame(animate);
 }
 
-function stopRollsRoyceIdle() {
-    if (rollsRoyceIdleAnim) {
-        cancelAnimationFrame(rollsRoyceIdleAnim);
-        rollsRoyceIdleAnim = null;
-    }
-    // Do NOT stop accelerationSound here; let it play as long as the token is visible
-}
-
+// Hat idle animation
 function startHatIdle(token) {
-    stopHatIdle();
-    let t = 0;
-    const baseY = token.position.y;
-    function animate() {
-        t += 1 / 60;
-        token.rotation.y += 0.02; // gentle spin
-        token.position.y = baseY + Math.sin(t * 1.2) * 0.18; // gentle bob
-        hatIdleAnim = requestAnimationFrame(animate);
+    let idleStart = Date.now();
+    let running = true;
+    function idleAnim() {
+        if (!running) return;
+        const t = (Date.now() - idleStart) / 1000;
+        token.position.y += Math.sin(t * 2) * 0.01;
+        token.rotation.y += 0.02;
+        requestAnimationFrame(idleAnim);
     }
-    hatIdleAnim = requestAnimationFrame(animate);
+    idleAnim();
+    token.userData.hatIdleAnim = () => { running = false; };
 }
-function stopHatIdle() {
-    if (hatIdleAnim) {
-        cancelAnimationFrame(hatIdleAnim);
-        hatIdleAnim = null;
-    }
+function stopHatIdle(token) {
+    if (token.userData.hatIdleAnim) token.userData.hatIdleAnim();
 }
 
+// Burger idle animation
 function startBurgerIdle(token) {
-    stopBurgerIdle();
-    let t = 0;
-    const baseY = token.position.y;
-    const baseScale = token.scale.clone();
-    function animate() {
-        t += 1 / 60;
-        token.rotation.y += 0.015; // slow spin
-        token.position.y = baseY + Math.sin(t * 1.1) * 0.12;
-        const squish = 1 - Math.abs(Math.sin(t * 0.7)) * 0.08;
-        token.scale.set(baseScale.x, baseScale.y * squish, baseScale.z);
-        burgerIdleAnim = requestAnimationFrame(animate);
+    let idleStart = Date.now();
+    let running = true;
+    function idleAnim() {
+        if (!running) return;
+        const t = (Date.now() - idleStart) / 1000;
+        token.position.y += Math.sin(t * 2.5) * 0.01;
+        token.rotation.y += 0.03;
+        requestAnimationFrame(idleAnim);
     }
-    burgerIdleAnim = requestAnimationFrame(animate);
+    idleAnim();
+    token.userData.burgerIdleAnim = () => { running = false; };
 }
-function stopBurgerIdle() {
-    if (burgerIdleAnim) {
-        cancelAnimationFrame(burgerIdleAnim);
-        burgerIdleAnim = null;
-    }
+function stopBurgerIdle(token) {
+    if (token.userData.burgerIdleAnim) token.userData.burgerIdleAnim();
 }
 
-function startFootballIdle(token) {
-    stopFootballIdle();
-    let t = 0;
-    const baseY = token.position.y;
-    function animate() {
-        t += 1 / 60;
-        token.position.y = baseY + Math.sin(t * 1.5) * 0.18;
-        token.rotation.y += 0.07; // spin
-        token.rotation.x = Math.sin(t * 1.1) * 0.18;
-        token.rotation.z = Math.cos(t * 0.8) * 0.13;
-        footballIdleAnim = requestAnimationFrame(animate);
+// Football idle animation
+function startFootballIdleAnimation(token) {
+    let idleStart = Date.now();
+    let running = true;
+    const boardBaseY = 2.0;
+    const hoverOffset = 0.3;
+    token.rotation.set(0, 0, 0);
+    function idleAnim() {
+        if (!running) return;
+        const t = (Date.now() - idleStart) / 1000;
+        token.position.y = boardBaseY + hoverOffset + Math.sin(t * 1.2) * 0.08;
+        token.rotation.y += 0.04;
+        token.rotation.z = Math.sin(t * 1.1) * 0.18;
+        requestAnimationFrame(idleAnim);
     }
-    footballIdleAnim = requestAnimationFrame(animate);
+    idleAnim();
+    token.userData.footballIdleAnim = () => { running = false; };
 }
-function stopFootballIdle() {
-    if (footballIdleAnim) {
-        cancelAnimationFrame(footballIdleAnim);
-        footballIdleAnim = null;
-    }
+function stopFootballIdleAnimation(token) {
+    if (token.userData.footballIdleAnim) token.userData.footballIdleAnim();
 }
 
+// Nike idle animation
 function startNikeIdle(token) {
-    stopNikeIdle();
-    let t = 0;
-    const baseY = token.position.y;
-    function animate() {
-        t += 1 / 60;
-        token.position.y = baseY + Math.abs(Math.sin(t * 1.3)) * 0.22;
-        token.rotation.z = Math.sin(t * 1.3) * 0.18;
-        token.rotation.y += 0.01; // slow spin
-        nikeIdleAnim = requestAnimationFrame(animate);
+    let idleStart = Date.now();
+    let running = true;
+    function idleAnim() {
+        if (!running) return;
+        const t = (Date.now() - idleStart) / 1000;
+        token.position.y += Math.sin(t * 2.2) * 0.01;
+        token.rotation.y += 0.025;
+        requestAnimationFrame(idleAnim);
     }
-    nikeIdleAnim = requestAnimationFrame(animate);
+    idleAnim();
+    token.userData.nikeIdleAnim = () => { running = false; };
 }
-function stopNikeIdle() {
-    if (nikeIdleAnim) {
-        cancelAnimationFrame(nikeIdleAnim);
-        nikeIdleAnim = null;
-    }
+function stopNikeIdle(token) {
+    if (token.userData.nikeIdleAnim) token.userData.nikeIdleAnim();
 }
 
 // ===== VIDEO CHAT SYSTEM =====
