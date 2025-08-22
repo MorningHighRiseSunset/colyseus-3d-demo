@@ -215,18 +215,19 @@ body {
     width: auto;
     z-index: 2001;
     display: none;
+    margin-bottom: 40px; /* Add extra space below button */
   }
   #properties-toggle-btn {
-    position: fixed;
-    bottom: 14px;
-    right: 12px;
-    border-radius: 6px;
-    z-index: 2002;
-    min-width: 90px;
-    max-width: 130px;
-    width: auto;
-    font-size: 15px;
-    padding: 10px 14px;
+  position: fixed;
+  bottom: 60px; /* Move up to avoid overlap with notification */
+  right: 20px;
+  border-radius: 6px;
+  z-index: 2002;
+  min-width: 90px;
+  max-width: 130px;
+  width: auto;
+  font-size: 15px;
+  padding: 10px 14px;
   }
   
   /* --- Dice Result Notification --- */
@@ -837,9 +838,11 @@ body {
   }
   
   .ai-action-popup {
-      position: fixed;
-      top: 320px;
-      right: 24px;
+  position: fixed;
+  top: auto;
+  bottom: 20px;
+  right: 24px;
+  margin-bottom: 0;
       z-index: 2001;
       background: #232a36;
       color: #fff;

@@ -70,6 +70,16 @@ function processPendingMoves() {
                 } else {
                     // For other players, just move their token, don't end turn
                     moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
+                        // Camera follow helper for smooth movement
+                        function followCameraDuringMove(token) {
+                            if (!token || !camera) return;
+                            const pos = token.position;
+                            camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
+                            camera.lookAt(pos.x, pos.y, pos.z);
+                            if (typeof controls !== 'undefined' && typeof controls.target !== 'undefined') {
+                                controls.target.set(pos.x, pos.y, pos.z);
+                            }
+                        }
                         // ...existing code...
                     });
                 }
