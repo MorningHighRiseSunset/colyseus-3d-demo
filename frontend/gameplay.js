@@ -2828,6 +2828,26 @@ function jumpWithBigMacEffect(startPos, endPos, token, callback) {
     animate();
 }
 
+function startRollsRoyceIdle(token) {
+    // Only play built-in GLB animation if available
+    const animatedModel = token.userData.animatedModel;
+    if (animatedModel && animatedModel.animations && animatedModel.animations.length > 0) {
+        if (!animatedModel.userData.mixer) {
+            animatedModel.userData.mixer = new THREE.AnimationMixer(animatedModel);
+        }
+        const mixer = animatedModel.userData.mixer;
+        // Find wheel spin or idle animation
+        const idleClip = animatedModel.animations.find(a => a.name.toLowerCase().includes('idle') || a.name.toLowerCase().includes('wheel')) || animatedModel.animations[0];
+        if (idleClip) {
+            const action = mixer.clipAction(idleClip);
+            action.reset();
+            action.play();
+        }
+        // Update mixer per frame
+        animatedModel.userData.updateIdle = (delta) => mixer.update(delta);
+    }
+}
+
 function playWalkAnimation(token) {
     if (!token || !token.userData || !token.userData.tokenName) return;
     if (token.userData.tokenName === "woman" && token.userData.walkAction) {
