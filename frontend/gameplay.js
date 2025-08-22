@@ -1190,43 +1190,44 @@ window.addEventListener('keydown', (e) => {
 });
 
 const images = [
-    "frontend/Images/p-las-vegas-motor-speedway_55_660x440_201404181828.webp", // Grand Prix
+    "Images/p-las-vegas-motor-speedway_55_660x440_201404181828.webp", // Grand Prix
     "https://s3-us-west-1.amazonaws.com/exr-static/upload/vegassupercars/off_road/track_overview/gallery/SV_OFF_ROAD_TRACK_GALLERY_7.jpg", // Speed Vegas Off Roading
-    "frontend/Images/230613231941-04-knights-stanley-cup-061323.jpg", // Las Vegas Golden Knights
-    "frontend/Images/702-helicopters.webp", // Maverick Helicopter Rides
-    "frontend/Images/-1x-1.webp", // BetMGM
-    "frontend/Images/01je2cjc09h0eq0z3pgh.webp", // Resorts World Theatre
-    "frontend/Images/693695_050215-ap-mayweather-img.jpg",
-    "frontend/Images/Screenshot 2024-12-12 033702.png", 
-    "frontend/Images/1.png", // Luxury Tax
-    "frontend/Images/11929141633_b4ab5fd45e_k.webp", // Horseback Riding
-    "frontend/Images/raidersimage.png", // Las Vegas Raiders
+    "Images/230613231941-04-knights-stanley-cup-061323.jpg", // Las Vegas Golden Knights
+    "Images/702-helicopters.webp", // Maverick Helicopter Rides
+    "Images/-1x-1.webp", // BetMGM
+    "Images/01je2cjc09h0eq0z3pgh.webp", // Resorts World Theatre
+    "Images/693695_050215-ap-mayweather-img.jpg",
+    "Images/Screenshot 2024-12-12 033702.png", 
+    "Images/1.png", // Luxury Tax
+    "Images/11929141633_b4ab5fd45e_k.webp", // Horseback Riding
+    "Images/raidersimage.png", // Las Vegas Raiders
     "https://s.abcnews.com/images/Sports/las-vegas-aces-gty-thg-180808_hpMain_16x9_992.jpg", // Las Vegas Aces
-    "frontend/Images/themirage.jpg", // Mirage
-    "frontend/Images/unnamed.png",
-    "frontend/Images/9b.jpg", // New York New York
-    "frontend/Images/17509129_web1_INMATE-WHISPERER-FEB28-23__001-1.webp", // Jail
-    "frontend/Images/berry1.webp", // Nascar
-    "frontend/Images/BetMGM-Jamie-Foxx.webp", // BetMGM
-    "frontend/Images/bellagio.jpg", // Bellagio
-    "frontend/Images/hq720.jpg", // Santa Fe Hotel and Casino
+    "Images/themirage.jpg", // Mirage
+    "Images/unnamed.png",
+    "Images/9b.jpg", // New York New York
+    "Images/17509129_web1_INMATE-WHISPERER-FEB28-23__001-1.webp", // Jail
+    "Images/berry1.webp", // Nascar
+    "Images/BetMGM-Jamie-Foxx.webp", // BetMGM
+    "Images/bellagio.jpg", // Bellagio
+    "Images/hq720.jpg", // Santa Fe Hotel and Casino
     "https://upload.wikimedia.org/wikipedia/commons/c/c1/Wynn_2_%282%29.jpg", // Wynn Las Vegas
-    "frontend/Images/unnamed (1).png",
+    "Images/unnamed (1).png",
     "https://shrinerschildrensopen.com/wp-content/uploads/2022/10/ShrinersChildrens-18-hole-2022.jpg", // Shriners Children's Open
-    "frontend/Images/bachelor-party.jpg", // Bachelor & Bachelorette Parties
-    "frontend/Images/Las+Vegas+Elopement+Wedding+Champagne+Pop.webp", // Las Vegas Little White Wedding Chapel
-    "frontend/Images/thesphere.jpg", // Sphere
-    "frontend/Images/Las_Vegas_Strip_Map_Blog.jpg", // Las Vegas Strip Map (position 37)
-    "frontend/Images/welcome-to-caesars-palace.jpg", // Caesars Palace
-    "frontend/Images/house-of-blues.jpg", // House of Blues
-    "frontend/Images/LVACES.jpg", // Las Vegas Aces
-    "frontend/Images/PIX-1-Exosphere-Architecture.jpg", // Sphere
-    "frontend/Images/cosmopolitan.jpg", // Cosmopolitan
-    "frontend/Images/monorail.jpg", // Las Vegas Monorail (position 38)
-    "frontend/Images/speed-vegas.jpg", // Speed Vegas Off Roading (position 39)
-    "frontend/Images/chance-card.jpg", // Chance (position 40)
-    "frontend/Images/golden-knights.jpg" // Las Vegas Golden Knights (position 41)
+    "Images/bachelor-party.jpg", // Bachelor & Bachelorette Parties
+    "Images/Las+Vegas+Elopement+Wedding+Champagne+Pop.webp", // Las Vegas Little White Wedding Chapel
+    "Images/thesphere.jpg", // Sphere
+    "Images/Las_Vegas_Strip_Map_Blog.jpg", // Las Vegas Strip Map (position 37)
+    "Images/welcome-to-caesars-palace.jpg", // Caesars Palace
+    "Images/house-of-blues.jpg", // House of Blues
+    "Images/LVACES.jpg", // Las Vegas Aces
+    "Images/PIX-1-Exosphere-Architecture.jpg", // Sphere
+    "Images/cosmopolitan.jpg", // Cosmopolitan
+    "Images/monorail.jpg", // Las Vegas Monorail (position 38)
+    "Images/speed-vegas.jpg", // Speed Vegas Off Roading (position 39)
+    "Images/chance-card.jpg", // Chance (position 40)
+    "Images/golden-knights.jpg" // Las Vegas Golden Knights (position 41)
 ];
+
 
 const ticketProperties = [
     "Las Vegas Grand Prix",
