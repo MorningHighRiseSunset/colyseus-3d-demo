@@ -727,10 +727,12 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                         if (!tokenKey) {
                             tokenKey = loadedKeys.find(k => k.toLowerCase().includes(String(player.token).toLowerCase()));
                         }
+                        console.log(`[GHOST DEBUG] ghostToken lookup for player '${player.name}' (id: ${player.id}) token: '${player.token}' | found tokenKey: '${tokenKey}' | loadedKeys:`, loadedKeys);
                     }
                     // --- Spawn or update ghost token ---
                     if (!player.ghostToken && tokenKey && window.loadedTokenModels[tokenKey]) {
                         player.ghostToken = window.loadedTokenModels[tokenKey].clone();
+                        console.log(`[GHOST DEBUG] Created ghostToken for player '${player.name}' (id: ${player.id}) using tokenKey: '${tokenKey}'`);
                         // Handle material assignment for ghost token
                         if (player.ghostToken.material) {
                             if (Array.isArray(player.ghostToken.material)) {
@@ -756,12 +758,14 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                             });
                         }
                         scene.add(player.ghostToken);
+                        console.log(`[GHOST DEBUG] ghostToken added to scene for player '${player.name}' (id: ${player.id})`);
                     }
                     // --- Always update ghost token position and animate movement ---
                     if (player.ghostToken) {
                         const ghostPos = getBoardSquarePosition(newPos);
                         // Animate ghost token movement
                         const oldGhostPos = player.ghostToken.position.clone();
+                        console.log(`[GHOST DEBUG] Moving ghostToken for player '${player.name}' (id: ${player.id}) from`, oldGhostPos, 'to', ghostPos);
                         moveTokenWithCollisionAvoidance(oldGhostPos, ghostPos, player.ghostToken, () => {
                             // After movement, start idle animation (custom or built-in)
                             if (player.ghostToken.userData && player.ghostToken.userData.actions) {
@@ -781,6 +785,9 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                                 controls.target.set(pos.x, pos.y, pos.z);
                             }
                         }
+                        console.log(`[GHOST DEBUG] ghostToken visible for player '${player.name}' (id: ${player.id})`);
+                    } else {
+                        console.log(`[GHOST DEBUG] ghostToken NOT present for player '${player.name}' (id: ${player.id})`);
                     }
                     return;
                 } else {
