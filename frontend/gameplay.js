@@ -237,26 +237,26 @@ function assignSelectedTokenForPlayer(player) {
     }
     const loadedKeys = Object.keys(window.loadedTokenModels || {});
     console.log(`[DEBUG] assignSelectedTokenForPlayer: Looking for token '${player.token}' for playerId: ${player.id} in loadedKeys:`, loadedKeys);
-    console.log(`[DEBUG] assignSelectedTokenForPlayer: loadedTokenModels keys:`, Object.keys(window.loadedTokenModels || {}));
-    console.log(`[DEBUG] assignSelectedTokenForPlayer: player.token:`, player.token, 'typeof:', typeof player.token, '| player:', player);
-    
-    const tokenKey = loadedKeys.find(
-        k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, '')
-    );
-    
-    console.log(`[DEBUG] assignSelectedTokenForPlayer: Found tokenKey: '${tokenKey}' for player '${player.name}' (playerId: ${player.id}) with token '${player.token}'`);
-    console.log(`[DEBUG] assignSelectedTokenForPlayer: Available keys in loadedTokenModels:`, Object.keys(window.loadedTokenModels || {}));
-    
+    let tokenKey = loadedKeys.find(k => k.toLowerCase().replace(/\s+/g, '') === String(player.token).toLowerCase().replace(/\s+/g, ''));
+    if (!tokenKey && player.token && window.loadedTokenModels[player.token]) {
+        tokenKey = player.token;
+        console.log(`[DEBUG] assignSelectedTokenForPlayer: Fallback direct key match for '${player.token}'`);
+    }
+    if (!tokenKey) {
+        // Try partial match (for cases like 'Shoe' vs 'Nike')
+        tokenKey = loadedKeys.find(k => k.toLowerCase().includes(String(player.token).toLowerCase()));
+        if (tokenKey) console.log(`[DEBUG] assignSelectedTokenForPlayer: Fallback partial match for '${player.token}' -> '${tokenKey}'`);
+    }
+    console.log(`[DEBUG] assignSelectedTokenForPlayer: Final tokenKey: '${tokenKey}' for player '${player.name}' (playerId: ${player.id}) with token '${player.token}'`);
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
         player.selectedToken = window.loadedTokenModels[tokenKey].clone();
         player.selectedToken.position.set(0, getTokenHeight(player.token), 0);
         if (typeof hideTokenButtonSpinners === 'function') hideTokenButtonSpinners();
         console.log(`[Patch] Assigned selectedToken for player '${player.name}' with token '${player.token}'`);
-        // Process any pending moves now that the token is assigned
         if (typeof processPendingMoves === 'function') processPendingMoves();
     } else {
-    console.warn(`[Patch Debug] assignSelectedTokenForPlayer: Could not assign selectedToken for player '${player.name}' (playerId: ${player.id}) with token '${player.token}'`);
-    console.log(`[DEBUG] assignSelectedTokenForPlayer: loadedTokenModels:`, !!window.loadedTokenModels, 'tokenKey:', tokenKey, 'model exists:', !!(window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]), '| player:', player);
+        console.warn(`[Patch Debug] assignSelectedTokenForPlayer: Could not assign selectedToken for player '${player.name}' (playerId: ${player.id}) with token '${player.token}'`);
+        console.log(`[DEBUG] assignSelectedTokenForPlayer: loadedTokenModels:`, !!window.loadedTokenModels, 'tokenKey:', tokenKey, 'model exists:', !!(window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]), '| player:', player);
     }
 }
 
@@ -716,11 +716,17 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     if (token && scene.children.includes(token)) {
                         scene.remove(token);
                     }
-                    // --- Find correct token key (case-insensitive) ---
+                    // --- Find correct token key (case-insensitive, fallback) ---
                     let tokenKey = null;
                     if (player.token && window.loadedTokenModels) {
                         const loadedKeys = Object.keys(window.loadedTokenModels);
-                        tokenKey = loadedKeys.find(k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, ''));
+                        tokenKey = loadedKeys.find(k => k.toLowerCase().replace(/\s+/g, '') === String(player.token).toLowerCase().replace(/\s+/g, ''));
+                        if (!tokenKey && window.loadedTokenModels[player.token]) {
+                            tokenKey = player.token;
+                        }
+                        if (!tokenKey) {
+                            tokenKey = loadedKeys.find(k => k.toLowerCase().includes(String(player.token).toLowerCase()));
+                        }
                     }
                     // --- Spawn or update ghost token ---
                     if (!player.ghostToken && tokenKey && window.loadedTokenModels[tokenKey]) {
