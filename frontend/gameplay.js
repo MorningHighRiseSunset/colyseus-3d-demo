@@ -710,15 +710,21 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             if (idx !== -1 && players[idx] && typeof newPos === 'number') {
                 const player = players[idx];
                 let token = player.selectedToken;
-                // If this is not the current player, spawn a ghost token for display only
+                // --- PATCH: Robust ghost token logic for non-active players ---
                 if (pid !== currentPlayerId) {
-                    // Remove real token if it exists
+                    // Remove real token if it exists (should only be visible for current player)
                     if (token && scene.children.includes(token)) {
                         scene.remove(token);
                     }
-                    // Spawn or update ghost token
-                    if (!player.ghostToken && player.token && window.loadedTokenModels) {
-                        player.ghostToken = window.loadedTokenModels[player.token].clone();
+                    // --- Find correct token key (case-insensitive) ---
+                    let tokenKey = null;
+                    if (player.token && window.loadedTokenModels) {
+                        const loadedKeys = Object.keys(window.loadedTokenModels);
+                        tokenKey = loadedKeys.find(k => k.toLowerCase().replace(/\s+/g, '') === player.token.toLowerCase().replace(/\s+/g, ''));
+                    }
+                    // --- Spawn or update ghost token ---
+                    if (!player.ghostToken && tokenKey && window.loadedTokenModels[tokenKey]) {
+                        player.ghostToken = window.loadedTokenModels[tokenKey].clone();
                         // Handle material assignment for ghost token
                         if (player.ghostToken.material) {
                             if (Array.isArray(player.ghostToken.material)) {
@@ -745,6 +751,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                         }
                         scene.add(player.ghostToken);
                     }
+                    // --- Always update ghost token position and animate movement ---
                     if (player.ghostToken) {
                         const ghostPos = getBoardSquarePosition(newPos);
                         // Animate ghost token movement
