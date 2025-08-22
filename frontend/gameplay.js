@@ -813,18 +813,23 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                         const ghostStartIndex = typeof player.currentPosition === 'number' ? player.currentPosition : 0;
                         const ghostStartPos = getBoardSquarePosition(ghostStartIndex);
                         player.ghostToken.position.set(ghostStartPos.x, ghostStartPos.y, ghostStartPos.z);
-                        // Use the same movement animation as real tokens
+                        // Use the same path logic as real tokens
                         const oldGhostPos = player.ghostToken.position.clone();
                         const ghostPos = getBoardSquarePosition(newPos);
-                        // Pass camera follow callback for smooth tracking
-                        moveTokenWithCollisionAvoidance(oldGhostPos, ghostPos, player.ghostToken, () => {
-                            if (player.ghostToken.userData && player.ghostToken.userData.actions) {
-                                player.ghostToken.userData.actions.forEach(action => {
-                                    action.reset();
-                                    action.play();
-                                });
-                            }
-                        }, cameraFollowMode ? followCameraDuringMove : null);
+                        moveTokenWithCollisionAvoidance(
+                            oldGhostPos,
+                            ghostPos,
+                            player.ghostToken,
+                            () => {
+                                if (player.ghostToken.userData && player.ghostToken.userData.actions) {
+                                    player.ghostToken.userData.actions.forEach(action => {
+                                        action.reset();
+                                        action.play();
+                                    });
+                                }
+                            },
+                            cameraFollowMode ? followCameraDuringMove : null
+                        );
                         player.ghostToken.visible = true;
                     }
                 }
@@ -5315,7 +5320,7 @@ function updateFollowCamera(token) {
     followCamera.lookAt(token.position); // Ensure the camera looks at the token
 }
 
-function moveToken(startPos, endPos, token, callback) {
+function moveToken(startPos, endPos, token, callback, followCameraDuringMove, durationOverride) {
     // Validate parameters
     if (
         typeof startPos !== 'object' || typeof endPos !== 'object' ||
@@ -5342,8 +5347,6 @@ function moveToken(startPos, endPos, token, callback) {
     else if (tokenName === "rolls royce") stopRollsRoyceIdle();
     else if (tokenName === "helicopter") stopHelicopterHover();
 
-    // Movement logic for each token type
-    // --- PATCH: Use correct height for all tokens during movement, matching oldscript.js ---
     function getMoveHeight(tokenName, baseY) {
         if (tokenName === "nike") return baseY + 0.7;
         if (tokenName === "burger") return baseY + 0.2;
@@ -5354,7 +5357,7 @@ function moveToken(startPos, endPos, token, callback) {
         return getTokenHeight(tokenName, baseY);
     }
 
-    const duration = 1000;
+    const duration = typeof durationOverride === 'number' ? durationOverride : 1000;
     const startTime = Date.now();
     playWalkAnimation(tokenName === "woman" ? token : null);
 
@@ -5372,6 +5375,10 @@ function moveToken(startPos, endPos, token, callback) {
             endPos.z - startPos.z
         ).normalize();
         token.rotation.set(0, Math.atan2(directionVector.x, directionVector.z), 0);
+        // Camera follow logic for ghost tokens and real tokens
+        if (typeof followCameraDuringMove === 'function' && cameraFollowMode) {
+            followCameraDuringMove(token);
+        }
         if (progress < 1) {
             requestAnimationFrame(animate);
         } else {
@@ -7792,15 +7799,14 @@ function calculatePathWithCollisionAvoidance(startIndex, endIndex, movingPlayerI
 }
 
 // Enhanced moveToken function with collision avoidance
-function moveTokenWithCollisionAvoidance(startPos, endPos, token, callback) {
+function moveTokenWithCollisionAvoidance(startPos, endPos, token, callback, followCameraDuringMove) {
     const playerIndex = players.findIndex(p => p.selectedToken === token);
-    // PATCH: If not found, treat as ghost token and animate along path
     // Find start and end indices with increased tolerance
     const tolerance = 1.0;
-    let startIndex = positions.findIndex(pos => 
+    let startIndex = positions.findIndex(pos =>
         Math.abs(pos.x - startPos.x) < tolerance && Math.abs(pos.z - startPos.z) < tolerance
     );
-    let endIndex = positions.findIndex(pos => 
+    let endIndex = positions.findIndex(pos =>
         Math.abs(pos.x - endPos.x) < tolerance && Math.abs(pos.z - endPos.z) < tolerance
     );
     // If not found, use nearest index
@@ -7839,7 +7845,7 @@ function moveTokenWithCollisionAvoidance(startPos, endPos, token, callback) {
         path = calculatePathWithCollisionAvoidance(startIndex, endIndex, playerIndex);
     }
     // Move along the calculated path
-    moveTokenAlongPath(path, token, callback);
+    moveTokenAlongPath(path, token, callback, followCameraDuringMove);
 }
 
 // Move token along a calculated path
@@ -7849,7 +7855,6 @@ function moveTokenAlongPath(path, token, callback, followCameraDuringMove) {
         return;
     }
     let currentPathIndex = 0;
-    // Scale movement duration with path length
     let stepDuration = 1000; // ms per square
     function moveToNextPosition() {
         if (currentPathIndex >= path.length - 1) {
@@ -7862,12 +7867,10 @@ function moveTokenAlongPath(path, token, callback, followCameraDuringMove) {
         const endPos = positions[nextIndex];
         // Check if the next position is occupied
         if (isSpaceOccupied(nextIndex)) {
-            // Find an alternative position
             const alternatives = getAlternativePositions(nextIndex);
             if (alternatives.length > 0) {
                 const alternative = alternatives[0];
                 const alternativePos = alternative.position;
-                // Move to alternative position first
                 moveToken(startPos, alternativePos, token, () => {
                     currentPathIndex++;
                     moveToNextPosition();
@@ -7875,7 +7878,6 @@ function moveTokenAlongPath(path, token, callback, followCameraDuringMove) {
                 return;
             }
         }
-        // Move to next position normally
         moveToken(startPos, endPos, token, () => {
             currentPathIndex++;
             moveToNextPosition();
