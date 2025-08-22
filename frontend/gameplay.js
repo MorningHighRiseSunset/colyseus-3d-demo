@@ -5882,46 +5882,6 @@ function throwFootballAnimation(token, endPos, finalHeight, callback) {
     animate();
 }
 
-function startFootballIdleAnimation(token) {
-    // Make the football hover just above the square, spin, and gently wobble in the air
-    let idleStart = Date.now();
-    let running = true;
-    // Always use a fixed board Y height for the football
-    const boardBaseY = 2.0; // Board height for all squares
-    const hoverOffset = 0.3; // How high above the board the football floats
-    const spinSpeed = 1.5 * Math.PI; // radians/sec
-    const wobbleSpeed = 1.1; // Hz
-    const wobbleAmount = 0.18; // radians
-    const bobSpeed = 1.2; // Hz
-    const bobAmount = 0.18; // units
-
-    // Optionally, align the football upright (pointing forward)
-    token.rotation.set(0, 0, 0);
-
-    function idleAnim() {
-        if (!running) return;
-        const t = (Date.now() - idleStart) / 1000;
-
-        // Hover up and down (gentle bob)
-        const y = boardBaseY + hoverOffset + Math.sin(t * bobSpeed * Math.PI * 2) * bobAmount;
-        token.position.set(token.position.x, y, token.position.z);
-
-        // Spin around the Y axis (vertical spin)
-        token.rotation.y = t * spinSpeed;
-
-        // Gentle wobble (tilt X and Z)
-        token.rotation.x = Math.sin(t * wobbleSpeed * Math.PI * 2) * wobbleAmount;
-        token.rotation.z = Math.cos(t * (wobbleSpeed * 0.8) * Math.PI * 2) * (wobbleAmount * 0.7);
-
-        requestAnimationFrame(idleAnim);
-    }
-    idleAnim();
-    // Store a reference to stop the animation later if needed
-    token.userData.footballIdleAnim = () => {
-        running = false;
-    };
-}
-
 function jumpWithHatEffect(startPos, endPos, token, callback) {
     if (!token || !startPos || !endPos) {
         console.error("Invalid parameters passed to jumpWithHatEffect");
