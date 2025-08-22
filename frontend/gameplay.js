@@ -7788,16 +7788,34 @@ function calculatePathWithCollisionAvoidance(startIndex, endIndex, movingPlayerI
 function moveTokenWithCollisionAvoidance(startPos, endPos, token, callback) {
     const playerIndex = players.findIndex(p => p.selectedToken === token);
     // PATCH: If not found, treat as ghost token and animate along path
-    // Find start and end indices
-    const startIndex = positions.findIndex(pos => 
-        Math.abs(pos.x - startPos.x) < 0.1 && Math.abs(pos.z - startPos.z) < 0.1
+    // Find start and end indices with increased tolerance
+    const tolerance = 1.0;
+    let startIndex = positions.findIndex(pos => 
+        Math.abs(pos.x - startPos.x) < tolerance && Math.abs(pos.z - startPos.z) < tolerance
     );
-    const endIndex = positions.findIndex(pos => 
-        Math.abs(pos.x - endPos.x) < 0.1 && Math.abs(pos.z - endPos.z) < 0.1
+    let endIndex = positions.findIndex(pos => 
+        Math.abs(pos.x - endPos.x) < tolerance && Math.abs(pos.z - endPos.z) < tolerance
     );
-    if (startIndex === -1 || endIndex === -1) {
-        console.error("Could not find position indices");
-        return;
+    // If not found, use nearest index
+    function findNearestIndex(targetPos) {
+        let minDist = Infinity;
+        let nearestIdx = -1;
+        positions.forEach((pos, idx) => {
+            const dist = Math.sqrt(Math.pow(pos.x - targetPos.x, 2) + Math.pow(pos.z - targetPos.z, 2));
+            if (dist < minDist) {
+                minDist = dist;
+                nearestIdx = idx;
+            }
+        });
+        return nearestIdx;
+    }
+    if (startIndex === -1) {
+        startIndex = findNearestIndex(startPos);
+        console.warn("[GHOST TOKEN] Could not find exact start index, using nearest:", startIndex, startPos);
+    }
+    if (endIndex === -1) {
+        endIndex = findNearestIndex(endPos);
+        console.warn("[GHOST TOKEN] Could not find exact end index, using nearest:", endIndex, endPos);
     }
     let path;
     if (playerIndex === -1) {
