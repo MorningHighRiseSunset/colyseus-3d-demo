@@ -704,6 +704,11 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     // --- Patch: Queue moves if model not loaded, ensure currentPosition is set ---
     const pendingMoves = {};
     socket.on('tokenPositions', (positions) => {
+        Object.keys(positions).forEach(pid => {
+            const newPos = positions[pid];
+            const idx = playerList.findIndex(p => p.id === pid);
+            if (idx !== -1 && players[idx] && typeof newPos === 'number') {
+                const player = players[idx];
                 // Camera follows ghost token if it's another player's turn
                 if (player.ghostToken && cameraFollowMode && pid !== currentPlayerId) {
                     const pos = player.ghostToken.position;
@@ -713,7 +718,6 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                         controls.target.set(pos.x, pos.y, pos.z);
                     }
                 }
-        Object.keys(positions).forEach(pid => {
             const newPos = positions[pid];
             const idx = playerList.findIndex(p => p.id === pid);
             if (idx !== -1 && players[idx] && typeof newPos === 'number') {
