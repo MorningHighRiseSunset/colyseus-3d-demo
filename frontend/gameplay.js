@@ -710,6 +710,114 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
             if (idx !== -1 && players[idx] && typeof newPos === 'number') {
                 const player = players[idx];
                 let token = player.selectedToken;
+                // --- Real token for current player ---
+                if (pid === currentPlayerId) {
+                    if (typeof player.currentPosition !== 'number' || isNaN(player.currentPosition)) {
+                        player.currentPosition = 0;
+                    }
+                    const oldIndex = player.currentPosition;
+                    const startPos = getBoardSquarePosition(oldIndex);
+                    const endPos = getBoardSquarePosition(newPos);
+                    if (token && scene.children.includes(token)) {
+                        scene.remove(token);
+                    }
+                    if ((!token || !token.position) && player.token && window.loadedTokenModels) {
+                        assignSelectedTokenForPlayer(player);
+                        token = player.selectedToken;
+                    }
+                    if (!token) return;
+                    if (!scene.children.includes(token)) {
+                        scene.add(token);
+                    }
+                    if (startPos) {
+                        token.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
+                        token.visible = true;
+                    }
+                    if (player.token && player.token.toLowerCase().includes('rolls')) {
+                        token.position.y = 2.3;
+                    }
+                    if (startPos && endPos) {
+                        moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
+                            player.currentPosition = newPos;
+                            if (token.userData && token.userData.actions) {
+                                token.userData.actions.forEach(action => {
+                                    action.reset();
+                                    action.play();
+                                });
+                            }
+                            handlePropertyLanding(player, newPos);
+                        });
+                    }
+                } else {
+                    // --- Ghost token for other players ---
+                    // Remove real token if it exists
+                    if (token && scene.children.includes(token)) {
+                        scene.remove(token);
+                    }
+                    // Find correct token key
+                    let tokenKey = null;
+                    if (player.token && window.loadedTokenModels) {
+                        const loadedKeys = Object.keys(window.loadedTokenModels);
+                        tokenKey = loadedKeys.find(k => k.toLowerCase().replace(/\s+/g, '') === String(player.token).toLowerCase().replace(/\s+/g, ''));
+                        if (!tokenKey && window.loadedTokenModels[player.token]) {
+                            tokenKey = player.token;
+                        }
+                        if (!tokenKey) {
+                            tokenKey = loadedKeys.find(k => k.toLowerCase().includes(String(player.token).toLowerCase()));
+                        }
+                    }
+                    // Spawn or update ghost token
+                    if (!player.ghostToken && tokenKey && window.loadedTokenModels[tokenKey]) {
+                        player.ghostToken = window.loadedTokenModels[tokenKey].clone();
+                        // Make ghost token semi-transparent
+                        if (player.ghostToken.material) {
+                            if (Array.isArray(player.ghostToken.material)) {
+                                player.ghostToken.material.forEach(mat => {
+                                    if (mat) {
+                                        mat.opacity = 0.5;
+                                        mat.transparent = true;
+                                    }
+                                });
+                            } else {
+                                player.ghostToken.material.opacity = 0.5;
+                                player.ghostToken.material.transparent = true;
+                            }
+                        }
+                        // Setup animation mixer for ghost token
+                        if (player.ghostToken.animations && player.ghostToken.animations.length > 0) {
+                            player.ghostToken.userData.mixer = new THREE.AnimationMixer(player.ghostToken);
+                            player.ghostToken.userData.actions = [];
+                            player.ghostToken.animations.forEach(anim => {
+                                const action = player.ghostToken.userData.mixer.clipAction(anim);
+                                action.play();
+                                player.ghostToken.userData.actions.push(action);
+                            });
+                        }
+                        scene.add(player.ghostToken);
+                    }
+                    // Animate ghost token movement
+                    if (player.ghostToken) {
+                        const oldGhostPos = player.ghostToken.position.clone();
+                        const ghostPos = getBoardSquarePosition(newPos);
+                        moveTokenWithCollisionAvoidance(oldGhostPos, ghostPos, player.ghostToken, () => {
+                            if (player.ghostToken.userData && player.ghostToken.userData.actions) {
+                                player.ghostToken.userData.actions.forEach(action => {
+                                    action.reset();
+                                    action.play();
+                                });
+                            }
+                        });
+                        player.ghostToken.visible = true;
+                    }
+                }
+            }
+        });
+        Object.keys(positions).forEach(pid => {
+            const newPos = positions[pid];
+            const idx = playerList.findIndex(p => p.id === pid);
+            if (idx !== -1 && players[idx] && typeof newPos === 'number') {
+                const player = players[idx];
+                let token = player.selectedToken;
                 // --- PATCH: Robust ghost token logic for non-active players ---
                 if (pid !== currentPlayerId) {
                     // Remove real token if it exists (should only be visible for current player)
