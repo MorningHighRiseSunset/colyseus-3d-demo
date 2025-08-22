@@ -705,7 +705,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     const pendingMoves = {};
     socket.on('tokenPositions', (positions) => {
                 // Camera follows ghost token if it's another player's turn
-                if (pid !== currentPlayerId && player.ghostToken && cameraFollowMode) {
+                if (player.ghostToken && cameraFollowMode && pid !== currentPlayerId) {
                     const pos = player.ghostToken.position;
                     camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
                     camera.lookAt(pos.x, pos.y, pos.z);
