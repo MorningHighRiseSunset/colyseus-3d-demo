@@ -703,9 +703,9 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
 
     // --- Patch: Queue moves if model not loaded, ensure currentPosition is set ---
     const pendingMoves = {};
-    socket.on('tokenPositions', (positions) => {
-        Object.keys(positions).forEach(pid => {
-            const newPos = positions[pid];
+    socket.on('tokenPositions', (tokenPosObj) => {
+        Object.keys(tokenPosObj).forEach(pid => {
+            const newPos = tokenPosObj[pid];
             const idx = playerList.findIndex(p => p.id === pid);
             if (idx !== -1 && players[idx] && typeof newPos === 'number') {
                 const player = players[idx];
