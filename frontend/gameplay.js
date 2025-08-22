@@ -3,6 +3,16 @@ function debugLogPlayerState(context) {
     console.log(`[DEBUG] ${context} | currentPlayerId:`, currentPlayerId, '| currentPlayerIndex:', currentPlayerIndex, '| players:', players, '| playerList:', playerList);
 }
 
+function followCameraDuringMove(token) {
+    if (!token || !camera) return;
+    const pos = token.position;
+    camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
+    camera.lookAt(pos.x, pos.y, pos.z);
+    if (typeof controls !== 'undefined' && typeof controls.target !== 'undefined') {
+        controls.target.set(pos.x, pos.y, pos.z);
+    }
+}
+
 // --- Robust Player Mapping ---
 function syncPlayersWithServerList(serverPlayerList) {
     // Map server playerList to local players array by id
@@ -70,16 +80,6 @@ function processPendingMoves() {
                 } else {
                     // For other players, just move their token, don't end turn
                     moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to, () => {
-                        // Camera follow helper for smooth movement
-                        function followCameraDuringMove(token) {
-                            if (!token || !camera) return;
-                            const pos = token.position;
-                            camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
-                            camera.lookAt(pos.x, pos.y, pos.z);
-                            if (typeof controls !== 'undefined' && typeof controls.target !== 'undefined') {
-                                controls.target.set(pos.x, pos.y, pos.z);
-                            }
-                        }
                     });
                 }
                 pendingMoves.splice(i, 1);
@@ -809,10 +809,16 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     }
                     // Animate ghost token movement
                     if (player.ghostToken) {
-                        // Ensure ghost token starts at correct board square
-                        const ghostStartIndex = typeof player.currentPosition === 'number' ? player.currentPosition : 0;
-                        const ghostStartPos = getBoardSquarePosition(ghostStartIndex);
+                        // Always use the real token's current position for ghost token start
+                        let realTokenStartIndex = 0;
+                        if (player.selectedToken && typeof player.selectedToken.currentPosition === 'number') {
+                            realTokenStartIndex = player.selectedToken.currentPosition;
+                        } else if (typeof player.currentPosition === 'number') {
+                            realTokenStartIndex = player.currentPosition;
+                        }
+                        const ghostStartPos = getBoardSquarePosition(realTokenStartIndex);
                         player.ghostToken.position.set(ghostStartPos.x, ghostStartPos.y, ghostStartPos.z);
+
                         // Use the same path logic as real tokens
                         const oldGhostPos = player.ghostToken.position.clone();
                         const ghostPos = getBoardSquarePosition(newPos);
