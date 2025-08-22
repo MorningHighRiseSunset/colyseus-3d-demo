@@ -80,7 +80,6 @@ function processPendingMoves() {
                                 controls.target.set(pos.x, pos.y, pos.z);
                             }
                         }
-                        // ...existing code...
                     });
                 }
                 pendingMoves.splice(i, 1);
@@ -810,9 +809,14 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     }
                     // Animate ghost token movement
                     if (player.ghostToken) {
+                        // Ensure ghost token starts at correct board square
+                        const ghostStartIndex = typeof player.currentPosition === 'number' ? player.currentPosition : 0;
+                        const ghostStartPos = getBoardSquarePosition(ghostStartIndex);
+                        player.ghostToken.position.set(ghostStartPos.x, ghostStartPos.y, ghostStartPos.z);
                         // Use the same movement animation as real tokens
                         const oldGhostPos = player.ghostToken.position.clone();
                         const ghostPos = getBoardSquarePosition(newPos);
+                        // Pass camera follow callback for smooth tracking
                         moveTokenWithCollisionAvoidance(oldGhostPos, ghostPos, player.ghostToken, () => {
                             if (player.ghostToken.userData && player.ghostToken.userData.actions) {
                                 player.ghostToken.userData.actions.forEach(action => {
@@ -820,21 +824,8 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                                     action.play();
                                 });
                             }
-                        });
+                        }, cameraFollowMode ? followCameraDuringMove : null);
                         player.ghostToken.visible = true;
-                        // Camera follows ghost token if it's another player's turn
-                        if (cameraFollowMode && pid !== currentPlayerId) {
-                            const pos = player.ghostToken.position;
-                            // Smooth camera transition to reduce lag
-                            if (typeof controls.target !== 'undefined') {
-                                controls.target.set(pos.x, pos.y, pos.z);
-                            }
-                            new TWEEN.Tween(camera.position)
-                                .to({ x: pos.x + 10, y: pos.y + 15, z: pos.z + 10 }, 400)
-                                .easing(TWEEN.Easing.Quadratic.Out)
-                                .start();
-                            camera.lookAt(pos.x, pos.y, pos.z);
-                        }
                     }
                 }
             }
@@ -7852,25 +7843,23 @@ function moveTokenWithCollisionAvoidance(startPos, endPos, token, callback) {
 }
 
 // Move token along a calculated path
-function moveTokenAlongPath(path, token, callback) {
+function moveTokenAlongPath(path, token, callback, followCameraDuringMove) {
     if (path.length <= 1) {
         if (callback) callback();
         return;
     }
-    
     let currentPathIndex = 0;
-    
+    // Scale movement duration with path length
+    let stepDuration = 1000; // ms per square
     function moveToNextPosition() {
         if (currentPathIndex >= path.length - 1) {
             if (callback) callback();
             return;
         }
-        
         const currentIndex = path[currentPathIndex];
         const nextIndex = path[currentPathIndex + 1];
         const startPos = positions[currentIndex];
         const endPos = positions[nextIndex];
-        
         // Check if the next position is occupied
         if (isSpaceOccupied(nextIndex)) {
             // Find an alternative position
@@ -7878,23 +7867,20 @@ function moveTokenAlongPath(path, token, callback) {
             if (alternatives.length > 0) {
                 const alternative = alternatives[0];
                 const alternativePos = alternative.position;
-                
                 // Move to alternative position first
                 moveToken(startPos, alternativePos, token, () => {
                     currentPathIndex++;
                     moveToNextPosition();
-                });
+                }, followCameraDuringMove, stepDuration);
                 return;
             }
         }
-        
         // Move to next position normally
         moveToken(startPos, endPos, token, () => {
             currentPathIndex++;
             moveToNextPosition();
-        });
+        }, followCameraDuringMove, stepDuration);
     }
-    
     moveToNextPosition();
 }
 
