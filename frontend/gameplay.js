@@ -800,56 +800,30 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     }
                     // Animate ghost token movement
                     if (player.ghostToken) {
-                        // Animate ghost token step-by-step for each square moved
+                        // Use the same movement animation as real tokens
                         const oldGhostPos = player.ghostToken.position.clone();
                         const ghostPos = getBoardSquarePosition(newPos);
-                        let startIndex = positions.findIndex(pos => Math.abs(pos.x - oldGhostPos.x) < 1.0 && Math.abs(pos.z - oldGhostPos.z) < 1.0);
-                        let endIndex = positions.findIndex(pos => Math.abs(pos.x - ghostPos.x) < 1.0 && Math.abs(pos.z - ghostPos.z) < 1.0);
-                        if (startIndex === -1) startIndex = 0;
-                        if (endIndex === -1) endIndex = 0;
-                        let path = [];
-                        if (endIndex >= startIndex) {
-                            for (let i = startIndex + 1; i <= endIndex; i++) path.push(i);
-                        } else {
-                            for (let i = startIndex + 1; i < positions.length; i++) path.push(i);
-                            for (let i = 0; i <= endIndex; i++) path.push(i);
-                        }
-                        // Animate step-by-step
-                        let step = 0;
-                        function animateStep() {
-                            if (step < path.length) {
-                                const pos = positions[path[step]];
-                                player.ghostToken.position.set(pos.x, pos.y, pos.z);
-                                // Lower height for Rolls Royce
-                                if (player.token && player.token.toLowerCase().includes('rolls')) {
-                                    player.ghostToken.position.y = 1.5;
-                                }
-                                step++;
-                                setTimeout(animateStep, 200); // 200ms per square
-                            } else {
-                                // Final position
-                                player.ghostToken.position.set(ghostPos.x, ghostPos.y, ghostPos.z);
-                                if (player.token && player.token.toLowerCase().includes('rolls')) {
-                                    player.ghostToken.position.y = 1.5;
-                                }
-                                if (player.ghostToken.userData && player.ghostToken.userData.actions) {
-                                    player.ghostToken.userData.actions.forEach(action => {
-                                        action.reset();
-                                        action.play();
-                                    });
-                                }
+                        moveTokenWithCollisionAvoidance(oldGhostPos, ghostPos, player.ghostToken, () => {
+                            if (player.ghostToken.userData && player.ghostToken.userData.actions) {
+                                player.ghostToken.userData.actions.forEach(action => {
+                                    action.reset();
+                                    action.play();
+                                });
                             }
-                        }
-                        animateStep();
+                        });
                         player.ghostToken.visible = true;
                         // Camera follows ghost token if it's another player's turn
                         if (cameraFollowMode && pid !== currentPlayerId) {
                             const pos = player.ghostToken.position;
-                            camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
-                            camera.lookAt(pos.x, pos.y, pos.z);
+                            // Smooth camera transition to reduce lag
                             if (typeof controls.target !== 'undefined') {
                                 controls.target.set(pos.x, pos.y, pos.z);
                             }
+                            new TWEEN.Tween(camera.position)
+                                .to({ x: pos.x + 10, y: pos.y + 15, z: pos.z + 10 }, 400)
+                                .easing(TWEEN.Easing.Quadratic.Out)
+                                .start();
+                            camera.lookAt(pos.x, pos.y, pos.z);
                         }
                     }
                 }
