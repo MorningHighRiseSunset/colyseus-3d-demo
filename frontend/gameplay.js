@@ -704,6 +704,15 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     // --- Patch: Queue moves if model not loaded, ensure currentPosition is set ---
     const pendingMoves = {};
     socket.on('tokenPositions', (positions) => {
+                // Camera follows ghost token if it's another player's turn
+                if (pid !== currentPlayerId && player.ghostToken && cameraFollowMode) {
+                    const pos = player.ghostToken.position;
+                    camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
+                    camera.lookAt(pos.x, pos.y, pos.z);
+                    if (typeof controls.target !== 'undefined') {
+                        controls.target.set(pos.x, pos.y, pos.z);
+                    }
+                }
         Object.keys(positions).forEach(pid => {
             const newPos = positions[pid];
             const idx = playerList.findIndex(p => p.id === pid);
@@ -769,20 +778,22 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     // Spawn or update ghost token
                     if (!player.ghostToken && tokenKey && window.loadedTokenModels[tokenKey]) {
                         player.ghostToken = window.loadedTokenModels[tokenKey].clone();
-                        // Make ghost token semi-transparent
-                        if (player.ghostToken.material) {
-                            if (Array.isArray(player.ghostToken.material)) {
-                                player.ghostToken.material.forEach(mat => {
-                                    if (mat) {
-                                        mat.opacity = 0.5;
-                                        mat.transparent = true;
-                                    }
-                                });
-                            } else {
-                                player.ghostToken.material.opacity = 0.5;
-                                player.ghostToken.material.transparent = true;
+                        // Recursively set opacity for all mesh materials in ghost token
+                        player.ghostToken.traverse(obj => {
+                            if (obj.isMesh && obj.material) {
+                                if (Array.isArray(obj.material)) {
+                                    obj.material.forEach(mat => {
+                                        if (mat) {
+                                            mat.opacity = 0.5;
+                                            mat.transparent = true;
+                                        }
+                                    });
+                                } else {
+                                    obj.material.opacity = 0.5;
+                                    obj.material.transparent = true;
+                                }
                             }
-                        }
+                        });
                         // Setup animation mixer for ghost token
                         if (player.ghostToken.animations && player.ghostToken.animations.length > 0) {
                             player.ghostToken.userData.mixer = new THREE.AnimationMixer(player.ghostToken);
