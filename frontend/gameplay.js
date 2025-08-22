@@ -733,28 +733,33 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                                 player.ghostToken.material.transparent = true;
                             }
                         }
-                        // --- PATCH: Setup animation mixer and play idle/wheels animation for ghost token ---
-                        if (player.ghostToken.userData && player.ghostToken.userData.mixer && player.ghostToken.userData.actions) {
-                            player.ghostToken.userData.actions.forEach(action => {
-                                action.reset();
+                        // Setup animation mixer and play built-in GLB animations for ghost token
+                        if (player.ghostToken.animations && player.ghostToken.animations.length > 0) {
+                            player.ghostToken.userData.mixer = new THREE.AnimationMixer(player.ghostToken);
+                            player.ghostToken.userData.actions = [];
+                            player.ghostToken.animations.forEach(anim => {
+                                const action = player.ghostToken.userData.mixer.clipAction(anim);
                                 action.play();
+                                player.ghostToken.userData.actions.push(action);
                             });
                         }
                         scene.add(player.ghostToken);
                     }
                     if (player.ghostToken) {
                         const ghostPos = getBoardSquarePosition(newPos);
-                        player.ghostToken.position.set(ghostPos.x, getTokenHeight(player.token, ghostPos.y), ghostPos.z);
-                        player.ghostToken.visible = true;
-                        // --- PATCH: Animate ghost token movement and idle ---
-                        if (player.token && player.token.toLowerCase().includes('rolls')) {
-                            player.ghostToken.position.y = 2.3;
-                            // Wheels animation: ensure mixer is updated in main loop
-                            if (player.ghostToken.userData && player.ghostToken.userData.mixer) {
-                                player.ghostToken.userData.mixer.update(1/60);
+                        // Animate ghost token movement
+                        const oldGhostPos = player.ghostToken.position.clone();
+                        moveTokenWithCollisionAvoidance(oldGhostPos, ghostPos, player.ghostToken, () => {
+                            // After movement, start idle animation (custom or built-in)
+                            if (player.ghostToken.userData && player.ghostToken.userData.actions) {
+                                player.ghostToken.userData.actions.forEach(action => {
+                                    action.reset();
+                                    action.play();
+                                });
                             }
-                        }
-                        // --- PATCH: Camera follows ghost token if it's another player's turn ---
+                        });
+                        player.ghostToken.visible = true;
+                        // Camera follows ghost token if it's another player's turn
                         if (currentPlayerIndex === idx && player.ghostToken && cameraFollowMode) {
                             const pos = player.ghostToken.position;
                             camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
@@ -800,8 +805,8 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 if (startPos && endPos) {
                     moveTokenWithCollisionAvoidance(startPos, endPos, token, () => {
                         player.currentPosition = newPos;
-                        // --- PATCH: Start idle/wheels animation for RollsRoyce and other tokens after move ---
-                        if (token.userData && token.userData.mixer && token.userData.actions) {
+                        // Start idle/wheels animation for RollsRoyce and other tokens after move
+                        if (token.userData && token.userData.actions) {
                             token.userData.actions.forEach(action => {
                                 action.reset();
                                 action.play();
