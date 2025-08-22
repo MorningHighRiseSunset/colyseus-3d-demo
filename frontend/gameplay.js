@@ -7801,12 +7801,7 @@ function calculatePathWithCollisionAvoidance(startIndex, endIndex, movingPlayerI
 // Enhanced moveToken function with collision avoidance
 function moveTokenWithCollisionAvoidance(startPos, endPos, token, callback) {
     const playerIndex = players.findIndex(p => p.selectedToken === token);
-    // PATCH: If not found, treat as ghost token and move directly
-    if (playerIndex === -1) {
-        // Move ghost token directly from startPos to endPos
-        moveToken(startPos, endPos, token, callback);
-        return;
-    }
+    // PATCH: If not found, treat as ghost token and animate along path
     // Find start and end indices
     const startIndex = positions.findIndex(pos => 
         Math.abs(pos.x - startPos.x) < 0.1 && Math.abs(pos.z - startPos.z) < 0.1
@@ -7818,8 +7813,20 @@ function moveTokenWithCollisionAvoidance(startPos, endPos, token, callback) {
         console.error("Could not find position indices");
         return;
     }
-    // Calculate path with collision avoidance
-    const path = calculatePathWithCollisionAvoidance(startIndex, endIndex, playerIndex);
+    let path;
+    if (playerIndex === -1) {
+        // For ghost tokens, just use a straight path (no collision avoidance)
+        path = [];
+        if (endIndex >= startIndex) {
+            for (let i = startIndex; i <= endIndex; i++) path.push(i);
+        } else {
+            for (let i = startIndex; i < positions.length; i++) path.push(i);
+            for (let i = 0; i <= endIndex; i++) path.push(i);
+        }
+    } else {
+        // Calculate path with collision avoidance for real tokens
+        path = calculatePathWithCollisionAvoidance(startIndex, endIndex, playerIndex);
+    }
     // Move along the calculated path
     moveTokenAlongPath(path, token, callback);
 }
