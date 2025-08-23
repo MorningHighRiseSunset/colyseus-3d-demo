@@ -10288,7 +10288,7 @@ window.handlePropertyLanding = handlePropertyLanding;
 
 function createTokens(callback) {
     console.log('[MP DEBUG] createTokens called');
-    const tokenNames = ['RollsRoyce','Helicopter','Shoe','Football','Cheeseburger','TopHat'];
+    const tokenNames = ['RollsRoyce','Helicopter','Shoe','Football','Cheeseburger','TopHat','Woman'];
     const grid = document.getElementById('tokenGrid');
     if (!grid) {
         console.error('[MP DEBUG] tokenGrid element not found');
