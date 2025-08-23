@@ -113,7 +113,7 @@ const tokenModels = [
     { name: 'Football', path: 'Models/Football/football.glb', scale: [0.1, 0.1, 0.1] },
     { name: 'Burger', path: 'Models/Cheeseburger/cheeseburger.glb', scale: [3.5, 3.5, 3.5] },
     { name: 'Nike', path: 'Models/Shoe/shoe.glb', scale: [1.5, 1.5, 1.5] },
-    { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.02, 0.02, 0.02] }
+    { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.02, 0.02, 0.02], height: 3.0 }
 ];
 
 function loadTokenModelByName(name, scene, onLoaded) {
@@ -4800,14 +4800,13 @@ function initializePlayers() {
 function createPlayerTokenSelectionUI(playerIndex) {
     // Token image mapping (using frontend/images/)
     const tokenImages = {
-        "hat": "frontend/images/image-removebg-preview (6).png",
-        "woman": "frontend/images/image-removebg-preview (8).png",
-        "rolls royce": "frontend/images/image-removebg-preview.png",
-        "speed boat": "frontend/images/image-removebg-preview (3).png",
-        "football": "frontend/images/image-removebg-preview (7).png",
-        "helicopter": "frontend/images/image-removebg-preview (1).png",
-        "burger": "frontend/images/image-removebg-preview (9).png",
-        "nike": "frontend/images/image-removebg-preview (10).png"
+        "RollsRoyce": "frontend/images/image-removebg-preview.png",
+        "Helicopter": "frontend/images/image-removebg-preview (1).png",
+        "TopHat": "frontend/images/image-removebg-preview (6).png",
+        "Football": "frontend/images/image-removebg-preview (7).png",
+        "Cheeseburger": "frontend/images/image-removebg-preview (9).png",
+        "Nike": "frontend/images/image-removebg-preview (10).png",
+        "Woman": "frontend/images/image-removebg-preview (8).png"
     };
 
     // Create the token selection UI container
