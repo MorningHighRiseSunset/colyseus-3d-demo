@@ -128,7 +128,7 @@ const tokenModels = [
     { name: 'Football', path: 'Models/Football/football.glb', scale: [0.1, 0.1, 0.1] },
     { name: 'Burger', path: 'Models/Cheeseburger/cheeseburger.glb', scale: [3.5, 3.5, 3.5] },
     { name: 'Nike', path: 'Models/Shoe/shoe.glb', scale: [1.5, 1.5, 1.5] },
-    { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.2, 0.2, 0.2], height: 3.0 }
+    { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.02, 0.02, 0.02], height: 3.0 }
 ];
 
 function loadTokenModelByName(name, scene, onLoaded) {
@@ -281,8 +281,24 @@ function assignSelectedTokenForPlayer(player) {
     }
     console.log(`[DEBUG] assignSelectedTokenForPlayer: Final tokenKey: '${tokenKey}' for player '${player.name}' (playerId: ${player.id}) with token '${player.token}'`);
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
-        player.selectedToken = window.loadedTokenModels[tokenKey].clone();
-        player.selectedToken.position.set(0, getTokenHeight(player.token), 0);
+        let tokenModel = window.loadedTokenModels[tokenKey].clone();
+        // Remove transparency from ghost tokens
+        if (player.isGhost) {
+            tokenModel.traverse(child => {
+                if (child.isMesh && child.material) {
+                    child.material.transparent = false;
+                    child.material.opacity = 1.0;
+                }
+            });
+        }
+        // Fix Woman model orientation if needed
+        if (player.token && player.token.toLowerCase() === 'woman') {
+            tokenModel.rotation.set(0, 0, 0);
+            tokenModel.position.set(0, getTokenHeight(player.token), 0);
+        } else {
+            tokenModel.position.set(0, getTokenHeight(player.token), 0);
+        }
+        player.selectedToken = tokenModel;
         if (typeof hideTokenButtonSpinners === 'function') hideTokenButtonSpinners();
         console.log(`[Patch] Assigned selectedToken for player '${player.name}' with token '${player.token}'`);
         if (typeof processPendingMoves === 'function') processPendingMoves();
