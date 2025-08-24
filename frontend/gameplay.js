@@ -1,16 +1,17 @@
 // Returns the image URL for a given token name
 function getTokenImageUrl(name) {
-    const imageMap = {
-        'Woman': 'Images/image.png.png',
-        'RollsRoyce': 'Images/rollsRoyceCarAnim.webp',
-        'Helicopter': 'Images/702-helicopters.webp',
-        'TopHat': 'Images/image-removebg-preview.png',
-        'Football': 'Images/11929141633_b4ab5fd45e_k.webp',
-        'Burger': 'Images/BetMGM-Jamie-Foxx.webp',
-        'Nike': 'Images/LVACES.jpg',
-        // Add more mappings as needed
+    // Use lowercase for matching and map to provided imageUrls
+    const imageUrls = {
+        'hat': 'Images/image-removebg-preview (6).png',
+        'woman': 'Images/image-removebg-preview (8).png',
+        'rolls royce': 'Images/image-removebg-preview.png',
+        'speed boat': 'Images/image-removebg-preview (3).png',
+        'football': 'Images/image-removebg-preview (7).png',
+        'helicopter': 'Images/image-removebg-preview (1).png',
+        'burger': 'Images/image-removebg-preview (9).png',
+        'nike': 'Images/image-removebg-preview (10).png'
     };
-    return imageMap[name] || '';
+    return imageUrls[name.toLowerCase()] || '';
 }
 // --- DEBUG: Player List and Turn State ---
 function debugLogPlayerState(context) {
