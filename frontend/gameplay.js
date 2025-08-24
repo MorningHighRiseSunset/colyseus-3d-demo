@@ -113,7 +113,7 @@ const tokenModels = [
     { name: 'Football', path: 'Models/Football/football.glb', scale: [0.1, 0.1, 0.1] },
     { name: 'Burger', path: 'Models/Cheeseburger/cheeseburger.glb', scale: [3.5, 3.5, 3.5] },
     { name: 'Nike', path: 'Models/Shoe/shoe.glb', scale: [1.5, 1.5, 1.5] },
-    { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.02, 0.02, 0.02], height: 3.0 }
+    { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.2, 0.2, 0.2], height: 3.0 }
 ];
 
 function loadTokenModelByName(name, scene, onLoaded) {
@@ -10301,11 +10301,33 @@ function createTokens(callback) {
     const readyBtn = document.getElementById('readyUpBtn');
     if (readyBtn) readyBtn.style.display = 'none';
     
+    // Wait for all token models to be loaded before showing buttons
+    if (!window.loadedTokenModels || Object.keys(window.loadedTokenModels).length < tokenNames.length) {
+        grid.innerHTML = '<div class="token-spinner">Loading tokens...</div>';
+        const waitForModels = setInterval(() => {
+            if (window.loadedTokenModels && Object.keys(window.loadedTokenModels).length >= tokenNames.length) {
+                clearInterval(waitForModels);
+                createTokens(callback); // Retry now that models are loaded
+            }
+        }, 200);
+        return;
+    }
     tokenNames.forEach(name => {
         const btn = document.createElement('button');
         btn.className = 'token-button';
         btn.setAttribute('data-token-name', name);
-        btn.innerText = name;
+        // Add token image
+        const img = document.createElement('img');
+        img.src = getTokenImageUrl ? getTokenImageUrl(name) : '';
+        img.alt = name;
+        img.style.width = '48px';
+        img.style.height = '48px';
+        img.style.marginRight = '8px';
+        btn.appendChild(img);
+        // Add token name
+        const label = document.createElement('span');
+        label.innerText = name;
+        btn.appendChild(label);
         // Disable button if token is already picked by any player
         const pickedBy = playerList.find(p => p.token === name);
         btn.disabled = !!pickedBy;
