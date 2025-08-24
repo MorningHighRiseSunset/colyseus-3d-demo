@@ -10302,7 +10302,17 @@ window.handlePropertyLanding = handlePropertyLanding;
 
 function createTokens(callback) {
     console.log('[MP DEBUG] createTokens called');
-    const tokenNames = ['RollsRoyce','Helicopter','Shoe','Football','Cheeseburger','TopHat','Woman'];
+    // Use display names and lowercase for image lookup
+    const tokenNames = [
+        'Rolls Royce',
+        'Helicopter',
+        'Nike',
+        'Football',
+        'Burger',
+        'Hat',
+        'Woman',
+        'Speed Boat'
+    ];
     const grid = document.getElementById('tokenGrid');
     if (!grid) {
         console.error('[MP DEBUG] tokenGrid element not found');
@@ -10331,9 +10341,9 @@ function createTokens(callback) {
         const btn = document.createElement('button');
         btn.className = 'token-button';
         btn.setAttribute('data-token-name', name);
-        // Add token image
+        // Add token image using lowercase for lookup
         const img = document.createElement('img');
-        img.src = getTokenImageUrl ? getTokenImageUrl(name) : '';
+        img.src = getTokenImageUrl ? getTokenImageUrl(name.toLowerCase()) : '';
         img.alt = name;
         img.style.width = '48px';
         img.style.height = '48px';
