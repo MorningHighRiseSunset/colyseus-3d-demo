@@ -1,6 +1,5 @@
 // Returns the image URL for a given token name
 function getTokenImageUrl(name) {
-    // Map token names to image filenames (customize as needed)
     const imageMap = {
         'Woman': 'Images/image.png.png',
         'RollsRoyce': 'Images/rollsRoyceCarAnim.webp',
