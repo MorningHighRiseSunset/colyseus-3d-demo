@@ -1,3 +1,31 @@
+// --- Woman Animation Helpers ---
+function playWalkAnimation(token) {
+    if (!token || !token.userData) return;
+    if (token.userData.actions) {
+        token.userData.actions.forEach(action => {
+            if (action._clip && action._clip.name.toLowerCase().includes('walk')) {
+                action.reset().play();
+            } else {
+                action.stop();
+            }
+        });
+    }
+    token.userData.currentAnim = 'walk';
+}
+
+function playIdleAnimation(token) {
+    if (!token || !token.userData) return;
+    if (token.userData.actions) {
+        token.userData.actions.forEach(action => {
+            if (action._clip && action._clip.name.toLowerCase().includes('idle')) {
+                action.reset().play();
+            } else {
+                action.stop();
+            }
+        });
+    }
+    token.userData.currentAnim = 'idle';
+}
 // Returns the image URL for a given token name
 function getTokenImageUrl(name) {
     // Use lowercase for matching and map to provided imageUrls
@@ -291,14 +319,18 @@ function assignSelectedTokenForPlayer(player) {
                 }
             });
         }
-        // Fix Woman model orientation if needed
+        // Fix Woman model orientation and set idle animation
         if (player.token && player.token.toLowerCase() === 'woman') {
             tokenModel.rotation.set(0, 0, 0);
             tokenModel.position.set(0, getTokenHeight(player.token), 0);
+            player.selectedToken = tokenModel;
+            playIdleAnimation(tokenModel);
         } else {
             tokenModel.position.set(0, getTokenHeight(player.token), 0);
+            player.selectedToken = tokenModel;
         }
-        player.selectedToken = tokenModel;
+// Example usage: call playWalkAnimation(player.selectedToken) when Woman token starts moving
+// Example usage: call playIdleAnimation(player.selectedToken) when Woman token stops moving
         if (typeof hideTokenButtonSpinners === 'function') hideTokenButtonSpinners();
         console.log(`[Patch] Assigned selectedToken for player '${player.name}' with token '${player.token}'`);
         if (typeof processPendingMoves === 'function') processPendingMoves();
