@@ -1,3 +1,18 @@
+// Returns the image URL for a given token name
+function getTokenImageUrl(name) {
+    // Map token names to image filenames (customize as needed)
+    const imageMap = {
+        'Woman': 'Images/image.png.png',
+        'RollsRoyce': 'Images/rollsRoyceCarAnim.webp',
+        'Helicopter': 'Images/702-helicopters.webp',
+        'TopHat': 'Images/image-removebg-preview.png',
+        'Football': 'Images/11929141633_b4ab5fd45e_k.webp',
+        'Burger': 'Images/BetMGM-Jamie-Foxx.webp',
+        'Nike': 'Images/LVACES.jpg',
+        // Add more mappings as needed
+    };
+    return imageMap[name] || '';
+}
 // --- DEBUG: Player List and Turn State ---
 function debugLogPlayerState(context) {
     console.log(`[DEBUG] ${context} | currentPlayerId:`, currentPlayerId, '| currentPlayerIndex:', currentPlayerIndex, '| players:', players, '| playerList:', playerList);
