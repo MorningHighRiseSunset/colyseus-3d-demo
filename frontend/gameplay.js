@@ -433,7 +433,7 @@ const loader = new GLTFLoader();
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('./libs/draco/');
 loader.setDRACOLoader(dracoLoader);
-console.log('[DRACO] DRACOLoader enabled for GLTFLoader');
+    // console.log('[DRACO] DRACOLoader enabled for GLTFLoader'); // Suppressed
 
 // Register the KHR_materials_pbrSpecularGlossiness extension
 class GLTFMaterialsPbrSpecularGlossinessExtension {
@@ -9664,7 +9664,7 @@ function initVideoChat() {
 
         // Check if video chat elements exist (only in game.html)
         if (!videoChatToggleBtn || !videoChatContainer) {
-            console.log('Video chat elements not found - not in game.html');
+            // Suppressed: Video chat elements not found - not in game.html
             return;
         }
 
@@ -10310,8 +10310,7 @@ function createTokens(callback) {
         'Football',
         'Burger',
         'Hat',
-        'Woman',
-        'Speed Boat'
+        'Woman'
     ];
     const grid = document.getElementById('tokenGrid');
     if (!grid) {
