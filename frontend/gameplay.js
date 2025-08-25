@@ -635,7 +635,6 @@ function getTokenHeight(tokenName, defaultY = 2.5) {
 }
 
 // --- Slot Machine Overlay for Hard Rock ---
-import * as THREE from 'three';
 
 let slotMachineOverlay = null;
 let slotMachineScene = null;
