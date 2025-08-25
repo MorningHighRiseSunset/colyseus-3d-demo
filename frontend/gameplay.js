@@ -1,16 +1,35 @@
 // --- Woman Animation Helpers ---
 function playWalkAnimation(token) {
-    if (!token || !token.userData) return;
-    if (token.userData.actions) {
-        token.userData.actions.forEach(action => {
-            if (action._clip && action._clip.name.toLowerCase().includes('walk')) {
-                action.reset().play();
-            } else {
-                action.stop();
-            }
-        });
+    if (!token || !token.userData || !token.userData.tokenName) return;
+    if (token.userData.tokenName === "woman" && token.userData.walkAction) {
+        console.log('Starting woman walk animation...');
+        // Stop idle animation if it's playing
+        if (token.userData.idleAction) {
+            token.userData.idleAction.stop();
+            console.log('Stopped woman idle animation');
+        }
+        // Play the walking animation
+        if (token.userData.walkAction && token.userData.walkMixer) {
+            token.userData.walkAction.reset().play();
+            token.userData.walkMixer.update(0);
+            console.log('Started woman walk animation');
+        } else {
+            console.warn('Woman walk animation not available');
+        }
+        // Play walking audio
+        if (!token.userData.walkSound) {
+            const walkSound = new Audio('Sounds/steps-high-heels-beautiful-fashion-shopping-mall-walking-movie-and-tv-sound-effects.mp3');
+            walkSound.loop = true;  
+            walkSound.volume = 0.7;
+            token.userData.walkSound = walkSound;
+        }
+        if (token.userData.walkSound.paused) {
+            // Don't reset currentTime - let it continue from where it left off
+            token.userData.walkSound.play().catch(() => {});
+        }
+    } else {
+        console.warn('Cannot play walk animation - token is not woman or walk action not available');
     }
-    token.userData.currentAnim = 'walk';
 }
 
 function playIdleAnimation(token) {
@@ -3091,39 +3110,6 @@ function jumpWithBigMacEffect(startPos, endPos, token, callback) {
     }
 
     animate();
-}
-
-function playWalkAnimation(token) {
-    if (!token || !token.userData || !token.userData.tokenName) return;
-    if (token.userData.tokenName === "woman" && token.userData.walkAction) {
-        console.log('Starting woman walk animation...');
-        // Stop idle animation if it's playing
-        if (token.userData.idleAction) {
-            token.userData.idleAction.stop();
-            console.log('Stopped woman idle animation');
-        }
-        // Play the walking animation
-        if (token.userData.walkAction && token.userData.walkMixer) {
-            token.userData.walkAction.reset().play();
-            token.userData.walkMixer.update(0);
-            console.log('Started woman walk animation');
-        } else {
-            console.warn('Woman walk animation not available');
-        }
-        // Play walking audio
-        if (!token.userData.walkSound) {
-            const walkSound = new Audio('Sounds/steps-high-heels-beautiful-fashion-shopping-mall-walking-movie-and-tv-sound-effects.mp3');
-            walkSound.loop = true;  
-            walkSound.volume = 0.7;
-            token.userData.walkSound = walkSound;
-        }
-        if (token.userData.walkSound.paused) {
-            // Don't reset currentTime - let it continue from where it left off
-            token.userData.walkSound.play().catch(() => {});
-        }
-    } else {
-        console.warn('Cannot play walk animation - token is not woman or walk action not available');
-    }
 }
 
 function stopWalkAnimation(token) {
