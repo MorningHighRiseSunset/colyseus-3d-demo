@@ -2304,7 +2304,7 @@ const placeNames = [
     "Horseback Riding",
     "Resorts World Theatre",
     "Chance", // Second Chance
-    "Hard Rock hotel", // Changed from "Encore Theatre"
+    "Hard Rock Hotel", // Changed from "Encore Theatre"
     "Wynn Las Vegas", // Changed from "South Point Casino" 
     "Shriners Children's Open", // Changed from "Golf Inst."
     "Bachelor & Bachelorette Parties",
