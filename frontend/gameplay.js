@@ -3484,6 +3484,13 @@ function showPropertyUI(position) {
     const property = properties.find(p => p.name === propertyName);
     console.log(`Found property:`, property);
 
+    // Patch: Show slot machine for Hard Rock Hotel
+    if (propertyName === "Hard Rock Hotel") {
+        showSlotMachine();
+    } else {
+        hideSlotMachine();
+    }
+
     if (!property) {
         console.error(`No property found for position ${position} (propertyName: ${propertyName})`);
         console.log('Available properties:', properties.map(p => p.name));
