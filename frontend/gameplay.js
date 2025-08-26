@@ -673,22 +673,33 @@ function showSlotMachine() {
     slotMachineOverlay.style.top = '60%';
     slotMachineOverlay.style.right = '0';
     slotMachineOverlay.style.transform = 'translateY(-50%)';
-    slotMachineOverlay.style.width = '220px';
-    slotMachineOverlay.style.height = '320px';
-    slotMachineOverlay.style.background = 'rgba(30,34,44,0.95)';
+    slotMachineOverlay.style.width = '240px';
+    slotMachineOverlay.style.height = '340px';
+    slotMachineOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     slotMachineOverlay.style.zIndex = '10050';
     slotMachineOverlay.style.display = 'flex';
     slotMachineOverlay.style.flexDirection = 'column';
     slotMachineOverlay.style.justifyContent = 'flex-start';
     slotMachineOverlay.style.alignItems = 'center';
-    slotMachineOverlay.style.borderRadius = '18px 0 0 18px';
-    slotMachineOverlay.style.boxShadow = '0 0 24px #222';
-    slotMachineOverlay.style.border = '2px solid #ffd700';
+    slotMachineOverlay.style.borderRadius = '22px 0 0 22px';
+    slotMachineOverlay.style.boxShadow = '0 8px 32px #000a, 0 0 16px #ffd700';
+    slotMachineOverlay.style.border = '3px solid #ffd700';
+    slotMachineOverlay.style.borderTop = '6px solid #ffd700';
+    slotMachineOverlay.style.borderBottom = '6px solid #ffd700';
+    slotMachineOverlay.style.padding = '0 0 12px 0';
+    slotMachineOverlay.style.overflow = 'hidden';
+    // Add slot machine emoji at the top for 3D effect
+    const emojiDiv = document.createElement('div');
+    emojiDiv.textContent = '🎰';
+    emojiDiv.style.fontSize = '2.8em';
+    emojiDiv.style.margin = '10px 0 0 0';
+    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    slotMachineOverlay.appendChild(emojiDiv);
     document.body.appendChild(slotMachineOverlay);
 
     // Slot machine header
     const header = document.createElement('div');
-    header.textContent = '🎰 SLOT MACHINE';
+    header.textContent = 'SLOT MACHINE';
     header.style.color = '#ffd700';
     header.style.fontWeight = 'bold';
     header.style.fontSize = '1.2em';
@@ -699,8 +710,8 @@ function showSlotMachine() {
     // Slot window (reel area)
     const slotWindow = document.createElement('div');
     slotWindow.id = 'slot-window';
-    slotWindow.style.width = '180px';
-    slotWindow.style.height = '70px';
+    slotWindow.style.width = '192px';
+    slotWindow.style.height = '74px';
     slotWindow.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     slotWindow.style.border = '2px solid #ffd700';
     slotWindow.style.borderRadius = '10px';
@@ -718,7 +729,7 @@ function showSlotMachine() {
     for (let i = 0; i < 3; i++) {
         const reelDiv = document.createElement('div');
         reelDiv.className = 'reel';
-        reelDiv.style.width = '54px';
+        reelDiv.style.width = '56px';
         reelDiv.style.height = '100%';
         reelDiv.style.display = 'flex';
         reelDiv.style.flexDirection = 'column';
@@ -726,8 +737,9 @@ function showSlotMachine() {
         reelDiv.style.justifyContent = 'flex-start';
         reelDiv.style.position = 'relative';
         reelDiv.style.background = 'linear-gradient(180deg, #444e6a 60%, #232a36 100%)';
-        reelDiv.style.borderRadius = '6px';
-        reelDiv.style.boxShadow = '0 2px 8px #0007';
+        reelDiv.style.borderRadius = '8px';
+        reelDiv.style.boxShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+        reelDiv.style.margin = '0 4px';
         slotWindow.appendChild(reelDiv);
         reels.push(reelDiv);
     }
@@ -757,13 +769,20 @@ function showSlotMachine() {
     const rewardDiv = document.createElement('div');
     rewardDiv.id = 'slot-machine-reward';
     rewardDiv.style.position = 'absolute';
-    rewardDiv.style.bottom = '18px';
+    rewardDiv.style.bottom = '22px';
     rewardDiv.style.left = '50%';
     rewardDiv.style.transform = 'translateX(-50%)';
-    rewardDiv.style.color = '#fff';
-    rewardDiv.style.fontSize = '1.5em';
+    rewardDiv.style.color = '#ffd700';
+    rewardDiv.style.fontSize = '1.6em';
     rewardDiv.style.fontWeight = 'bold';
-    rewardDiv.style.textShadow = '0 0 10px #000';
+    rewardDiv.style.textShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    rewardDiv.style.padding = '10px 24px';
+    rewardDiv.style.background = 'rgba(30,34,44,0.92)';
+    rewardDiv.style.borderRadius = '12px';
+    rewardDiv.style.border = '2px solid #ffd700';
+    rewardDiv.style.boxShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    rewardDiv.style.opacity = '0';
+    rewardDiv.style.transition = 'opacity 0.3s';
     slotMachineOverlay.appendChild(rewardDiv);
 
     // Spin button interaction
@@ -818,7 +837,7 @@ function spinReels() {
                 let offset = Math.floor(progress * (reelSymbolLists[i].length - 3));
                 // Clear reel
                 reels[i].innerHTML = '';
-                // Show 3 symbols per reel
+                // Show 3 symbols per reel with spacing
                 for (let k = 0; k < 3; k++) {
                     let symbol = reelSymbolLists[i][offset + k];
                     let symbolDiv = document.createElement('div');
@@ -831,6 +850,7 @@ function spinReels() {
                     symbolDiv.style.fontWeight = 'bold';
                     symbolDiv.style.color = '#ffd700';
                     symbolDiv.style.textShadow = '0 0 8px #222';
+                    symbolDiv.style.margin = '4px 0';
                     symbolDiv.textContent = symbol;
                     reels[i].appendChild(symbolDiv);
                 }
@@ -858,18 +878,26 @@ function showReward() {
     // Simple reward logic: 3 matching = jackpot, 2 matching = small win, else lose
     let rewardDiv = document.getElementById('slot-machine-reward');
     let reward = 0;
+    rewardDiv.style.opacity = '1';
     if (reelValues[0] === reelValues[1] && reelValues[1] === reelValues[2]) {
         reward = 1000;
-        rewardDiv.textContent = 'JACKPOT! +$1000';
+        rewardDiv.textContent = '🎉 JACKPOT! +$1000 🎉';
         rewardDiv.style.color = '#ffd700';
+        rewardDiv.style.background = 'linear-gradient(90deg,#ffd700 60%,#fffbe6 100%)';
+        rewardDiv.style.color = '#232a36';
+        rewardDiv.style.boxShadow = '0 2px 12px #ffd700, 0 0 8px #fffbe6';
     } else if (reelValues[0] === reelValues[1] || reelValues[1] === reelValues[2] || reelValues[0] === reelValues[2]) {
         reward = 250;
         rewardDiv.textContent = 'WIN! +$250';
-        rewardDiv.style.color = '#00ff00';
+        rewardDiv.style.background = 'linear-gradient(90deg,#66ff66 60%,#fffbe6 100%)';
+        rewardDiv.style.color = '#232a36';
+        rewardDiv.style.boxShadow = '0 2px 12px #66ff66, 0 0 8px #fffbe6';
     } else {
         reward = 0;
         rewardDiv.textContent = 'Try Again!';
-        rewardDiv.style.color = '#fff';
+        rewardDiv.style.background = 'rgba(30,34,44,0.92)';
+        rewardDiv.style.color = '#ffd700';
+        rewardDiv.style.boxShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
     }
     playerReward = reward;
     // Add reward to player's money
@@ -884,8 +912,8 @@ function showReward() {
         }
     }
     setTimeout(() => {
-        rewardDiv.textContent = '';
-    }, 2000);
+        rewardDiv.style.opacity = '0';
+    }, 2200);
 }
 
 // Example: Call showSlotMachine() when Hard Rock property UI is opened
