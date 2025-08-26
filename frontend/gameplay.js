@@ -693,6 +693,7 @@ function showSlotMachine() {
     header.style.fontWeight = 'bold';
     header.style.fontSize = '1.2em';
     header.style.margin = '12px 0 8px 0';
+    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
     slotMachineOverlay.appendChild(header);
 
     // Slot window (reel area)
@@ -700,7 +701,7 @@ function showSlotMachine() {
     slotWindow.id = 'slot-window';
     slotWindow.style.width = '180px';
     slotWindow.style.height = '70px';
-    slotWindow.style.background = '#222a38';
+    slotWindow.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     slotWindow.style.border = '2px solid #ffd700';
     slotWindow.style.borderRadius = '10px';
     slotWindow.style.display = 'flex';
@@ -709,6 +710,7 @@ function showSlotMachine() {
     slotWindow.style.overflow = 'hidden';
     slotWindow.style.position = 'relative';
     slotWindow.style.margin = '0 0 10px 0';
+    slotWindow.style.boxShadow = '0 4px 24px #000a, 0 0 8px #ffd700';
     slotMachineOverlay.appendChild(slotWindow);
 
     // Create 3 reels as columns
@@ -723,37 +725,33 @@ function showSlotMachine() {
         reelDiv.style.alignItems = 'center';
         reelDiv.style.justifyContent = 'flex-start';
         reelDiv.style.position = 'relative';
+        reelDiv.style.background = 'linear-gradient(180deg, #444e6a 60%, #232a36 100%)';
+        reelDiv.style.borderRadius = '6px';
+        reelDiv.style.boxShadow = '0 2px 8px #0007';
         slotWindow.appendChild(reelDiv);
         reels.push(reelDiv);
     }
 
-    // Lever
-    const lever = document.createElement('div');
-    lever.id = 'slot-lever';
-    lever.style.width = '22px';
-    lever.style.height = '80px';
-    lever.style.background = 'linear-gradient(180deg,#ffd700 60%,#fffbe6 100%)';
-    lever.style.borderRadius = '12px';
-    lever.style.position = 'absolute';
-    lever.style.right = '-30px';
-    lever.style.top = '40px';
-    lever.style.cursor = 'pointer';
-    lever.style.boxShadow = '0 0 8px #222';
-    lever.style.display = 'flex';
-    lever.style.alignItems = 'flex-end';
-    lever.style.justifyContent = 'center';
-    // Knob
-    const knob = document.createElement('div');
-    knob.style.width = '28px';
-    knob.style.height = '28px';
-    knob.style.background = '#ff2222';
-    knob.style.borderRadius = '50%';
-    knob.style.position = 'absolute';
-    knob.style.bottom = '-14px';
-    knob.style.left = '-3px';
-    knob.style.boxShadow = '0 0 8px #222';
-    lever.appendChild(knob);
-    slotMachineOverlay.appendChild(lever);
+    // Spin button
+    const spinBtn = document.createElement('button');
+    spinBtn.textContent = 'SPIN';
+    spinBtn.style.margin = '16px auto 0 auto';
+    spinBtn.style.width = '120px';
+    spinBtn.style.height = '38px';
+    spinBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+    spinBtn.style.color = '#232a36';
+    spinBtn.style.fontWeight = 'bold';
+    spinBtn.style.fontSize = '1.2em';
+    spinBtn.style.border = 'none';
+    spinBtn.style.borderRadius = '12px';
+    spinBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+    spinBtn.style.cursor = 'pointer';
+    spinBtn.style.letterSpacing = '2px';
+    spinBtn.style.textShadow = '0 1px 2px #fffbe6';
+    spinBtn.style.transition = 'transform 0.1s';
+    spinBtn.onmousedown = () => { spinBtn.style.transform = 'scale(0.97)'; };
+    spinBtn.onmouseup = () => { spinBtn.style.transform = 'scale(1)'; };
+    slotMachineOverlay.appendChild(spinBtn);
 
     // Reward display
     const rewardDiv = document.createElement('div');
@@ -768,9 +766,9 @@ function showSlotMachine() {
     rewardDiv.style.textShadow = '0 0 10px #000';
     slotMachineOverlay.appendChild(rewardDiv);
 
-    // Lever interaction (desktop & mobile)
-    lever.addEventListener('click', onLeverClick);
-    lever.addEventListener('touchstart', onLeverClick);
+    // Spin button interaction
+    spinBtn.addEventListener('click', onSpinClick);
+    spinBtn.addEventListener('touchstart', onSpinClick);
 }
 
 function hideSlotMachine() {
@@ -785,23 +783,15 @@ function hideSlotMachine() {
     }
 }
 
-function onLeverClick(e) {
+function onSpinClick(e) {
     if (leverIsAnimating) return;
     leverIsAnimating = true;
-    // Animate lever
-    let t = 0;
-    function leverAnim() {
-        t += 0.05;
-        leverMesh.rotation.y = Math.sin(t) * 0.7;
-        if (t < Math.PI) {
-            requestAnimationFrame(leverAnim);
-        } else {
-            leverMesh.rotation.y = 0;
-            // Start reel spin
-            spinReels();
-        }
-    }
-    leverAnim();
+    // Animate button
+    const btn = e.target;
+    btn.style.transform = 'scale(0.97)';
+    setTimeout(() => { btn.style.transform = 'scale(1)'; }, 120);
+    // Start reel spin
+    spinReels();
 }
 
 function spinReels() {
