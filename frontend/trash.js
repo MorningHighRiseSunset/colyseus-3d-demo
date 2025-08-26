@@ -15,84 +15,107 @@ function showSlotMachine() {
     slotMachineOverlay = document.createElement('div');
     slotMachineOverlay.id = 'slot-machine-overlay';
     slotMachineOverlay.style.position = 'fixed';
-    slotMachineOverlay.style.top = '50%';
+    slotMachineOverlay.style.top = '60%';
     slotMachineOverlay.style.right = '0';
     slotMachineOverlay.style.transform = 'translateY(-50%)';
-    slotMachineOverlay.style.width = '350px';
-    slotMachineOverlay.style.height = '500px';
-    slotMachineOverlay.style.background = 'rgba(0,0,0,0.8)';
+    slotMachineOverlay.style.width = '220px';
+    slotMachineOverlay.style.height = '320px';
+    slotMachineOverlay.style.background = 'rgba(30,34,44,0.95)';
     slotMachineOverlay.style.zIndex = '10050';
     slotMachineOverlay.style.display = 'flex';
-    slotMachineOverlay.style.justifyContent = 'center';
+    slotMachineOverlay.style.flexDirection = 'column';
+    slotMachineOverlay.style.justifyContent = 'flex-start';
     slotMachineOverlay.style.alignItems = 'center';
-    slotMachineOverlay.style.borderRadius = '20px 0 0 20px';
-    slotMachineOverlay.style.boxShadow = '0 0 20px #222';
+    slotMachineOverlay.style.borderRadius = '18px 0 0 18px';
+    slotMachineOverlay.style.boxShadow = '0 0 24px #222';
+    slotMachineOverlay.style.border = '2px solid #ffd700';
     document.body.appendChild(slotMachineOverlay);
 
-    // Three.js setup
-    slotMachineScene = new THREE.Scene();
-    slotMachineCamera = new THREE.PerspectiveCamera(75, 350/500, 0.1, 1000);
-    slotMachineRenderer = new THREE.WebGLRenderer({ alpha: true });
-    slotMachineRenderer.setSize(350, 500);
-    slotMachineOverlay.appendChild(slotMachineRenderer.domElement);
+    // Slot machine header
+    const header = document.createElement('div');
+    header.textContent = '🎰 SLOT MACHINE';
+    header.style.color = '#ffd700';
+    header.style.fontWeight = 'bold';
+    header.style.fontSize = '1.2em';
+    header.style.margin = '12px 0 8px 0';
+    slotMachineOverlay.appendChild(header);
 
-    // Basic slot machine body
-    const geometry = new THREE.BoxGeometry(2, 3, 1);
-    const material = new THREE.MeshStandardMaterial({ color: 0x8888ff });
-    const body = new THREE.Mesh(geometry, material);
-    slotMachineScene.add(body);
+    // Slot window (reel area)
+    const slotWindow = document.createElement('div');
+    slotWindow.id = 'slot-window';
+    slotWindow.style.width = '180px';
+    slotWindow.style.height = '70px';
+    slotWindow.style.background = '#222a38';
+    slotWindow.style.border = '2px solid #ffd700';
+    slotWindow.style.borderRadius = '10px';
+    slotWindow.style.display = 'flex';
+    slotWindow.style.justifyContent = 'space-between';
+    slotWindow.style.alignItems = 'center';
+    slotWindow.style.overflow = 'hidden';
+    slotWindow.style.position = 'relative';
+    slotWindow.style.margin = '0 0 10px 0';
+    slotMachineOverlay.appendChild(slotWindow);
 
-    // Lever
-    const leverGeometry = new THREE.CylinderGeometry(0.07, 0.07, 1, 32);
-    const leverMaterial = new THREE.MeshStandardMaterial({ color: 0xffcc00 });
-    leverMesh = new THREE.Mesh(leverGeometry, leverMaterial);
-    leverMesh.position.set(1.1, 1.2, 0.5);
-    leverMesh.rotation.z = Math.PI / 2;
-    slotMachineScene.add(leverMesh);
-
-    // Reels (3 cylinders)
+    // Create 3 reels as columns
     reels = [];
     for (let i = 0; i < 3; i++) {
-        const reelGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.7, 32, 1, false);
-        const reelMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-        const reel = new THREE.Mesh(reelGeom, reelMat);
-        reel.position.set(-0.6 + i * 0.6, 0.5, 0.6);
-        slotMachineScene.add(reel);
-        reels.push(reel);
+        const reelDiv = document.createElement('div');
+        reelDiv.className = 'reel';
+        reelDiv.style.width = '54px';
+        reelDiv.style.height = '100%';
+        reelDiv.style.display = 'flex';
+        reelDiv.style.flexDirection = 'column';
+        reelDiv.style.alignItems = 'center';
+        reelDiv.style.justifyContent = 'flex-start';
+        reelDiv.style.position = 'relative';
+        slotWindow.appendChild(reelDiv);
+        reels.push(reelDiv);
     }
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-    slotMachineScene.add(ambientLight);
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
-    directionalLight.position.set(5, 10, 7.5);
-    slotMachineScene.add(directionalLight);
-
-    slotMachineCamera.position.z = 6;
-
-    // Animation loop
-    function animate() {
-        requestAnimationFrame(animate);
-        slotMachineRenderer.render(slotMachineScene, slotMachineCamera);
-    }
-    animate();
-
-    // Lever interaction (desktop & mobile)
-    slotMachineRenderer.domElement.addEventListener('click', onLeverClick);
-    slotMachineRenderer.domElement.addEventListener('touchstart', onLeverClick);
+    // Lever
+    const lever = document.createElement('div');
+    lever.id = 'slot-lever';
+    lever.style.width = '22px';
+    lever.style.height = '80px';
+    lever.style.background = 'linear-gradient(180deg,#ffd700 60%,#fffbe6 100%)';
+    lever.style.borderRadius = '12px';
+    lever.style.position = 'absolute';
+    lever.style.right = '-30px';
+    lever.style.top = '40px';
+    lever.style.cursor = 'pointer';
+    lever.style.boxShadow = '0 0 8px #222';
+    lever.style.display = 'flex';
+    lever.style.alignItems = 'flex-end';
+    lever.style.justifyContent = 'center';
+    // Knob
+    const knob = document.createElement('div');
+    knob.style.width = '28px';
+    knob.style.height = '28px';
+    knob.style.background = '#ff2222';
+    knob.style.borderRadius = '50%';
+    knob.style.position = 'absolute';
+    knob.style.bottom = '-14px';
+    knob.style.left = '-3px';
+    knob.style.boxShadow = '0 0 8px #222';
+    lever.appendChild(knob);
+    slotMachineOverlay.appendChild(lever);
 
     // Reward display
     const rewardDiv = document.createElement('div');
     rewardDiv.id = 'slot-machine-reward';
     rewardDiv.style.position = 'absolute';
-    rewardDiv.style.bottom = '30px';
+    rewardDiv.style.bottom = '18px';
     rewardDiv.style.left = '50%';
     rewardDiv.style.transform = 'translateX(-50%)';
     rewardDiv.style.color = '#fff';
-    rewardDiv.style.fontSize = '2em';
+    rewardDiv.style.fontSize = '1.5em';
     rewardDiv.style.fontWeight = 'bold';
     rewardDiv.style.textShadow = '0 0 10px #000';
     slotMachineOverlay.appendChild(rewardDiv);
+
+    // Lever interaction (desktop & mobile)
+    lever.addEventListener('click', onLeverClick);
+    lever.addEventListener('touchstart', onLeverClick);
 }
 
 function hideSlotMachine() {
@@ -127,21 +150,49 @@ function onLeverClick(e) {
 }
 
 function spinReels() {
-    let spinTime = [0, 0, 0];
-    let spinning = [true, true, true];
-    let start = performance.now();
     let symbols = ['🍒', '🍋', '🔔', '💎', '7'];
     reelValues = [0, 0, 0];
+    let spinning = [true, true, true];
+    let spinStart = performance.now();
+    let spinDuration = [1800, 2400, 3000];
+    let reelSymbolLists = [];
+    // Fill each reel with a shuffled list of symbols
+    for (let i = 0; i < 3; i++) {
+        let list = [];
+        for (let j = 0; j < 20; j++) {
+            list.push(symbols[Math.floor(Math.random() * symbols.length)]);
+        }
+        reelSymbolLists.push(list);
+    }
+    // Animate vertical scroll
     function spinAnim() {
         let now = performance.now();
         for (let i = 0; i < 3; i++) {
             if (spinning[i]) {
-                reels[i].rotation.x += 0.3 + i * 0.1;
-                if (now - start > 800 + i * 400) {
+                let progress = Math.min(1, (now - spinStart) / spinDuration[i]);
+                let offset = Math.floor(progress * (reelSymbolLists[i].length - 3));
+                // Clear reel
+                reels[i].innerHTML = '';
+                // Show 3 symbols per reel
+                for (let k = 0; k < 3; k++) {
+                    let symbol = reelSymbolLists[i][offset + k];
+                    let symbolDiv = document.createElement('div');
+                    symbolDiv.className = 'slot-symbol';
+                    symbolDiv.style.height = '22px';
+                    symbolDiv.style.display = 'flex';
+                    symbolDiv.style.alignItems = 'center';
+                    symbolDiv.style.justifyContent = 'center';
+                    symbolDiv.style.fontSize = '1.7em';
+                    symbolDiv.style.fontWeight = 'bold';
+                    symbolDiv.style.color = '#ffd700';
+                    symbolDiv.style.textShadow = '0 0 8px #222';
+                    symbolDiv.textContent = symbol;
+                    reels[i].appendChild(symbolDiv);
+                }
+                if (progress >= 1) {
                     spinning[i] = false;
-                    // Pick a random symbol
-                    reelValues[i] = Math.floor(Math.random() * symbols.length);
-                    reels[i].rotation.x = reelValues[i] * (2 * Math.PI / symbols.length);
+                    // Pick final symbol for result
+                    reelValues[i] = symbols.indexOf(reelSymbolLists[i][offset + 1]);
                 }
             }
         }
@@ -149,6 +200,9 @@ function spinReels() {
             requestAnimationFrame(spinAnim);
         } else {
             leverIsAnimating = false;
+            setTimeout(() => {
+                // Keep final symbols visible for a moment
+            }, 1800);
             showReward();
         }
     }
