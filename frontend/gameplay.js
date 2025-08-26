@@ -676,7 +676,7 @@ function showSlotMachine() {
     slotMachineOverlay.style.width = '350px';
     slotMachineOverlay.style.height = '500px';
     slotMachineOverlay.style.background = 'rgba(0,0,0,0.8)';
-    slotMachineOverlay.style.zIndex = '9999';
+    slotMachineOverlay.style.zIndex = '10050';
     slotMachineOverlay.style.display = 'flex';
     slotMachineOverlay.style.justifyContent = 'center';
     slotMachineOverlay.style.alignItems = 'center';
@@ -3487,6 +3487,19 @@ function showPropertyUI(position) {
     // Patch: Show slot machine for Hard Rock Hotel
     if (propertyName === "Hard Rock Hotel") {
         showSlotMachine();
+        // Ensure slot machine is only removed when property UI is closed
+        // Attach a close handler to the property popup
+        setTimeout(() => {
+            const overlay = document.querySelector('.property-overlay');
+            if (overlay) {
+                const closeBtn = overlay.querySelector('button, .close, .action-button.close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        hideSlotMachine();
+                    }, { once: true });
+                }
+            }
+        }, 100);
     } else {
         hideSlotMachine();
     }
