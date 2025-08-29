@@ -3,6 +3,7 @@ const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
 
+
 const app = express();
 app.use(cors({
   origin: ['https://metropoly-lv.netlify.app/'],
@@ -10,6 +11,17 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
 }));
+
+// Health check endpoint for Render and status
+app.get('/health', (req, res) => {
+  res.json({ status: 'online', time: new Date().toISOString() });
+});
+
+// Root endpoint for status
+app.get('/', (req, res) => {
+  res.send(`<h2>Metropoly Socket.IO Server is <span style='color:green'>ONLINE</span></h2><p>Time: ${new Date().toLocaleString()}</p>`);
+});
+
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -20,12 +32,24 @@ const io = new Server(server, {
   }
 });
 
+// Log when server wakes up (first request)
+let firstRequestLogged = false;
+app.use((req, res, next) => {
+  if (!firstRequestLogged) {
+    console.log(`[RENDER STATUS] Server received first request at ${new Date().toLocaleString()}`);
+    firstRequestLogged = true;
+  }
+  next();
+});
+
 
 const rooms = {};
 
 io.on('connection', (socket) => {
+  console.log(`[RENDER STATUS] New socket connection: ${socket.id} at ${new Date().toLocaleString()}`);
   // Send player number to each client when they join
   socket.on('joinRoom', ({ roomId, playerId, playerName }) => {
+    console.log(`[RENDER STATUS] Player ${playerName} (${playerId}) joined room ${roomId}`);
     if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {}, currentTurnIndex: 0 };
     // Preserve token if already chosen
     const prevToken = rooms[roomId].tokens[playerId] || (rooms[roomId].players[playerId] && rooms[roomId].players[playerId].token) || null;
@@ -58,6 +82,7 @@ io.on('connection', (socket) => {
   });
   // --- Metropoly Multiplayer Logic ---
   socket.on('joinMetropoly', ({ roomId, playerId, playerName }) => {
+    console.log(`[RENDER STATUS] Player ${playerName} (${playerId}) joined Metropoly room ${roomId}`);
     console.log('[BACKEND] joinMetropoly received:', { roomId, playerId, playerName });
     if (!rooms[roomId]) rooms[roomId] = { players: {}, positions: {}, tokens: {}, ready: {}, currentTurnIndex: 0 };
     // Preserve token if already chosen
@@ -134,6 +159,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnecting', () => {
+    console.log(`[RENDER STATUS] Socket disconnecting: ${socket.id}`);
     Object.keys(socket.rooms).forEach(roomId => {
       if (rooms[roomId] && rooms[roomId].players[socket.id]) {
         delete rooms[roomId].players[socket.id];
@@ -150,6 +176,7 @@ io.on('connection', (socket) => {
 
   // --- Ready-up and game start logic ---
   socket.on('playerReady', ({ roomId, playerId }) => {
+    console.log(`[RENDER STATUS] Player ready: ${playerId} in room ${roomId}`);
     console.log('[BACKEND] playerReady received:', { roomId, playerId });
     if (!rooms[roomId]) return;
     rooms[roomId].ready[playerId] = true;
@@ -163,6 +190,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('startGame', ({ roomId, playerId, playerName }) => {
+    console.log(`[RENDER STATUS] Game started by ${playerName} (${playerId}) in room ${roomId}`);
     if (!rooms[roomId]) return;
     // Only host can start
     const hostId = Object.keys(rooms[roomId].players)[0];
@@ -179,6 +207,7 @@ io.on('connection', (socket) => {
 
   // Token selection logic
   socket.on('selectToken', ({ roomId, playerId, token }) => {
+    console.log(`[RENDER STATUS] Player ${playerId} selected token ${token} in room ${roomId}`);
     console.log('[BACKEND] selectToken received:', { roomId, playerId, token });
     if (!rooms[roomId]) return;
     // Record chosen token
@@ -217,6 +246,7 @@ io.on('connection', (socket) => {
 
   // --- Room creation logic ---
   socket.on('createRoom', () => {
+    console.log(`[RENDER STATUS] Room created at ${new Date().toLocaleString()}`);
     const roomId = Math.random().toString(36).substr(2, 8);
     rooms[roomId] = { positions: {}, players: {}, tokens: {}, ready: {} };
     socket.emit('roomCreated', roomId);
