@@ -926,6 +926,196 @@ function onPropertyUIOpen(propertyName) {
 }
 // --- End Slot Machine Overlay ---
 
+// -- Begin Casino popups ---
+function showCasinoAnimation(propertyName) {
+    hideAllCasinoAnimations();
+    if (propertyName === "Hard Rock Hotel") {
+        showSlotMachine();
+        return;
+    }
+    if (propertyName === "Bellagio") {
+        showPokerAnimation();
+        return;
+    }
+    if (propertyName === "Caesars Palace") {
+        showCrapsAnimation();
+        return;
+    }
+    if (propertyName === "Santa Fe") {
+        showLowStakesPokerAnimation();
+        return;
+    }
+    if (propertyName === "Wynn") {
+        showBaccaratAnimation();
+        return;
+    }
+    if (propertyName === "The Cosmopolitan") {
+        showBlackjackAnimation();
+        return;
+    }
+}
+
+function hideAllCasinoAnimations() {
+    hideSlotMachine && hideSlotMachine();
+    hidePokerAnimation && hidePokerAnimation();
+    hideCrapsAnimation && hideCrapsAnimation();
+    hideLowStakesPokerAnimation && hideLowStakesPokerAnimation();
+    hideBaccaratAnimation && hideBaccaratAnimation();
+    hideBlackjackAnimation && hideBlackjackAnimation();
+}
+
+let pokerOverlay = null;
+let pokerChances = 3;
+function showPokerAnimation() {
+    if (pokerOverlay) return;
+    pokerChances = 3;
+    pokerOverlay = document.createElement('div');
+    pokerOverlay.id = 'poker-overlay';
+    pokerOverlay.style.position = 'fixed';
+    pokerOverlay.style.top = '60%';
+    pokerOverlay.style.right = '0';
+    pokerOverlay.style.transform = 'translateY(-50%)';
+    pokerOverlay.style.width = '240px';
+    pokerOverlay.style.height = '340px';
+    pokerOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
+    pokerOverlay.style.zIndex = '10050';
+    pokerOverlay.style.display = 'flex';
+    pokerOverlay.style.flexDirection = 'column';
+    pokerOverlay.style.justifyContent = 'flex-start';
+    pokerOverlay.style.alignItems = 'center';
+    pokerOverlay.style.borderRadius = '22px 0 0 22px';
+    pokerOverlay.style.boxShadow = '0 8px 32px #000a, 0 0 16px #ffd700';
+    pokerOverlay.style.border = '3px solid #ffd700';
+    pokerOverlay.style.borderTop = '6px solid #ffd700';
+    pokerOverlay.style.borderBottom = '6px solid #ffd700';
+    pokerOverlay.style.padding = '0 0 12px 0';
+    pokerOverlay.style.overflow = 'hidden';
+    const emojiDiv = document.createElement('div');
+    emojiDiv.textContent = '🃏';
+    emojiDiv.style.fontSize = '2.8em';
+    emojiDiv.style.margin = '10px 0 0 0';
+    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    pokerOverlay.appendChild(emojiDiv);
+    const header = document.createElement('div');
+    header.textContent = 'POKER TABLE';
+    header.style.color = '#ffd700';
+    header.style.fontWeight = 'bold';
+    header.style.fontSize = '1.2em';
+    header.style.margin = '12px 0 8px 0';
+    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    pokerOverlay.appendChild(header);
+    const pokerTable = document.createElement('div');
+    pokerTable.id = 'poker-table';
+    pokerTable.style.width = '180px';
+    pokerTable.style.height = '70px';
+    pokerTable.style.background = 'linear-gradient(135deg, #2d3748 60%, #232a36 100%)';
+    pokerTable.style.border = '2px solid #ffd700';
+    pokerTable.style.borderRadius = '10px';
+    pokerTable.style.display = 'flex';
+    pokerTable.style.justifyContent = 'center';
+    pokerTable.style.alignItems = 'center';
+    pokerTable.style.overflow = 'hidden';
+    pokerTable.style.position = 'relative';
+    pokerTable.style.margin = '0 0 10px 0';
+    pokerTable.style.boxShadow = '0 4px 24px #000a, 0 0 8px #ffd700';
+    pokerOverlay.appendChild(pokerTable);
+    const pokerBtn = document.createElement('button');
+    pokerBtn.textContent = 'DRAW HAND';
+    pokerBtn.style.margin = '16px auto 0 auto';
+    pokerBtn.style.width = '120px';
+    pokerBtn.style.height = '38px';
+    pokerBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+    pokerBtn.style.color = '#232a36';
+    pokerBtn.style.fontWeight = 'bold';
+    pokerBtn.style.fontSize = '1.2em';
+    pokerBtn.style.border = 'none';
+    pokerBtn.style.borderRadius = '12px';
+    pokerBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+    pokerBtn.style.cursor = 'pointer';
+    pokerBtn.style.letterSpacing = '2px';
+    pokerBtn.style.textShadow = '0 1px 2px #fffbe6';
+    pokerBtn.style.transition = 'transform 0.1s';
+    pokerBtn.onmousedown = () => { pokerBtn.style.transform = 'scale(0.97)'; };
+    pokerBtn.onmouseup = () => { pokerBtn.style.transform = 'scale(1)'; };
+    pokerOverlay.appendChild(pokerBtn);
+    const pokerReward = document.createElement('div');
+    pokerReward.id = 'poker-reward';
+    pokerReward.style.position = 'absolute';
+    pokerReward.style.bottom = '22px';
+    pokerReward.style.left = '50%';
+    pokerReward.style.transform = 'translateX(-50%)';
+    pokerReward.style.color = '#ffd700';
+    pokerReward.style.fontSize = '1.6em';
+    pokerReward.style.fontWeight = 'bold';
+    pokerReward.style.textShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    pokerReward.style.padding = '10px 24px';
+    pokerReward.style.background = 'rgba(30,34,44,0.92)';
+    pokerReward.style.borderRadius = '12px';
+    pokerReward.style.border = '2px solid #ffd700';
+    pokerReward.style.boxShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    pokerReward.style.opacity = '0';
+    pokerReward.style.transition = 'opacity 0.3s';
+    pokerOverlay.appendChild(pokerReward);
+    document.body.appendChild(pokerOverlay);
+    pokerBtn.addEventListener('click', onPokerDraw);
+    pokerBtn.addEventListener('touchstart', onPokerDraw);
+}
+function hidePokerAnimation() {
+    if (pokerOverlay) {
+        pokerOverlay.remove();
+        pokerOverlay = null;
+    }
+}
+function onPokerDraw() {
+    if (pokerChances <= 0) return;
+    pokerChances--;
+    const pokerTable = document.getElementById('poker-table');
+    const pokerReward = document.getElementById('poker-reward');
+    pokerTable.innerHTML = '';
+    // Simulate poker hand
+    const suits = ['♠', '♥', '♦', '♣'];
+    const values = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
+    let hand = [];
+    for (let i = 0; i < 5; i++) {
+        let card = values[Math.floor(Math.random() * values.length)] + suits[Math.floor(Math.random() * suits.length)];
+        hand.push(card);
+    }
+    hand.forEach(card => {
+        let cardDiv = document.createElement('div');
+        cardDiv.textContent = card;
+        cardDiv.style.display = 'inline-block';
+        cardDiv.style.margin = '0 4px';
+        cardDiv.style.fontSize = '1.5em';
+        cardDiv.style.color = '#ffd700';
+        cardDiv.style.textShadow = '0 2px 8px #000a';
+        cardDiv.style.padding = '4px 8px';
+        cardDiv.style.background = 'linear-gradient(90deg,#232a36 60%,#2d3748 100%)';
+        cardDiv.style.borderRadius = '6px';
+        cardDiv.style.border = '1.5px solid #ffd700';
+        pokerTable.appendChild(cardDiv);
+    });
+    // Simple win logic: if hand contains an Ace, win
+    let win = hand.some(card => card.startsWith('A'));
+    pokerReward.style.opacity = '1';
+    if (win) {
+        pokerReward.textContent = 'POKER WIN! +$500';
+        // Add reward to player's money
+        if (typeof currentPlayerId !== 'undefined' && Array.isArray(players)) {
+            const player = players.find(p => p.id === currentPlayerId);
+            if (player) {
+                player.money = (player.money || 0) + 500;
+                if (typeof updatePlayerMoneyUI === 'function') {
+                    updatePlayerMoneyUI(player.id, player.money);
+                }
+            }
+        }
+    } else {
+        pokerReward.textContent = 'No win!';
+    }
+    setTimeout(() => { pokerReward.style.opacity = '0'; }, 1800);
+}
+// -- End Casino popups ---
+
 // --- Multiplayer Initialization ---
 function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     console.log('[MP DEBUG] setupSocketIOMultiplayer called with:', { roomId, playerId, playerName });
