@@ -1,0 +1,17 @@
+name: Keep Alive Metropoly Backend
+
+on:
+  schedule:
+    - cron: '*/10 * * * *' # every 10 minutes
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run keep-alive
+        run: |
+          npm install
+          node frontend/keep-alive.js
+        env:
+          SERVER_URL: https://colyseus-3d-demo.onrender.com
