@@ -5,7 +5,7 @@ const { Server } = require('socket.io');
 
 const app = express();
 app.use(cors({
-  origin: ['https://colyseusdemo3d.netlify.app'],
+  origin: ['https://metropoly-lv.netlify.app/'],
   methods: ['GET', 'POST', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
   credentials: true
@@ -14,7 +14,7 @@ app.use(cors({
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: ['https://colyseusdemo3d.netlify.app'],
+    origin: ['https://metropoly-lv.netlify.app/'],
     methods: ['GET', 'POST', 'OPTIONS'],
     credentials: true
   }
