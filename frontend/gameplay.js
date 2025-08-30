@@ -750,8 +750,16 @@ function showSlotMachine() {
     const spinBtn = document.createElement('button');
     spinBtn.textContent = 'SPIN';
     spinBtn.style.margin = '16px auto 0 auto';
-    spinBtn.style.width = '120px';
-    spinBtn.style.height = '38px';
+    spinBtn.style.width = '210px';
+    spinBtn.style.height = '64px';
+    // Instructions
+    const instructions = document.createElement('div');
+    instructions.style.color = '#fff';
+    instructions.style.fontSize = '0.95em';
+    instructions.style.margin = '8px 0 0 0';
+    instructions.style.textAlign = 'center';
+    instructions.innerHTML = '<b>How to Play Slots:</b><br>Set your bet, spin the reels. Match 2 or 3 symbols to win!';
+    slotMachineOverlay.appendChild(instructions);
     spinBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
     spinBtn.style.color = '#232a36';
     spinBtn.style.fontWeight = 'bold';
@@ -810,7 +818,8 @@ function showSlotMachine() {
 
 function hideSlotMachine() {
     if (slotMachineOverlay) {
-        slotMachineOverlay.style.display = 'none';
+        slotMachineOverlay.remove();
+        slotMachineOverlay = null;
     }
 }
 
@@ -976,7 +985,7 @@ function showCrapsAnimation() {
     crapsOverlay.style.top = '50%';
     crapsOverlay.style.right = '0';
     crapsOverlay.style.transform = 'translateY(-50%)';
-    crapsOverlay.style.width = '340px';
+    crapsOverlay.style.width = '340px';     
     crapsOverlay.style.height = '420px';
     crapsOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     crapsOverlay.style.zIndex = '10050';
@@ -1015,6 +1024,14 @@ function showCrapsAnimation() {
     tableText.style.margin = '6px 0 0 0';
     table.appendChild(tableText);
     crapsOverlay.appendChild(table);
+    // Instructions
+    const instructions = document.createElement('div');
+    instructions.style.color = '#fff';
+    instructions.style.fontSize = '0.95em';
+    instructions.style.margin = '0 0 8px 0';
+    instructions.style.textAlign = 'center';
+    instructions.innerHTML = '<b>How to Play Craps:</b><br>Roll two dice. 7 or 11 wins, 2/3/12 loses. Any other number sets the "point"; roll the point again before a 7 to win.';
+    crapsOverlay.appendChild(instructions);
 
     // Chips and bet
     const chipsDiv = document.createElement('div');
@@ -1193,7 +1210,8 @@ function showCrapsAnimation() {
 }
 function hideCrapsAnimation() {
     if (crapsOverlay) {
-        crapsOverlay.style.display = 'none';
+        crapsOverlay.remove();
+        crapsOverlay = null;
     }
 }
 
@@ -1228,6 +1246,37 @@ function showRouletteAnimation() {
     rouletteOverlay.style.borderBottom = '6px solid #ffd700';
     rouletteOverlay.style.padding = '0 0 12px 0';
     rouletteOverlay.style.overflow = 'hidden';
+
+    // Instructions
+    const instructions = document.createElement('div');
+    instructions.style.color = '#fff';
+    instructions.style.fontSize = '0.95em';
+    instructions.style.margin = '8px 0 0 0';
+    instructions.style.textAlign = 'center';
+    instructions.innerHTML = '<b>How to Play Roulette:</b><br>Pick Red, Black, or Green (0). Spin the wheel. Red/Black pays 2x, Green pays 18x.';
+    rouletteOverlay.appendChild(instructions);
+
+    // Close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = '✖';
+    closeBtn.style.position = 'absolute';
+    closeBtn.style.top = '10px';
+    closeBtn.style.right = '14px';
+    closeBtn.style.width = '32px';
+    closeBtn.style.height = '32px';
+    closeBtn.style.background = '#ffd700';
+    closeBtn.style.color = '#232a36';
+    closeBtn.style.fontWeight = 'bold';
+    closeBtn.style.fontSize = '1.3em';
+    closeBtn.style.border = 'none';
+    closeBtn.style.borderRadius = '50%';
+    closeBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.onclick = function() {
+        rouletteOverlay.remove();
+        rouletteOverlay = null;
+    };
+    rouletteOverlay.appendChild(closeBtn);
 
     // Chips and bet
     const chipsDiv = document.createElement('div');
@@ -1369,18 +1418,25 @@ function showRouletteAnimation() {
             ctx.save();
             ctx.translate(90,90);
             ctx.rotate((start+end)/2-Math.PI/2);
-            ctx.font = 'bold 13px sans-serif';
-            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 15px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
+            if(colors[i]==='red') ctx.fillStyle = '#fff';
+            else if(colors[i]==='black') ctx.fillStyle = '#ffd700';
+            else ctx.fillStyle = '#222';
+            ctx.strokeStyle = '#ffd700';
+            ctx.lineWidth = 2;
+            ctx.strokeText(numbers[i], 60, 0);
             ctx.fillText(numbers[i], 60, 0);
             ctx.restore();
         }
-        // Center
         ctx.beginPath();
         ctx.arc(90,90,30,0,2*Math.PI);
         ctx.fillStyle = '#ffd700';
         ctx.fill();
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#232a36';
+        ctx.stroke();
     }
     drawWheel();
 
@@ -1438,7 +1494,8 @@ function showRouletteAnimation() {
 }
 function hideRouletteAnimation() {
     if (rouletteOverlay) {
-        rouletteOverlay.style.display = 'none';
+        rouletteOverlay.remove();
+        rouletteOverlay = null;
     }
 }
 
@@ -1679,7 +1736,6 @@ function hideBaccaratAnimation() {
         baccaratOverlay.style.display = 'none';
     }
 }
-
 
 // --- Improved Blackjack Popup ---
 let blackjackOverlay = null;
