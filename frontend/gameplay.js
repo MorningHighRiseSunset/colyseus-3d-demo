@@ -677,6 +677,7 @@ function showSlotMachine() {
     slotMachineOverlay.style.transform = 'translateY(-50%)';
     slotMachineOverlay.style.width = '320px';
     slotMachineOverlay.style.height = '400px';
+    slotMachineOverlay.style.padding = '0 0 12px 0';
     slotMachineOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     slotMachineOverlay.style.zIndex = '10050';
     slotMachineOverlay.style.display = 'flex';
@@ -934,27 +935,29 @@ function onPropertyUIOpen(propertyName) {
 // -- Begin Casino popups ---
 function showCasinoAnimation(propertyName) {
     hideAllCasinoAnimations();
-    if (propertyName === "Santa Fe") {
+    // Robust, case-insensitive, trimmed property name mapping
+    const name = (propertyName || '').toLowerCase().trim();
+    if (name === 'santa fe') {
         showSlotMachine();
         return;
     }
-    if (propertyName === "Hard Rock Hotel") {
+    if (name === 'hard rock hotel' || name === 'hard rock') {
         showPokerAnimation();
         return;
     }
-    if (propertyName === "Bellagio") {
+    if (name === 'bellagio') {
         showCrapsAnimation();
         return;
     }
-    if (propertyName === "Caesars Palace") {
+    if (name === 'caesars palace' || name === 'caesars') {
         showRouletteAnimation();
         return;
     }
-    if (propertyName === "Wynn") {
+    if (name === 'wynn') {
         showBaccaratAnimation();
         return;
     }
-    if (propertyName === "The Cosmopolitan") {
+    if (name === 'the cosmopolitan' || name === 'cosmopolitan') {
         showBlackjackAnimation();
         return;
     }
@@ -985,8 +988,8 @@ function showCrapsAnimation() {
     crapsOverlay.style.top = '50%';
     crapsOverlay.style.right = '0';
     crapsOverlay.style.transform = 'translateY(-50%)';
-    crapsOverlay.style.width = '340px';     
-    crapsOverlay.style.height = '420px';
+    crapsOverlay.style.width = '320px';
+    crapsOverlay.style.height = '400px';
     crapsOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     crapsOverlay.style.zIndex = '10050';
     crapsOverlay.style.display = 'flex';
@@ -1401,8 +1404,12 @@ function showRouletteAnimation() {
     // Draw wheel
     const canvas = document.getElementById('roulette-canvas');
     const ctx = canvas.getContext('2d');
-    const numbers = [0, ...Array.from({length:36}, (_,i)=>i+1)];
-    const colors = ["green", ...Array.from({length:36}, (_,i)=>i%2===0?"black":"red")];
+    // Realistic roulette wheel number order (European single zero)
+    const numbers = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+    // Assign colors: 0 is green, then alternate red/black in correct order
+    const colorMap = {
+        0: 'green', 32: 'red', 15: 'black', 19: 'red', 4: 'black', 21: 'red', 2: 'black', 25: 'red', 17: 'black', 34: 'red', 6: 'black', 27: 'red', 13: 'black', 36: 'red', 11: 'black', 30: 'red', 8: 'black', 23: 'red', 10: 'black', 5: 'red', 24: 'black', 16: 'red', 33: 'black', 1: 'red', 20: 'black', 14: 'red', 31: 'black', 9: 'red', 22: 'black', 18: 'red', 29: 'black', 7: 'red', 28: 'black', 12: 'red', 35: 'black', 3: 'red', 26: 'black'
+    };
     function drawWheel(angle=0) {
         ctx.clearRect(0,0,180,180);
         const n = numbers.length;
@@ -1413,7 +1420,7 @@ function showRouletteAnimation() {
             ctx.moveTo(90,90);
             ctx.arc(90,90,85,start,end);
             ctx.closePath();
-            ctx.fillStyle = colors[i];
+            ctx.fillStyle = colorMap[numbers[i]];
             ctx.fill();
             ctx.save();
             ctx.translate(90,90);
@@ -1421,15 +1428,16 @@ function showRouletteAnimation() {
             ctx.font = 'bold 15px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            if(colors[i]==='red') ctx.fillStyle = '#fff';
-            else if(colors[i]==='black') ctx.fillStyle = '#ffd700';
-            else ctx.fillStyle = '#222';
+            // Number color: white for red/black, green for 0
+            if(colorMap[numbers[i]]==='red'||colorMap[numbers[i]]==='black') ctx.fillStyle = '#fff';
+            else ctx.fillStyle = '#43a047';
             ctx.strokeStyle = '#ffd700';
             ctx.lineWidth = 2;
             ctx.strokeText(numbers[i], 60, 0);
             ctx.fillText(numbers[i], 60, 0);
             ctx.restore();
         }
+        // Draw center
         ctx.beginPath();
         ctx.arc(90,90,30,0,2*Math.PI);
         ctx.fillStyle = '#ffd700';
@@ -1449,6 +1457,7 @@ function showRouletteAnimation() {
         let totalSpin = 0;
         const n = numbers.length;
         const targetIdx = Math.floor(Math.random()*n);
+        // Target angle: pointer is at top, so 0 is at top, so rotate so that the target number lands at the pointer
         const targetAngle = 2*Math.PI*(1 - targetIdx/n) + Math.PI/2;
         let spinning = true;
         function animate() {
@@ -1470,7 +1479,7 @@ function showRouletteAnimation() {
 
     function resolveRouletteResult(idx) {
         const winNumber = numbers[idx];
-        const winColor = colors[idx];
+        const winColor = colorMap[winNumber];
         let win = false;
         let payout = 0;
         if (rouletteState.betType === 'red' && winColor === 'red') {
@@ -2120,7 +2129,8 @@ function showPokerAnimation() {
     betDiv.innerHTML = `<span style="color:#ffd700;">Bet: </span> <button id="poker-bet-minus" style="margin:0 4px;">-</button><span id="poker-bet" style="color:#fff;">${pokerState.bet}</span><button id="poker-bet-plus" style="margin:0 4px;">+</button>`;
     pokerOverlay.appendChild(betDiv);
 
-    // Poker table
+
+    // Poker table (hand display)
     const pokerTable = document.createElement('div');
     pokerTable.id = 'poker-table';
     pokerTable.style.width = '220px';
@@ -2133,14 +2143,14 @@ function showPokerAnimation() {
     pokerTable.style.alignItems = 'center';
     pokerTable.style.overflow = 'hidden';
     pokerTable.style.position = 'relative';
-    pokerTable.style.margin = '18px 0 10px 0';
+    pokerTable.style.margin = '24px 0 18px 0';
     pokerTable.style.boxShadow = '0 4px 24px #000a, 0 0 8px #ffd700';
     pokerOverlay.appendChild(pokerTable);
 
-    // Draw button
+    // Draw button (moved below pokerTable)
     const pokerBtn = document.createElement('button');
     pokerBtn.textContent = 'DRAW HAND';
-    pokerBtn.style.margin = '16px auto 0 auto';
+    pokerBtn.style.margin = '0 auto 0 auto';
     pokerBtn.style.width = '120px';
     pokerBtn.style.height = '38px';
     pokerBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
