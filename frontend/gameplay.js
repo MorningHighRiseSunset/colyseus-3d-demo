@@ -656,28 +656,27 @@ function getTokenHeight(tokenName, defaultY = 2.5) {
     return defaultY;
 }
 
-// --- Slot Machine Overlay for Hard Rock ---
 
+// --- Improved Slot Machine Overlay ---
 let slotMachineOverlay = null;
-let slotMachineScene = null;
-let slotMachineCamera = null;
-let slotMachineRenderer = null;
-let leverMesh = null;
-let leverIsAnimating = false;
-let reels = [];
-let reelValues = [0, 0, 0];
-let playerReward = 0;
-
+let slotMachineState = null;
+let slotMachineReels = [];
+let slotMachineLeverAnimating = false;
+let slotMachineReelValues = [0, 0, 0];
 function showSlotMachine() {
-    if (slotMachineOverlay) return;
+    if (slotMachineOverlay) {
+        slotMachineOverlay.style.display = '';
+        return;
+    }
+    slotMachineState = { chips: 100, bet: 10 };
     slotMachineOverlay = document.createElement('div');
     slotMachineOverlay.id = 'slot-machine-overlay';
     slotMachineOverlay.style.position = 'fixed';
-    slotMachineOverlay.style.top = '60%';
+    slotMachineOverlay.style.top = '50%';
     slotMachineOverlay.style.right = '0';
     slotMachineOverlay.style.transform = 'translateY(-50%)';
-    slotMachineOverlay.style.width = '240px';
-    slotMachineOverlay.style.height = '340px';
+    slotMachineOverlay.style.width = '320px';
+    slotMachineOverlay.style.height = '400px';
     slotMachineOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     slotMachineOverlay.style.zIndex = '10050';
     slotMachineOverlay.style.display = 'flex';
@@ -691,48 +690,48 @@ function showSlotMachine() {
     slotMachineOverlay.style.borderBottom = '6px solid #ffd700';
     slotMachineOverlay.style.padding = '0 0 12px 0';
     slotMachineOverlay.style.overflow = 'hidden';
-    // Add slot machine emoji at the top for 3D effect
-    const emojiDiv = document.createElement('div');
-    emojiDiv.textContent = '🎰';
-    emojiDiv.style.fontSize = '2.8em';
-    emojiDiv.style.margin = '10px 0 0 0';
-    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    slotMachineOverlay.appendChild(emojiDiv);
-    document.body.appendChild(slotMachineOverlay);
 
-    // Slot machine header
-    const header = document.createElement('div');
-    header.textContent = 'SLOT MACHINE';
-    header.style.color = '#ffd700';
-    header.style.fontWeight = 'bold';
-    header.style.fontSize = '1.2em';
-    header.style.margin = '12px 0 8px 0';
-    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    slotMachineOverlay.appendChild(header);
+    // Chips and bet
+    const chipsDiv = document.createElement('div');
+    chipsDiv.style.display = 'flex';
+    chipsDiv.style.alignItems = 'center';
+    chipsDiv.style.justifyContent = 'center';
+    chipsDiv.style.margin = '10px 0 0 0';
+    chipsDiv.innerHTML = `<span style="font-size:1.2em;">💰</span> <span style="color:#ffd700;font-weight:bold;">Chips: </span> <span id="slot-chips" style="color:#fff;">${slotMachineState.chips}</span>`;
+    slotMachineOverlay.appendChild(chipsDiv);
+
+    // Bet controls
+    const betDiv = document.createElement('div');
+    betDiv.style.display = 'flex';
+    betDiv.style.alignItems = 'center';
+    betDiv.style.justifyContent = 'center';
+    betDiv.style.margin = '8px 0 0 0';
+    betDiv.innerHTML = `<span style="color:#ffd700;">Bet: </span> <button id="slot-bet-minus" style="margin:0 4px;">-</button><span id="slot-bet" style="color:#fff;">${slotMachineState.bet}</span><button id="slot-bet-plus" style="margin:0 4px;">+</button>`;
+    slotMachineOverlay.appendChild(betDiv);
 
     // Slot window (reel area)
     const slotWindow = document.createElement('div');
     slotWindow.id = 'slot-window';
-    slotWindow.style.width = '192px';
-    slotWindow.style.height = '74px';
-    slotWindow.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
+    slotWindow.style.width = '220px';
+    slotWindow.style.height = '90px';
+    slotWindow.style.background = 'radial-gradient(ellipse at center, #388e3c 80%, #145a32 100%)';
     slotWindow.style.border = '2px solid #ffd700';
-    slotWindow.style.borderRadius = '10px';
+    slotWindow.style.borderRadius = '16px';
     slotWindow.style.display = 'flex';
     slotWindow.style.justifyContent = 'space-between';
     slotWindow.style.alignItems = 'center';
     slotWindow.style.overflow = 'hidden';
     slotWindow.style.position = 'relative';
-    slotWindow.style.margin = '0 0 10px 0';
+    slotWindow.style.margin = '18px 0 10px 0';
     slotWindow.style.boxShadow = '0 4px 24px #000a, 0 0 8px #ffd700';
     slotMachineOverlay.appendChild(slotWindow);
 
     // Create 3 reels as columns
-    reels = [];
+    slotMachineReels = [];
     for (let i = 0; i < 3; i++) {
         const reelDiv = document.createElement('div');
         reelDiv.className = 'reel';
-        reelDiv.style.width = '56px';
+        reelDiv.style.width = '60px';
         reelDiv.style.height = '100%';
         reelDiv.style.display = 'flex';
         reelDiv.style.flexDirection = 'column';
@@ -744,7 +743,7 @@ function showSlotMachine() {
         reelDiv.style.boxShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
         reelDiv.style.margin = '0 4px';
         slotWindow.appendChild(reelDiv);
-        reels.push(reelDiv);
+        slotMachineReels.push(reelDiv);
     }
 
     // Spin button
@@ -764,8 +763,6 @@ function showSlotMachine() {
     spinBtn.style.letterSpacing = '2px';
     spinBtn.style.textShadow = '0 1px 2px #fffbe6';
     spinBtn.style.transition = 'transform 0.1s';
-    spinBtn.onmousedown = () => { spinBtn.style.transform = 'scale(0.97)'; };
-    spinBtn.onmouseup = () => { spinBtn.style.transform = 'scale(1)'; };
     slotMachineOverlay.appendChild(spinBtn);
 
     // Reward display
@@ -788,42 +785,42 @@ function showSlotMachine() {
     rewardDiv.style.transition = 'opacity 0.3s';
     slotMachineOverlay.appendChild(rewardDiv);
 
-    // Spin button interaction
-    spinBtn.addEventListener('click', onSpinClick);
-    spinBtn.addEventListener('touchstart', onSpinClick);
+    // Bet controls logic
+    document.getElementById('slot-bet-minus').onclick = function() {
+        if (slotMachineState.bet > 1) {
+            slotMachineState.bet--;
+            document.getElementById('slot-bet').textContent = slotMachineState.bet;
+        }
+    };
+    document.getElementById('slot-bet-plus').onclick = function() {
+        if (slotMachineState.bet < slotMachineState.chips) {
+            slotMachineState.bet++;
+            document.getElementById('slot-bet').textContent = slotMachineState.bet;
+        }
+    };
+
+    // Spin button logic
+    spinBtn.onclick = function() {
+        if (slotMachineLeverAnimating || slotMachineState.chips < slotMachineState.bet) return;
+        slotMachineLeverAnimating = true;
+        spinBtn.disabled = true;
+        spinSlotReels();
+    };
 }
 
 function hideSlotMachine() {
     if (slotMachineOverlay) {
-        slotMachineOverlay.remove();
-        slotMachineOverlay = null;
-        slotMachineScene = null;
-        slotMachineCamera = null;
-        slotMachineRenderer = null;
-        leverMesh = null;
-        reels = [];
+        slotMachineOverlay.style.display = 'none';
     }
 }
 
-function onSpinClick(e) {
-    if (leverIsAnimating) return;
-    leverIsAnimating = true;
-    // Animate button
-    const btn = e.target;
-    btn.style.transform = 'scale(0.97)';
-    setTimeout(() => { btn.style.transform = 'scale(1)'; }, 120);
-    // Start reel spin
-    spinReels();
-}
-
-function spinReels() {
+function spinSlotReels() {
     let symbols = ['🍒', '🍋', '🔔', '💎', '7'];
-    reelValues = [0, 0, 0];
+    slotMachineReelValues = [0, 0, 0];
     let spinning = [true, true, true];
     let spinStart = performance.now();
     let spinDuration = [1800, 2400, 3000];
     let reelSymbolLists = [];
-    // Fill each reel with a shuffled list of symbols
     for (let i = 0; i < 3; i++) {
         let list = [];
         for (let j = 0; j < 20; j++) {
@@ -831,16 +828,13 @@ function spinReels() {
         }
         reelSymbolLists.push(list);
     }
-    // Animate vertical scroll
     function spinAnim() {
         let now = performance.now();
         for (let i = 0; i < 3; i++) {
             if (spinning[i]) {
                 let progress = Math.min(1, (now - spinStart) / spinDuration[i]);
                 let offset = Math.floor(progress * (reelSymbolLists[i].length - 3));
-                // Clear reel
-                reels[i].innerHTML = '';
-                // Show 3 symbols per reel with spacing
+                slotMachineReels[i].innerHTML = '';
                 for (let k = 0; k < 3; k++) {
                     let symbol = reelSymbolLists[i][offset + k];
                     let symbolDiv = document.createElement('div');
@@ -855,43 +849,41 @@ function spinReels() {
                     symbolDiv.style.textShadow = '0 0 8px #222';
                     symbolDiv.style.margin = '4px 0';
                     symbolDiv.textContent = symbol;
-                    reels[i].appendChild(symbolDiv);
+                    slotMachineReels[i].appendChild(symbolDiv);
                 }
                 if (progress >= 1) {
                     spinning[i] = false;
-                    // Pick final symbol for result
-                    reelValues[i] = symbols.indexOf(reelSymbolLists[i][offset + 1]);
+                    slotMachineReelValues[i] = symbols.indexOf(reelSymbolLists[i][offset + 1]);
                 }
             }
         }
         if (spinning.some(s => s)) {
             requestAnimationFrame(spinAnim);
         } else {
-            leverIsAnimating = false;
+            slotMachineLeverAnimating = false;
             setTimeout(() => {
                 // Keep final symbols visible for a moment
             }, 1800);
-            showReward();
+            showSlotReward();
         }
     }
     spinAnim();
 }
 
-function showReward() {
-    // Simple reward logic: 3 matching = jackpot, 2 matching = small win, else lose
+function showSlotReward() {
     let rewardDiv = document.getElementById('slot-machine-reward');
     let reward = 0;
     rewardDiv.style.opacity = '1';
-    if (reelValues[0] === reelValues[1] && reelValues[1] === reelValues[2]) {
-        reward = 1000;
-        rewardDiv.textContent = '🎉 JACKPOT! +$1000 🎉';
-        rewardDiv.style.color = '#ffd700';
+    // 3 matching = jackpot, 2 matching = small win, else lose
+    if (slotMachineReelValues[0] === slotMachineReelValues[1] && slotMachineReelValues[1] === slotMachineReelValues[2]) {
+        reward = slotMachineState.bet * 20;
+        rewardDiv.textContent = `🎉 JACKPOT! +$${reward} 🎉`;
         rewardDiv.style.background = 'linear-gradient(90deg,#ffd700 60%,#fffbe6 100%)';
         rewardDiv.style.color = '#232a36';
         rewardDiv.style.boxShadow = '0 2px 12px #ffd700, 0 0 8px #fffbe6';
-    } else if (reelValues[0] === reelValues[1] || reelValues[1] === reelValues[2] || reelValues[0] === reelValues[2]) {
-        reward = 250;
-        rewardDiv.textContent = 'WIN! +$250';
+    } else if (slotMachineReelValues[0] === slotMachineReelValues[1] || slotMachineReelValues[1] === slotMachineReelValues[2] || slotMachineReelValues[0] === slotMachineReelValues[2]) {
+        reward = slotMachineState.bet * 4;
+        rewardDiv.textContent = `WIN! +$${reward}`;
         rewardDiv.style.background = 'linear-gradient(90deg,#66ff66 60%,#fffbe6 100%)';
         rewardDiv.style.color = '#232a36';
         rewardDiv.style.boxShadow = '0 2px 12px #66ff66, 0 0 8px #fffbe6';
@@ -902,13 +894,13 @@ function showReward() {
         rewardDiv.style.color = '#ffd700';
         rewardDiv.style.boxShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
     }
-    playerReward = reward;
+    slotMachineState.chips += reward - slotMachineState.bet;
+    document.getElementById('slot-chips').textContent = slotMachineState.chips;
     // Add reward to player's money
     if (typeof currentPlayerId !== 'undefined' && Array.isArray(players)) {
         const player = players.find(p => p.id === currentPlayerId);
         if (player) {
             player.money = (player.money || 0) + reward;
-            // Optionally update money UI here
             if (typeof updatePlayerMoneyUI === 'function') {
                 updatePlayerMoneyUI(player.id, player.money);
             }
@@ -916,6 +908,7 @@ function showReward() {
     }
     setTimeout(() => {
         rewardDiv.style.opacity = '0';
+        slotMachineOverlay.querySelector('button').disabled = false;
     }, 2200);
 }
 
@@ -966,18 +959,24 @@ function hideAllCasinoAnimations() {
     hideBaccaratAnimation && hideBaccaratAnimation();
     hideBlackjackAnimation && hideBlackjackAnimation();
 }
-// --- Craps Popup ---
+
+// --- Improved Craps Popup ---
 let crapsOverlay = null;
+let crapsState = null;
 function showCrapsAnimation() {
-    if (crapsOverlay) return;
+    if (crapsOverlay) {
+        crapsOverlay.style.display = '';
+        return;
+    }
+    crapsState = { point: null, phase: 'comeout', chips: 100, bet: 10 };
     crapsOverlay = document.createElement('div');
     crapsOverlay.id = 'craps-overlay';
     crapsOverlay.style.position = 'fixed';
-    crapsOverlay.style.top = '60%';
+    crapsOverlay.style.top = '50%';
     crapsOverlay.style.right = '0';
     crapsOverlay.style.transform = 'translateY(-50%)';
-    crapsOverlay.style.width = '240px';
-    crapsOverlay.style.height = '340px';
+    crapsOverlay.style.width = '320px';
+    crapsOverlay.style.height = '400px';
     crapsOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     crapsOverlay.style.zIndex = '10050';
     crapsOverlay.style.display = 'flex';
@@ -991,39 +990,80 @@ function showCrapsAnimation() {
     crapsOverlay.style.borderBottom = '6px solid #ffd700';
     crapsOverlay.style.padding = '0 0 12px 0';
     crapsOverlay.style.overflow = 'hidden';
-    const emojiDiv = document.createElement('div');
-    emojiDiv.textContent = '🎲';
-    emojiDiv.style.fontSize = '2.8em';
-    emojiDiv.style.margin = '10px 0 0 0';
-    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    crapsOverlay.appendChild(emojiDiv);
-    const header = document.createElement('div');
-    header.textContent = 'CRAPS TABLE';
-    header.style.color = '#ffd700';
-    header.style.fontWeight = 'bold';
-    header.style.fontSize = '1.2em';
-    header.style.margin = '12px 0 8px 0';
-    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    crapsOverlay.appendChild(header);
-    const diceBtn = document.createElement('button');
-    diceBtn.textContent = 'ROLL DICE';
-    diceBtn.style.margin = '16px auto 0 auto';
-    diceBtn.style.width = '120px';
-    diceBtn.style.height = '38px';
-    diceBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
-    diceBtn.style.color = '#232a36';
-    diceBtn.style.fontWeight = 'bold';
-    diceBtn.style.fontSize = '1.2em';
-    diceBtn.style.border = 'none';
-    diceBtn.style.borderRadius = '12px';
-    diceBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
-    diceBtn.style.cursor = 'pointer';
-    diceBtn.style.letterSpacing = '2px';
-    diceBtn.style.textShadow = '0 1px 2px #fffbe6';
-    diceBtn.style.transition = 'transform 0.1s';
-    diceBtn.onmousedown = () => { diceBtn.style.transform = 'scale(0.97)'; };
-    diceBtn.onmouseup = () => { diceBtn.style.transform = 'scale(1)'; };
-    crapsOverlay.appendChild(diceBtn);
+
+    // Table background
+    const table = document.createElement('div');
+    table.style.width = '90%';
+    table.style.height = '120px';
+    table.style.background = 'radial-gradient(ellipse at center, #2ecc40 80%, #145a32 100%)';
+    table.style.border = '2px solid #ffd700';
+    table.style.borderRadius = '18px';
+    table.style.margin = '18px 0 8px 0';
+    table.style.display = 'flex';
+    table.style.flexDirection = 'column';
+    table.style.alignItems = 'center';
+    table.style.justifyContent = 'center';
+    crapsOverlay.appendChild(table);
+
+    // Chips and bet
+    const chipsDiv = document.createElement('div');
+    chipsDiv.style.display = 'flex';
+    chipsDiv.style.alignItems = 'center';
+    chipsDiv.style.justifyContent = 'center';
+    chipsDiv.style.marginBottom = '6px';
+    chipsDiv.innerHTML = `<span style="font-size:1.2em;">💰</span> <span style="color:#ffd700;font-weight:bold;">Chips: </span> <span id="craps-chips" style="color:#fff;">${crapsState.chips}</span>`;
+    crapsOverlay.appendChild(chipsDiv);
+
+    // Bet controls
+    const betDiv = document.createElement('div');
+    betDiv.style.display = 'flex';
+    betDiv.style.alignItems = 'center';
+    betDiv.style.justifyContent = 'center';
+    betDiv.style.marginBottom = '8px';
+    betDiv.innerHTML = `<span style="color:#ffd700;">Bet: </span> <button id="craps-bet-minus" style="margin:0 4px;">-</button><span id="craps-bet" style="color:#fff;">${crapsState.bet}</span><button id="craps-bet-plus" style="margin:0 4px;">+</button>`;
+    crapsOverlay.appendChild(betDiv);
+
+    // Dice area
+    const diceArea = document.createElement('div');
+    diceArea.style.display = 'flex';
+    diceArea.style.justifyContent = 'center';
+    diceArea.style.alignItems = 'center';
+    diceArea.style.margin = '10px 0 8px 0';
+    diceArea.style.height = '60px';
+    diceArea.innerHTML = `<span id="craps-die1" style="font-size:2.5em;">🎲</span><span style="width:18px;"></span><span id="craps-die2" style="font-size:2.5em;">🎲</span>`;
+    crapsOverlay.appendChild(diceArea);
+
+    // Status
+    const statusDiv = document.createElement('div');
+    statusDiv.id = 'craps-status';
+    statusDiv.style.color = '#ffd700';
+    statusDiv.style.fontWeight = 'bold';
+    statusDiv.style.fontSize = '1.1em';
+    statusDiv.style.margin = '8px 0 8px 0';
+    statusDiv.style.textAlign = 'center';
+    statusDiv.textContent = 'Come Out Roll! (7/11 wins, 2/3/12 loses)';
+    crapsOverlay.appendChild(statusDiv);
+
+    // Roll button
+    const rollBtn = document.createElement('button');
+    rollBtn.textContent = 'ROLL DICE';
+    rollBtn.style.margin = '10px auto 0 auto';
+    rollBtn.style.width = '120px';
+    rollBtn.style.height = '38px';
+    rollBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+    rollBtn.style.color = '#232a36';
+    rollBtn.style.fontWeight = 'bold';
+    rollBtn.style.fontSize = '1.2em';
+    rollBtn.style.border = 'none';
+    rollBtn.style.borderRadius = '12px';
+    rollBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+    rollBtn.style.cursor = 'pointer';
+    rollBtn.style.letterSpacing = '2px';
+    rollBtn.style.textShadow = '0 1px 2px #fffbe6';
+    rollBtn.style.transition = 'transform 0.1s';
+    crapsOverlay.appendChild(rollBtn);
+
+    // Result
     const resultDiv = document.createElement('div');
     resultDiv.id = 'craps-result';
     resultDiv.style.position = 'absolute';
@@ -1042,39 +1082,111 @@ function showCrapsAnimation() {
     resultDiv.style.opacity = '0';
     resultDiv.style.transition = 'opacity 0.3s';
     crapsOverlay.appendChild(resultDiv);
+
     document.body.appendChild(crapsOverlay);
-    diceBtn.addEventListener('click', function() {
-        const roll1 = Math.floor(Math.random() * 6) + 1;
-        const roll2 = Math.floor(Math.random() * 6) + 1;
-        const total = roll1 + roll2;
-        resultDiv.style.opacity = '1';
-        if (total === 7 || total === 11) {
-            resultDiv.textContent = 'WIN! +$400';
-        } else {
-            resultDiv.textContent = 'No win!';
+
+    // Bet controls logic
+    document.getElementById('craps-bet-minus').onclick = function() {
+        if (crapsState.bet > 1) {
+            crapsState.bet--;
+            document.getElementById('craps-bet').textContent = crapsState.bet;
         }
-        setTimeout(() => { resultDiv.style.opacity = '0'; }, 1800);
-    });
+    };
+    document.getElementById('craps-bet-plus').onclick = function() {
+        if (crapsState.bet < crapsState.chips) {
+            crapsState.bet++;
+            document.getElementById('craps-bet').textContent = crapsState.bet;
+        }
+    };
+
+    // Dice roll logic
+    rollBtn.onclick = function() {
+        rollBtn.disabled = true;
+        // Animate dice
+        let animCount = 0;
+        const die1 = document.getElementById('craps-die1');
+        const die2 = document.getElementById('craps-die2');
+        let roll1 = 1, roll2 = 1;
+        const anim = setInterval(() => {
+            roll1 = Math.floor(Math.random() * 6) + 1;
+            roll2 = Math.floor(Math.random() * 6) + 1;
+            die1.textContent = ["⚀","⚁","⚂","⚃","⚄","⚅"][roll1-1];
+            die2.textContent = ["⚀","⚁","⚂","⚃","⚄","⚅"][roll2-1];
+            animCount++;
+            if (animCount > 12) {
+                clearInterval(anim);
+                setTimeout(() => resolveCrapsRoll(roll1, roll2), 300);
+            }
+        }, 60);
+    };
+
+    function resolveCrapsRoll(roll1, roll2) {
+        const total = roll1 + roll2;
+        let win = false, lose = false;
+        let msg = '';
+        if (crapsState.phase === 'comeout') {
+            if (total === 7 || total === 11) {
+                win = true;
+                msg = `You rolled ${total}! WIN!`;
+                crapsState.chips += crapsState.bet;
+            } else if ([2,3,12].includes(total)) {
+                lose = true;
+                msg = `You rolled ${total}. Craps! You lose.`;
+                crapsState.chips -= crapsState.bet;
+            } else {
+                crapsState.point = total;
+                crapsState.phase = 'point';
+                msg = `Point is set to ${total}. Roll again!`;
+            }
+        } else if (crapsState.phase === 'point') {
+            if (total === crapsState.point) {
+                win = true;
+                msg = `You hit your point (${total})! WIN!`;
+                crapsState.chips += crapsState.bet;
+                crapsState.phase = 'comeout';
+                crapsState.point = null;
+            } else if (total === 7) {
+                lose = true;
+                msg = `You rolled a 7. You lose.`;
+                crapsState.chips -= crapsState.bet;
+                crapsState.phase = 'comeout';
+                crapsState.point = null;
+            } else {
+                msg = `You rolled ${total}. Keep rolling for your point (${crapsState.point})!`;
+            }
+        }
+        document.getElementById('craps-chips').textContent = crapsState.chips;
+        statusDiv.textContent = crapsState.phase === 'comeout' ? 'Come Out Roll! (7/11 wins, 2/3/12 loses)' : `Point: ${crapsState.point} (Roll point to win, 7 to lose)`;
+        resultDiv.textContent = msg;
+        resultDiv.style.opacity = '1';
+        setTimeout(() => { resultDiv.style.opacity = '0'; }, 2000);
+        rollBtn.disabled = false;
+    }
 }
 function hideCrapsAnimation() {
     if (crapsOverlay) {
-        crapsOverlay.remove();
-        crapsOverlay = null;
+        crapsOverlay.style.display = 'none';
     }
 }
 
-// --- Roulette Popup ---
+
+// --- Improved Roulette Popup ---
 let rouletteOverlay = null;
+let rouletteState = null;
 function showRouletteAnimation() {
-    if (rouletteOverlay) return;
+    if (rouletteOverlay) {
+        rouletteOverlay.style.display = '';
+        return;
+    }
+    rouletteState = { chips: 100, bet: 10, betType: 'red' };
     rouletteOverlay = document.createElement('div');
     rouletteOverlay.id = 'roulette-overlay';
     rouletteOverlay.style.position = 'fixed';
-    rouletteOverlay.style.top = '60%';
+    rouletteOverlay.style.top = '50%';
     rouletteOverlay.style.right = '0';
     rouletteOverlay.style.transform = 'translateY(-50%)';
-    rouletteOverlay.style.width = '240px';
-    rouletteOverlay.style.height = '340px';
+    rouletteOverlay.style.width = '320px';
+    rouletteOverlay.style.height = '400px';
     rouletteOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     rouletteOverlay.style.zIndex = '10050';
     rouletteOverlay.style.display = 'flex';
@@ -1088,20 +1200,51 @@ function showRouletteAnimation() {
     rouletteOverlay.style.borderBottom = '6px solid #ffd700';
     rouletteOverlay.style.padding = '0 0 12px 0';
     rouletteOverlay.style.overflow = 'hidden';
-    const emojiDiv = document.createElement('div');
-    emojiDiv.textContent = '🎡';
-    emojiDiv.style.fontSize = '2.8em';
-    emojiDiv.style.margin = '10px 0 0 0';
-    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    rouletteOverlay.appendChild(emojiDiv);
-    const header = document.createElement('div');
-    header.textContent = 'ROULETTE WHEEL';
-    header.style.color = '#ffd700';
-    header.style.fontWeight = 'bold';
-    header.style.fontSize = '1.2em';
-    header.style.margin = '12px 0 8px 0';
-    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    rouletteOverlay.appendChild(header);
+
+    // Chips and bet
+    const chipsDiv = document.createElement('div');
+    chipsDiv.style.display = 'flex';
+    chipsDiv.style.alignItems = 'center';
+    chipsDiv.style.justifyContent = 'center';
+    chipsDiv.style.margin = '10px 0 0 0';
+    chipsDiv.innerHTML = `<span style="font-size:1.2em;">💰</span> <span style="color:#ffd700;font-weight:bold;">Chips: </span> <span id="roulette-chips" style="color:#fff;">${rouletteState.chips}</span>`;
+    rouletteOverlay.appendChild(chipsDiv);
+
+    // Bet controls
+    const betDiv = document.createElement('div');
+    betDiv.style.display = 'flex';
+    betDiv.style.alignItems = 'center';
+    betDiv.style.justifyContent = 'center';
+    betDiv.style.margin = '8px 0 0 0';
+    betDiv.innerHTML = `<span style="color:#ffd700;">Bet: </span> <button id="roulette-bet-minus" style="margin:0 4px;">-</button><span id="roulette-bet" style="color:#fff;">${rouletteState.bet}</span><button id="roulette-bet-plus" style="margin:0 4px;">+</button>`;
+    rouletteOverlay.appendChild(betDiv);
+
+    // Bet type selection
+    const betTypeDiv = document.createElement('div');
+    betTypeDiv.style.display = 'flex';
+    betTypeDiv.style.alignItems = 'center';
+    betTypeDiv.style.justifyContent = 'center';
+    betTypeDiv.style.margin = '8px 0 0 0';
+    betTypeDiv.innerHTML = `
+        <button id="roulette-bet-red" style="background:#e53935;color:#fff;font-weight:bold;border:none;border-radius:8px;padding:4px 12px;margin:0 4px;box-shadow:0 1px 4px #0007;">Red</button>
+        <button id="roulette-bet-black" style="background:#222;color:#fff;font-weight:bold;border:none;border-radius:8px;padding:4px 12px;margin:0 4px;box-shadow:0 1px 4px #0007;">Black</button>
+        <button id="roulette-bet-green" style="background:#43a047;color:#fff;font-weight:bold;border:none;border-radius:8px;padding:4px 12px;margin:0 4px;box-shadow:0 1px 4px #0007;">Green (0)</button>
+    `;
+    rouletteOverlay.appendChild(betTypeDiv);
+
+    // Wheel area
+    const wheelArea = document.createElement('div');
+    wheelArea.style.width = '180px';
+    wheelArea.style.height = '180px';
+    wheelArea.style.margin = '18px 0 0 0';
+    wheelArea.style.position = 'relative';
+    wheelArea.style.display = 'flex';
+    wheelArea.style.alignItems = 'center';
+    wheelArea.style.justifyContent = 'center';
+    wheelArea.innerHTML = `<canvas id="roulette-canvas" width="180" height="180" style="border-radius:50%;box-shadow:0 2px 12px #000a;"></canvas><div id="roulette-pointer" style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:2em;">▼</div>`;
+    rouletteOverlay.appendChild(wheelArea);
+
+    // Spin button
     const spinBtn = document.createElement('button');
     spinBtn.textContent = 'SPIN WHEEL';
     spinBtn.style.margin = '16px auto 0 auto';
@@ -1118,9 +1261,9 @@ function showRouletteAnimation() {
     spinBtn.style.letterSpacing = '2px';
     spinBtn.style.textShadow = '0 1px 2px #fffbe6';
     spinBtn.style.transition = 'transform 0.1s';
-    spinBtn.onmousedown = () => { spinBtn.style.transform = 'scale(0.97)'; };
-    spinBtn.onmouseup = () => { spinBtn.style.transform = 'scale(1)'; };
     rouletteOverlay.appendChild(spinBtn);
+
+    // Result
     const resultDiv = document.createElement('div');
     resultDiv.id = 'roulette-result';
     resultDiv.style.position = 'absolute';
@@ -1139,38 +1282,153 @@ function showRouletteAnimation() {
     resultDiv.style.opacity = '0';
     resultDiv.style.transition = 'opacity 0.3s';
     rouletteOverlay.appendChild(resultDiv);
+
     document.body.appendChild(rouletteOverlay);
-    spinBtn.addEventListener('click', function() {
-        const numbers = [0, ...Array.from({length:36}, (_,i)=>i+1)];
-        const winNumber = numbers[Math.floor(Math.random()*numbers.length)];
-        resultDiv.style.opacity = '1';
-        if (winNumber === 0 || winNumber % 2 === 0) {
-            resultDiv.textContent = `WIN! +$300 (Number: ${winNumber})`;
-        } else {
-            resultDiv.textContent = `No win! (Number: ${winNumber})`;
+
+    // Bet controls logic
+    document.getElementById('roulette-bet-minus').onclick = function() {
+        if (rouletteState.bet > 1) {
+            rouletteState.bet--;
+            document.getElementById('roulette-bet').textContent = rouletteState.bet;
         }
-        setTimeout(() => { resultDiv.style.opacity = '0'; }, 1800);
-    });
+    };
+    document.getElementById('roulette-bet-plus').onclick = function() {
+        if (rouletteState.bet < rouletteState.chips) {
+            rouletteState.bet++;
+            document.getElementById('roulette-bet').textContent = rouletteState.bet;
+        }
+    };
+    document.getElementById('roulette-bet-red').onclick = function() {
+        rouletteState.betType = 'red';
+        this.style.outline = '3px solid #ffd700';
+        document.getElementById('roulette-bet-black').style.outline = '';
+        document.getElementById('roulette-bet-green').style.outline = '';
+    };
+    document.getElementById('roulette-bet-black').onclick = function() {
+        rouletteState.betType = 'black';
+        this.style.outline = '3px solid #ffd700';
+        document.getElementById('roulette-bet-red').style.outline = '';
+        document.getElementById('roulette-bet-green').style.outline = '';
+    };
+    document.getElementById('roulette-bet-green').onclick = function() {
+        rouletteState.betType = 'green';
+        this.style.outline = '3px solid #ffd700';
+        document.getElementById('roulette-bet-red').style.outline = '';
+        document.getElementById('roulette-bet-black').style.outline = '';
+    };
+    document.getElementById('roulette-bet-red').style.outline = '3px solid #ffd700';
+
+    // Draw wheel
+    const canvas = document.getElementById('roulette-canvas');
+    const ctx = canvas.getContext('2d');
+    const numbers = [0, ...Array.from({length:36}, (_,i)=>i+1)];
+    const colors = ["green", ...Array.from({length:36}, (_,i)=>i%2===0?"black":"red")];
+    function drawWheel(angle=0) {
+        ctx.clearRect(0,0,180,180);
+        const n = numbers.length;
+        for(let i=0;i<n;i++){
+            const start = angle + (i/n)*2*Math.PI;
+            const end = angle + ((i+1)/n)*2*Math.PI;
+            ctx.beginPath();
+            ctx.moveTo(90,90);
+            ctx.arc(90,90,85,start,end);
+            ctx.closePath();
+            ctx.fillStyle = colors[i];
+            ctx.fill();
+            ctx.save();
+            ctx.translate(90,90);
+            ctx.rotate((start+end)/2-Math.PI/2);
+            ctx.font = 'bold 13px sans-serif';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(numbers[i], 60, 0);
+            ctx.restore();
+        }
+        // Center
+        ctx.beginPath();
+        ctx.arc(90,90,30,0,2*Math.PI);
+        ctx.fillStyle = '#ffd700';
+        ctx.fill();
+    }
+    drawWheel();
+
+    // Spin logic
+    spinBtn.onclick = function() {
+        spinBtn.disabled = true;
+        let spinAngle = 0;
+        let spinSpeed = 0.35 + Math.random()*0.15;
+        let decel = 0.992 + Math.random()*0.003;
+        let totalSpin = 0;
+        const n = numbers.length;
+        const targetIdx = Math.floor(Math.random()*n);
+        const targetAngle = 2*Math.PI*(1 - targetIdx/n) + Math.PI/2;
+        let spinning = true;
+        function animate() {
+            if (!spinning) return;
+            drawWheel(spinAngle);
+            spinAngle += spinSpeed;
+            spinSpeed *= decel;
+            totalSpin += spinSpeed;
+            if (spinSpeed < 0.01 && Math.abs((spinAngle% (2*Math.PI)) - targetAngle) < 0.08) {
+                spinning = false;
+                drawWheel(targetAngle);
+                setTimeout(()=>resolveRouletteResult(targetIdx), 400);
+                return;
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+    };
+
+    function resolveRouletteResult(idx) {
+        const winNumber = numbers[idx];
+        const winColor = colors[idx];
+        let win = false;
+        let payout = 0;
+        if (rouletteState.betType === 'red' && winColor === 'red') {
+            win = true; payout = rouletteState.bet*2;
+        } else if (rouletteState.betType === 'black' && winColor === 'black') {
+            win = true; payout = rouletteState.bet*2;
+        } else if (rouletteState.betType === 'green' && winColor === 'green') {
+            win = true; payout = rouletteState.bet*18;
+        }
+        if (win) {
+            rouletteState.chips += payout - rouletteState.bet;
+            resultDiv.textContent = `WIN! +$${payout-rouletteState.bet} (Number: ${winNumber}, ${winColor})`;
+        } else {
+            rouletteState.chips -= rouletteState.bet;
+            resultDiv.textContent = `No win! (Number: ${winNumber}, ${winColor})`;
+        }
+        document.getElementById('roulette-chips').textContent = rouletteState.chips;
+        resultDiv.style.opacity = '1';
+        setTimeout(() => { resultDiv.style.opacity = '0'; spinBtn.disabled = false; }, 2200);
+    }
 }
 function hideRouletteAnimation() {
     if (rouletteOverlay) {
-        rouletteOverlay.remove();
-        rouletteOverlay = null;
+        rouletteOverlay.style.display = 'none';
     }
 }
 
-// --- Baccarat Popup ---
+
+// --- Improved Baccarat Popup ---
 let baccaratOverlay = null;
+let baccaratState = null;
 function showBaccaratAnimation() {
-    if (baccaratOverlay) return;
+    if (baccaratOverlay) {
+        baccaratOverlay.style.display = '';
+        return;
+    }
+    baccaratState = { chips: 100, bet: 10, betType: 'player' };
     baccaratOverlay = document.createElement('div');
     baccaratOverlay.id = 'baccarat-overlay';
     baccaratOverlay.style.position = 'fixed';
-    baccaratOverlay.style.top = '60%';
+    baccaratOverlay.style.top = '50%';
     baccaratOverlay.style.right = '0';
     baccaratOverlay.style.transform = 'translateY(-50%)';
-    baccaratOverlay.style.width = '240px';
-    baccaratOverlay.style.height = '340px';
+    baccaratOverlay.style.width = '320px';
+    baccaratOverlay.style.height = '400px';
     baccaratOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     baccaratOverlay.style.zIndex = '10050';
     baccaratOverlay.style.display = 'flex';
@@ -1184,20 +1442,55 @@ function showBaccaratAnimation() {
     baccaratOverlay.style.borderBottom = '6px solid #ffd700';
     baccaratOverlay.style.padding = '0 0 12px 0';
     baccaratOverlay.style.overflow = 'hidden';
-    const emojiDiv = document.createElement('div');
-    emojiDiv.textContent = '🃏';
-    emojiDiv.style.fontSize = '2.8em';
-    emojiDiv.style.margin = '10px 0 0 0';
-    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    baccaratOverlay.appendChild(emojiDiv);
-    const header = document.createElement('div');
-    header.textContent = 'BACCARAT TABLE';
-    header.style.color = '#ffd700';
-    header.style.fontWeight = 'bold';
-    header.style.fontSize = '1.2em';
-    header.style.margin = '12px 0 8px 0';
-    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    baccaratOverlay.appendChild(header);
+
+    // Chips and bet
+    const chipsDiv = document.createElement('div');
+    chipsDiv.style.display = 'flex';
+    chipsDiv.style.alignItems = 'center';
+    chipsDiv.style.justifyContent = 'center';
+    chipsDiv.style.margin = '10px 0 0 0';
+    chipsDiv.innerHTML = `<span style="font-size:1.2em;">💰</span> <span style="color:#ffd700;font-weight:bold;">Chips: </span> <span id="baccarat-chips" style="color:#fff;">${baccaratState.chips}</span>`;
+    baccaratOverlay.appendChild(chipsDiv);
+
+    // Bet controls
+    const betDiv = document.createElement('div');
+    betDiv.style.display = 'flex';
+    betDiv.style.alignItems = 'center';
+    betDiv.style.justifyContent = 'center';
+    betDiv.style.margin = '8px 0 0 0';
+    betDiv.innerHTML = `<span style="color:#ffd700;">Bet: </span> <button id="baccarat-bet-minus" style="margin:0 4px;">-</button><span id="baccarat-bet" style="color:#fff;">${baccaratState.bet}</span><button id="baccarat-bet-plus" style="margin:0 4px;">+</button>`;
+    baccaratOverlay.appendChild(betDiv);
+
+    // Bet type selection
+    const betTypeDiv = document.createElement('div');
+    betTypeDiv.style.display = 'flex';
+    betTypeDiv.style.alignItems = 'center';
+    betTypeDiv.style.justifyContent = 'center';
+    betTypeDiv.style.margin = '8px 0 0 0';
+    betTypeDiv.innerHTML = `
+        <button id="baccarat-bet-player" style="background:#1976d2;color:#fff;font-weight:bold;border:none;border-radius:8px;padding:4px 12px;margin:0 4px;box-shadow:0 1px 4px #0007;">Player</button>
+        <button id="baccarat-bet-banker" style="background:#c62828;color:#fff;font-weight:bold;border:none;border-radius:8px;padding:4px 12px;margin:0 4px;box-shadow:0 1px 4px #0007;">Banker</button>
+        <button id="baccarat-bet-tie" style="background:#43a047;color:#fff;font-weight:bold;border:none;border-radius:8px;padding:4px 12px;margin:0 4px;box-shadow:0 1px 4px #0007;">Tie</button>
+    `;
+    baccaratOverlay.appendChild(betTypeDiv);
+
+    // Table area
+    const tableArea = document.createElement('div');
+    tableArea.style.width = '220px';
+    tableArea.style.height = '90px';
+    tableArea.style.background = 'radial-gradient(ellipse at center, #388e3c 80%, #145a32 100%)';
+    tableArea.style.border = '2px solid #ffd700';
+    tableArea.style.borderRadius = '16px';
+    tableArea.style.display = 'flex';
+    tableArea.style.justifyContent = 'center';
+    tableArea.style.alignItems = 'center';
+    tableArea.style.overflow = 'hidden';
+    tableArea.style.position = 'relative';
+    tableArea.style.margin = '18px 0 10px 0';
+    tableArea.style.boxShadow = '0 4px 24px #000a, 0 0 8px #ffd700';
+    baccaratOverlay.appendChild(tableArea);
+
+    // Play button
     const playBtn = document.createElement('button');
     playBtn.textContent = 'PLAY HAND';
     playBtn.style.margin = '16px auto 0 auto';
@@ -1214,9 +1507,9 @@ function showBaccaratAnimation() {
     playBtn.style.letterSpacing = '2px';
     playBtn.style.textShadow = '0 1px 2px #fffbe6';
     playBtn.style.transition = 'transform 0.1s';
-    playBtn.onmousedown = () => { playBtn.style.transform = 'scale(0.97)'; };
-    playBtn.onmouseup = () => { playBtn.style.transform = 'scale(1)'; };
     baccaratOverlay.appendChild(playBtn);
+
+    // Result
     const resultDiv = document.createElement('div');
     resultDiv.id = 'baccarat-result';
     resultDiv.style.position = 'absolute';
@@ -1235,41 +1528,142 @@ function showBaccaratAnimation() {
     resultDiv.style.opacity = '0';
     resultDiv.style.transition = 'opacity 0.3s';
     baccaratOverlay.appendChild(resultDiv);
+
     document.body.appendChild(baccaratOverlay);
-    playBtn.addEventListener('click', function() {
-        // Simulate player and banker hands (random 1-9)
-        const playerHand = Math.floor(Math.random()*9)+1;
-        const bankerHand = Math.floor(Math.random()*9)+1;
-        resultDiv.style.opacity = '1';
-        if (playerHand > bankerHand) {
-            resultDiv.textContent = `PLAYER WIN! +$350 (Player: ${playerHand}, Banker: ${bankerHand})`;
-        } else if (playerHand < bankerHand) {
-            resultDiv.textContent = `BANKER WIN! +$200 (Player: ${playerHand}, Banker: ${bankerHand})`;
-        } else {
-            resultDiv.textContent = `TIE! (Player: ${playerHand}, Banker: ${bankerHand})`;
+
+    // Bet controls logic
+    document.getElementById('baccarat-bet-minus').onclick = function() {
+        if (baccaratState.bet > 1) {
+            baccaratState.bet--;
+            document.getElementById('baccarat-bet').textContent = baccaratState.bet;
         }
-        setTimeout(() => { resultDiv.style.opacity = '0'; }, 1800);
-    });
+    };
+    document.getElementById('baccarat-bet-plus').onclick = function() {
+        if (baccaratState.bet < baccaratState.chips) {
+            baccaratState.bet++;
+            document.getElementById('baccarat-bet').textContent = baccaratState.bet;
+        }
+    };
+    document.getElementById('baccarat-bet-player').onclick = function() {
+        baccaratState.betType = 'player';
+        this.style.outline = '3px solid #ffd700';
+        document.getElementById('baccarat-bet-banker').style.outline = '';
+        document.getElementById('baccarat-bet-tie').style.outline = '';
+    };
+    document.getElementById('baccarat-bet-banker').onclick = function() {
+        baccaratState.betType = 'banker';
+        this.style.outline = '3px solid #ffd700';
+        document.getElementById('baccarat-bet-player').style.outline = '';
+        document.getElementById('baccarat-bet-tie').style.outline = '';
+    };
+    document.getElementById('baccarat-bet-tie').onclick = function() {
+        baccaratState.betType = 'tie';
+        this.style.outline = '3px solid #ffd700';
+        document.getElementById('baccarat-bet-player').style.outline = '';
+        document.getElementById('baccarat-bet-banker').style.outline = '';
+    };
+    document.getElementById('baccarat-bet-player').style.outline = '3px solid #ffd700';
+
+    // Play logic
+    playBtn.onclick = function() {
+        if (baccaratState.chips < baccaratState.bet) return;
+        playBtn.disabled = true;
+        tableArea.innerHTML = '';
+        // Simulate player and banker hands (2 cards each, 1-9, 10/J/Q/K=0)
+        function drawCard() {
+            const suits = ['♠','♥','♦','♣'];
+            const vals = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+            let v = vals[Math.floor(Math.random()*vals.length)];
+            let s = suits[Math.floor(Math.random()*suits.length)];
+            return {v,s};
+        }
+        let playerHand = [drawCard(), drawCard()];
+        let bankerHand = [drawCard(), drawCard()];
+        // Animate cards
+        let i = 0;
+        function showNextCard() {
+            if (i >= 4) {
+                setTimeout(() => resolveBaccaratHand(playerHand, bankerHand), 400);
+                return;
+            }
+            let card = i<2 ? playerHand[i] : bankerHand[i-2];
+            let cardDiv = document.createElement('div');
+            cardDiv.textContent = card.v+card.s;
+            cardDiv.style.display = 'inline-block';
+            cardDiv.style.margin = '0 4px';
+            cardDiv.style.fontSize = '1.7em';
+            cardDiv.style.color = '#ffd700';
+            cardDiv.style.textShadow = '0 2px 8px #000a';
+            cardDiv.style.padding = '6px 10px';
+            cardDiv.style.background = 'linear-gradient(90deg,#232a36 60%,#2d3748 100%)';
+            cardDiv.style.borderRadius = '8px';
+            cardDiv.style.border = '2px solid #ffd700';
+            cardDiv.style.transition = 'transform 0.2s';
+            cardDiv.style.transform = 'scale(0.7)';
+            tableArea.appendChild(cardDiv);
+            setTimeout(() => {
+                cardDiv.style.transform = 'scale(1)';
+                i++;
+                showNextCard();
+            }, 120);
+        }
+        showNextCard();
+    };
+
+    function resolveBaccaratHand(playerHand, bankerHand) {
+        function cardValue(card) {
+            if (card.v==='A') return 1;
+            if (['10','J','Q','K'].includes(card.v)) return 0;
+            return parseInt(card.v);
+        }
+        let playerTotal = (cardValue(playerHand[0]) + cardValue(playerHand[1]))%10;
+        let bankerTotal = (cardValue(bankerHand[0]) + cardValue(bankerHand[1]))%10;
+        let win = false, payout = 0, msg = '';
+        if (playerTotal > bankerTotal) {
+            msg = `PLAYER WIN! +$${baccaratState.bet}`;
+            if (baccaratState.betType==='player') { win = true; payout = baccaratState.bet*2; }
+        } else if (playerTotal < bankerTotal) {
+            msg = `BANKER WIN! +$${Math.round(baccaratState.bet*0.95)}`;
+            if (baccaratState.betType==='banker') { win = true; payout = baccaratState.bet*1.95; }
+        } else {
+            msg = `TIE! +$${baccaratState.bet*8}`;
+            if (baccaratState.betType==='tie') { win = true; payout = baccaratState.bet*9; }
+        }
+        if (win) {
+            baccaratState.chips += payout - baccaratState.bet;
+        } else {
+            baccaratState.chips -= baccaratState.bet;
+        }
+        document.getElementById('baccarat-chips').textContent = Math.round(baccaratState.chips);
+        resultDiv.textContent = msg;
+        resultDiv.style.opacity = '1';
+        setTimeout(() => { resultDiv.style.opacity = '0'; playBtn.disabled = false; }, 2200);
+    }
 }
 function hideBaccaratAnimation() {
     if (baccaratOverlay) {
-        baccaratOverlay.remove();
-        baccaratOverlay = null;
+        baccaratOverlay.style.display = 'none';
     }
 }
 
-// --- Blackjack Popup ---
+
+// --- Improved Blackjack Popup ---
 let blackjackOverlay = null;
+let blackjackState = null;
 function showBlackjackAnimation() {
-    if (blackjackOverlay) return;
+    if (blackjackOverlay) {
+        blackjackOverlay.style.display = '';
+        return;
+    }
+    blackjackState = { chips: 100, bet: 10, playerHand: [], dealerHand: [], phase: 'bet', done: false };
     blackjackOverlay = document.createElement('div');
     blackjackOverlay.id = 'blackjack-overlay';
     blackjackOverlay.style.position = 'fixed';
-    blackjackOverlay.style.top = '60%';
+    blackjackOverlay.style.top = '50%';
     blackjackOverlay.style.right = '0';
     blackjackOverlay.style.transform = 'translateY(-50%)';
-    blackjackOverlay.style.width = '240px';
-    blackjackOverlay.style.height = '340px';
+    blackjackOverlay.style.width = '320px';
+    blackjackOverlay.style.height = '400px';
     blackjackOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     blackjackOverlay.style.zIndex = '10050';
     blackjackOverlay.style.display = 'flex';
@@ -1283,39 +1677,51 @@ function showBlackjackAnimation() {
     blackjackOverlay.style.borderBottom = '6px solid #ffd700';
     blackjackOverlay.style.padding = '0 0 12px 0';
     blackjackOverlay.style.overflow = 'hidden';
-    const emojiDiv = document.createElement('div');
-    emojiDiv.textContent = '🂡';
-    emojiDiv.style.fontSize = '2.8em';
-    emojiDiv.style.margin = '10px 0 0 0';
-    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    blackjackOverlay.appendChild(emojiDiv);
-    const header = document.createElement('div');
-    header.textContent = 'BLACKJACK TABLE';
-    header.style.color = '#ffd700';
-    header.style.fontWeight = 'bold';
-    header.style.fontSize = '1.2em';
-    header.style.margin = '12px 0 8px 0';
-    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    blackjackOverlay.appendChild(header);
-    const playBtn = document.createElement('button');
-    playBtn.textContent = 'PLAY HAND';
-    playBtn.style.margin = '16px auto 0 auto';
-    playBtn.style.width = '120px';
-    playBtn.style.height = '38px';
-    playBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
-    playBtn.style.color = '#232a36';
-    playBtn.style.fontWeight = 'bold';
-    playBtn.style.fontSize = '1.2em';
-    playBtn.style.border = 'none';
-    playBtn.style.borderRadius = '12px';
-    playBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
-    playBtn.style.cursor = 'pointer';
-    playBtn.style.letterSpacing = '2px';
-    playBtn.style.textShadow = '0 1px 2px #fffbe6';
-    playBtn.style.transition = 'transform 0.1s';
-    playBtn.onmousedown = () => { playBtn.style.transform = 'scale(0.97)'; };
-    playBtn.onmouseup = () => { playBtn.style.transform = 'scale(1)'; };
-    blackjackOverlay.appendChild(playBtn);
+
+    // Chips and bet
+    const chipsDiv = document.createElement('div');
+    chipsDiv.style.display = 'flex';
+    chipsDiv.style.alignItems = 'center';
+    chipsDiv.style.justifyContent = 'center';
+    chipsDiv.style.margin = '10px 0 0 0';
+    chipsDiv.innerHTML = `<span style="font-size:1.2em;">💰</span> <span style="color:#ffd700;font-weight:bold;">Chips: </span> <span id="blackjack-chips" style="color:#fff;">${blackjackState.chips}</span>`;
+    blackjackOverlay.appendChild(chipsDiv);
+
+    // Bet controls
+    const betDiv = document.createElement('div');
+    betDiv.style.display = 'flex';
+    betDiv.style.alignItems = 'center';
+    betDiv.style.justifyContent = 'center';
+    betDiv.style.margin = '8px 0 0 0';
+    betDiv.innerHTML = `<span style="color:#ffd700;">Bet: </span> <button id="blackjack-bet-minus" style="margin:0 4px;">-</button><span id="blackjack-bet" style="color:#fff;">${blackjackState.bet}</span><button id="blackjack-bet-plus" style="margin:0 4px;">+</button>`;
+    blackjackOverlay.appendChild(betDiv);
+
+    // Table area
+    const tableArea = document.createElement('div');
+    tableArea.id = 'blackjack-table';
+    tableArea.style.width = '220px';
+    tableArea.style.height = '90px';
+    tableArea.style.background = 'radial-gradient(ellipse at center, #388e3c 80%, #145a32 100%)';
+    tableArea.style.border = '2px solid #ffd700';
+    tableArea.style.borderRadius = '16px';
+    tableArea.style.display = 'flex';
+    tableArea.style.justifyContent = 'center';
+    tableArea.style.alignItems = 'center';
+    tableArea.style.overflow = 'hidden';
+    tableArea.style.position = 'relative';
+    tableArea.style.margin = '18px 0 10px 0';
+    tableArea.style.boxShadow = '0 4px 24px #000a, 0 0 8px #ffd700';
+    blackjackOverlay.appendChild(tableArea);
+
+    // Action buttons
+    const actionDiv = document.createElement('div');
+    actionDiv.style.display = 'flex';
+    actionDiv.style.justifyContent = 'center';
+    actionDiv.style.alignItems = 'center';
+    actionDiv.style.margin = '8px 0 0 0';
+    blackjackOverlay.appendChild(actionDiv);
+
+    // Result
     const resultDiv = document.createElement('div');
     resultDiv.id = 'blackjack-result';
     resultDiv.style.position = 'absolute';
@@ -1334,44 +1740,264 @@ function showBlackjackAnimation() {
     resultDiv.style.opacity = '0';
     resultDiv.style.transition = 'opacity 0.3s';
     blackjackOverlay.appendChild(resultDiv);
+
     document.body.appendChild(blackjackOverlay);
-    playBtn.addEventListener('click', function() {
-        // Simulate player and dealer hands (random 15-21)
-        const playerHand = Math.floor(Math.random()*7)+15;
-        const dealerHand = Math.floor(Math.random()*7)+15;
-        resultDiv.style.opacity = '1';
-        if (playerHand > dealerHand && playerHand <= 21) {
-            resultDiv.textContent = `PLAYER WIN! +$400 (Player: ${playerHand}, Dealer: ${dealerHand})`;
-        } else if (dealerHand > playerHand && dealerHand <= 21) {
-            resultDiv.textContent = `DEALER WIN! +$200 (Player: ${playerHand}, Dealer: ${dealerHand})`;
-        } else if (playerHand === dealerHand) {
-            resultDiv.textContent = `TIE! (Player: ${playerHand}, Dealer: ${dealerHand})`;
-        } else {
-            resultDiv.textContent = `BUST! No win.`;
+
+    // Bet controls logic
+    document.getElementById('blackjack-bet-minus').onclick = function() {
+        if (blackjackState.bet > 1) {
+            blackjackState.bet--;
+            document.getElementById('blackjack-bet').textContent = blackjackState.bet;
         }
-        setTimeout(() => { resultDiv.style.opacity = '0'; }, 1800);
-    });
+    };
+    document.getElementById('blackjack-bet-plus').onclick = function() {
+        if (blackjackState.bet < blackjackState.chips) {
+            blackjackState.bet++;
+            document.getElementById('blackjack-bet').textContent = blackjackState.bet;
+        }
+    };
+
+    // Start hand
+    function startHand() {
+        blackjackState.playerHand = [drawCard(), drawCard()];
+        blackjackState.dealerHand = [drawCard(), drawCard()];
+        blackjackState.phase = 'player';
+        blackjackState.done = false;
+        renderTable();
+        renderActions();
+    }
+
+    function drawCard() {
+        const suits = ['♠','♥','♦','♣'];
+        const vals = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+        let v = vals[Math.floor(Math.random()*vals.length)];
+        let s = suits[Math.floor(Math.random()*suits.length)];
+        return {v,s};
+    }
+
+    function handValue(hand) {
+        let vals = hand.map(c=>c.v);
+        let total = 0, aces = 0;
+        for (let v of vals) {
+            if (v==='A') { total+=11; aces++; }
+            else if (['K','Q','J','10'].includes(v)) total+=10;
+            else total+=parseInt(v);
+        }
+        while (total>21 && aces>0) { total-=10; aces--; }
+        return total;
+    }
+
+    function renderTable(showDealerAll=false) {
+        tableArea.innerHTML = '';
+        // Player hand
+        let playerDiv = document.createElement('div');
+        playerDiv.style.display = 'flex';
+        playerDiv.style.flexDirection = 'column';
+        playerDiv.style.alignItems = 'center';
+        let playerCards = document.createElement('div');
+        blackjackState.playerHand.forEach(card => {
+            let cardDiv = document.createElement('div');
+            cardDiv.textContent = card.v+card.s;
+            cardDiv.style.display = 'inline-block';
+            cardDiv.style.margin = '0 4px';
+            cardDiv.style.fontSize = '1.3em';
+            cardDiv.style.color = '#ffd700';
+            cardDiv.style.textShadow = '0 2px 8px #000a';
+            cardDiv.style.padding = '4px 8px';
+            cardDiv.style.background = 'linear-gradient(90deg,#232a36 60%,#2d3748 100%)';
+            cardDiv.style.borderRadius = '8px';
+            cardDiv.style.border = '2px solid #ffd700';
+            playerCards.appendChild(cardDiv);
+        });
+        let playerVal = handValue(blackjackState.playerHand);
+        let playerValDiv = document.createElement('div');
+        playerValDiv.textContent = `Player: ${playerVal}`;
+        playerValDiv.style.color = '#fff';
+        playerValDiv.style.fontWeight = 'bold';
+        playerValDiv.style.fontSize = '1em';
+        playerDiv.appendChild(playerCards);
+        playerDiv.appendChild(playerValDiv);
+        tableArea.appendChild(playerDiv);
+        // Dealer hand
+        let dealerDiv = document.createElement('div');
+        dealerDiv.style.display = 'flex';
+        dealerDiv.style.flexDirection = 'column';
+        dealerDiv.style.alignItems = 'center';
+        let dealerCards = document.createElement('div');
+        blackjackState.dealerHand.forEach((card,i) => {
+            let cardDiv = document.createElement('div');
+            if (i===0 || showDealerAll) cardDiv.textContent = card.v+card.s;
+            else cardDiv.textContent = '🂠';
+            cardDiv.style.display = 'inline-block';
+            cardDiv.style.margin = '0 4px';
+            cardDiv.style.fontSize = '1.3em';
+            cardDiv.style.color = '#ffd700';
+            cardDiv.style.textShadow = '0 2px 8px #000a';
+            cardDiv.style.padding = '4px 8px';
+            cardDiv.style.background = 'linear-gradient(90deg,#232a36 60%,#2d3748 100%)';
+            cardDiv.style.borderRadius = '8px';
+            cardDiv.style.border = '2px solid #ffd700';
+            dealerCards.appendChild(cardDiv);
+        });
+        let dealerVal = handValue(blackjackState.dealerHand);
+        let dealerValDiv = document.createElement('div');
+        dealerValDiv.textContent = showDealerAll ? `Dealer: ${dealerVal}` : 'Dealer: ?';
+        dealerValDiv.style.color = '#fff';
+        dealerValDiv.style.fontWeight = 'bold';
+        dealerValDiv.style.fontSize = '1em';
+        dealerDiv.appendChild(dealerCards);
+        dealerDiv.appendChild(dealerValDiv);
+        tableArea.appendChild(dealerDiv);
+    }
+
+    function renderActions() {
+        actionDiv.innerHTML = '';
+        if (blackjackState.phase === 'bet') {
+            let dealBtn = document.createElement('button');
+            dealBtn.textContent = 'DEAL';
+            dealBtn.style.margin = '0 8px';
+            dealBtn.style.padding = '6px 18px';
+            dealBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+            dealBtn.style.color = '#232a36';
+            dealBtn.style.fontWeight = 'bold';
+            dealBtn.style.fontSize = '1.1em';
+            dealBtn.style.border = 'none';
+            dealBtn.style.borderRadius = '8px';
+            dealBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+            dealBtn.style.cursor = 'pointer';
+            dealBtn.onclick = () => {
+                if (blackjackState.chips < blackjackState.bet) return;
+                blackjackState.phase = 'player';
+                startHand();
+            };
+            actionDiv.appendChild(dealBtn);
+        } else if (blackjackState.phase === 'player') {
+            let hitBtn = document.createElement('button');
+            hitBtn.textContent = 'HIT';
+            hitBtn.style.margin = '0 8px';
+            hitBtn.style.padding = '6px 18px';
+            hitBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+            hitBtn.style.color = '#232a36';
+            hitBtn.style.fontWeight = 'bold';
+            hitBtn.style.fontSize = '1.1em';
+            hitBtn.style.border = 'none';
+            hitBtn.style.borderRadius = '8px';
+            hitBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+            hitBtn.style.cursor = 'pointer';
+            hitBtn.onclick = () => {
+                blackjackState.playerHand.push(drawCard());
+                let val = handValue(blackjackState.playerHand);
+                renderTable();
+                if (val > 21) {
+                    blackjackState.phase = 'done';
+                    resolveBlackjack();
+                }
+            };
+            actionDiv.appendChild(hitBtn);
+            let standBtn = document.createElement('button');
+            standBtn.textContent = 'STAND';
+            standBtn.style.margin = '0 8px';
+            standBtn.style.padding = '6px 18px';
+            standBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+            standBtn.style.color = '#232a36';
+            standBtn.style.fontWeight = 'bold';
+            standBtn.style.fontSize = '1.1em';
+            standBtn.style.border = 'none';
+            standBtn.style.borderRadius = '8px';
+            standBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+            standBtn.style.cursor = 'pointer';
+            standBtn.onclick = () => {
+                blackjackState.phase = 'dealer';
+                dealerTurn();
+            };
+            actionDiv.appendChild(standBtn);
+        } else if (blackjackState.phase === 'done') {
+            let newBtn = document.createElement('button');
+            newBtn.textContent = 'NEW HAND';
+            newBtn.style.margin = '0 8px';
+            newBtn.style.padding = '6px 18px';
+            newBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+            newBtn.style.color = '#232a36';
+            newBtn.style.fontWeight = 'bold';
+            newBtn.style.fontSize = '1.1em';
+            newBtn.style.border = 'none';
+            newBtn.style.borderRadius = '8px';
+            newBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+            newBtn.style.cursor = 'pointer';
+            newBtn.onclick = () => {
+                blackjackState.phase = 'bet';
+                renderTable();
+                renderActions();
+            };
+            actionDiv.appendChild(newBtn);
+        }
+    }
+
+    function dealerTurn() {
+        renderTable(true);
+        let dealerVal = handValue(blackjackState.dealerHand);
+        while (dealerVal < 17) {
+            blackjackState.dealerHand.push(drawCard());
+            dealerVal = handValue(blackjackState.dealerHand);
+        }
+        blackjackState.phase = 'done';
+        resolveBlackjack();
+    }
+
+    function resolveBlackjack() {
+        let playerVal = handValue(blackjackState.playerHand);
+        let dealerVal = handValue(blackjackState.dealerHand);
+        let msg = '', payout = 0;
+        if (playerVal > 21) {
+            msg = 'BUST! No win.';
+            blackjackState.chips -= blackjackState.bet;
+        } else if (dealerVal > 21) {
+            msg = `DEALER BUST! +$${blackjackState.bet}`;
+            payout = blackjackState.bet*2;
+            blackjackState.chips += payout - blackjackState.bet;
+        } else if (playerVal > dealerVal) {
+            msg = `PLAYER WIN! +$${blackjackState.bet}`;
+            payout = blackjackState.bet*2;
+            blackjackState.chips += payout - blackjackState.bet;
+        } else if (playerVal < dealerVal) {
+            msg = `DEALER WIN!`;
+            blackjackState.chips -= blackjackState.bet;
+        } else {
+            msg = 'TIE!';
+        }
+        document.getElementById('blackjack-chips').textContent = blackjackState.chips;
+        resultDiv.textContent = msg;
+        resultDiv.style.opacity = '1';
+        setTimeout(() => { resultDiv.style.opacity = '0'; renderActions(); }, 2200);
+    }
+
+    // Initial render
+    renderTable();
+    renderActions();
 }
 function hideBlackjackAnimation() {
     if (blackjackOverlay) {
-        blackjackOverlay.remove();
-        blackjackOverlay = null;
+        blackjackOverlay.style.display = 'none';
     }
 }
 
+// --- Improved Poker Popup ---
 let pokerOverlay = null;
-let pokerChances = 3;
+let pokerState = null;
 function showPokerAnimation() {
-    if (pokerOverlay) return;
-    pokerChances = 3;
+    if (pokerOverlay) {
+        pokerOverlay.style.display = '';
+        return;
+    }
+    pokerState = { chips: 100, bet: 10 };
     pokerOverlay = document.createElement('div');
     pokerOverlay.id = 'poker-overlay';
     pokerOverlay.style.position = 'fixed';
-    pokerOverlay.style.top = '60%';
+    pokerOverlay.style.top = '50%';
     pokerOverlay.style.right = '0';
     pokerOverlay.style.transform = 'translateY(-50%)';
-    pokerOverlay.style.width = '240px';
-    pokerOverlay.style.height = '340px';
+    pokerOverlay.style.width = '320px';
+    pokerOverlay.style.height = '400px';
     pokerOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     pokerOverlay.style.zIndex = '10050';
     pokerOverlay.style.display = 'flex';
@@ -1385,35 +2011,43 @@ function showPokerAnimation() {
     pokerOverlay.style.borderBottom = '6px solid #ffd700';
     pokerOverlay.style.padding = '0 0 12px 0';
     pokerOverlay.style.overflow = 'hidden';
-    const emojiDiv = document.createElement('div');
-    emojiDiv.textContent = '🃏';
-    emojiDiv.style.fontSize = '2.8em';
-    emojiDiv.style.margin = '10px 0 0 0';
-    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    pokerOverlay.appendChild(emojiDiv);
-    const header = document.createElement('div');
-    header.textContent = 'POKER TABLE';
-    header.style.color = '#ffd700';
-    header.style.fontWeight = 'bold';
-    header.style.fontSize = '1.2em';
-    header.style.margin = '12px 0 8px 0';
-    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
-    pokerOverlay.appendChild(header);
+
+    // Chips and bet
+    const chipsDiv = document.createElement('div');
+    chipsDiv.style.display = 'flex';
+    chipsDiv.style.alignItems = 'center';
+    chipsDiv.style.justifyContent = 'center';
+    chipsDiv.style.margin = '10px 0 0 0';
+    chipsDiv.innerHTML = `<span style="font-size:1.2em;">💰</span> <span style="color:#ffd700;font-weight:bold;">Chips: </span> <span id="poker-chips" style="color:#fff;">${pokerState.chips}</span>`;
+    pokerOverlay.appendChild(chipsDiv);
+
+    // Bet controls
+    const betDiv = document.createElement('div');
+    betDiv.style.display = 'flex';
+    betDiv.style.alignItems = 'center';
+    betDiv.style.justifyContent = 'center';
+    betDiv.style.margin = '8px 0 0 0';
+    betDiv.innerHTML = `<span style="color:#ffd700;">Bet: </span> <button id="poker-bet-minus" style="margin:0 4px;">-</button><span id="poker-bet" style="color:#fff;">${pokerState.bet}</span><button id="poker-bet-plus" style="margin:0 4px;">+</button>`;
+    pokerOverlay.appendChild(betDiv);
+
+    // Poker table
     const pokerTable = document.createElement('div');
     pokerTable.id = 'poker-table';
-    pokerTable.style.width = '180px';
-    pokerTable.style.height = '70px';
-    pokerTable.style.background = 'linear-gradient(135deg, #2d3748 60%, #232a36 100%)';
+    pokerTable.style.width = '220px';
+    pokerTable.style.height = '90px';
+    pokerTable.style.background = 'radial-gradient(ellipse at center, #388e3c 80%, #145a32 100%)';
     pokerTable.style.border = '2px solid #ffd700';
-    pokerTable.style.borderRadius = '10px';
+    pokerTable.style.borderRadius = '16px';
     pokerTable.style.display = 'flex';
     pokerTable.style.justifyContent = 'center';
     pokerTable.style.alignItems = 'center';
     pokerTable.style.overflow = 'hidden';
     pokerTable.style.position = 'relative';
-    pokerTable.style.margin = '0 0 10px 0';
+    pokerTable.style.margin = '18px 0 10px 0';
     pokerTable.style.boxShadow = '0 4px 24px #000a, 0 0 8px #ffd700';
     pokerOverlay.appendChild(pokerTable);
+
+    // Draw button
     const pokerBtn = document.createElement('button');
     pokerBtn.textContent = 'DRAW HAND';
     pokerBtn.style.margin = '16px auto 0 auto';
@@ -1430,9 +2064,9 @@ function showPokerAnimation() {
     pokerBtn.style.letterSpacing = '2px';
     pokerBtn.style.textShadow = '0 1px 2px #fffbe6';
     pokerBtn.style.transition = 'transform 0.1s';
-    pokerBtn.onmousedown = () => { pokerBtn.style.transform = 'scale(0.97)'; };
-    pokerBtn.onmouseup = () => { pokerBtn.style.transform = 'scale(1)'; };
     pokerOverlay.appendChild(pokerBtn);
+
+    // Result
     const pokerReward = document.createElement('div');
     pokerReward.id = 'poker-reward';
     pokerReward.style.position = 'absolute';
@@ -1451,63 +2085,109 @@ function showPokerAnimation() {
     pokerReward.style.opacity = '0';
     pokerReward.style.transition = 'opacity 0.3s';
     pokerOverlay.appendChild(pokerReward);
+
     document.body.appendChild(pokerOverlay);
-    pokerBtn.addEventListener('click', onPokerDraw);
-    pokerBtn.addEventListener('touchstart', onPokerDraw);
+
+    // Bet controls logic
+    document.getElementById('poker-bet-minus').onclick = function() {
+        if (pokerState.bet > 1) {
+            pokerState.bet--;
+            document.getElementById('poker-bet').textContent = pokerState.bet;
+        }
+    };
+    document.getElementById('poker-bet-plus').onclick = function() {
+        if (pokerState.bet < pokerState.chips) {
+            pokerState.bet++;
+            document.getElementById('poker-bet').textContent = pokerState.bet;
+        }
+    };
+
+    // Poker draw logic
+    pokerBtn.onclick = function() {
+        if (pokerState.chips < pokerState.bet) return;
+        pokerBtn.disabled = true;
+        pokerTable.innerHTML = '';
+        // Simulate poker hand
+        const suits = ['♠', '♥', '♦', '♣'];
+        const values = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
+        let hand = [];
+        let used = new Set();
+        while (hand.length < 5) {
+            let v = values[Math.floor(Math.random() * values.length)];
+            let s = suits[Math.floor(Math.random() * suits.length)];
+            let card = v + s;
+            if (!used.has(card)) { hand.push(card); used.add(card); }
+        }
+        // Animate cards
+        let i = 0;
+        function showNextCard() {
+            if (i >= hand.length) {
+                setTimeout(() => resolvePokerHand(hand), 400);
+                return;
+            }
+            let cardDiv = document.createElement('div');
+            cardDiv.textContent = hand[i];
+            cardDiv.style.display = 'inline-block';
+            cardDiv.style.margin = '0 4px';
+            cardDiv.style.fontSize = '1.7em';
+            cardDiv.style.color = '#ffd700';
+            cardDiv.style.textShadow = '0 2px 8px #000a';
+            cardDiv.style.padding = '6px 10px';
+            cardDiv.style.background = 'linear-gradient(90deg,#232a36 60%,#2d3748 100%)';
+            cardDiv.style.borderRadius = '8px';
+            cardDiv.style.border = '2px solid #ffd700';
+            cardDiv.style.transition = 'transform 0.2s';
+            cardDiv.style.transform = 'scale(0.7)';
+            pokerTable.appendChild(cardDiv);
+            setTimeout(() => {
+                cardDiv.style.transform = 'scale(1)';
+                i++;
+                showNextCard();
+            }, 120);
+        }
+        showNextCard();
+    };
+
+    function resolvePokerHand(hand) {
+        // Evaluate hand (simple: pair, two pair, three, straight, flush, full house, four, straight flush, royal flush)
+        function getValue(card) { return card.slice(0, -1); }
+        function getSuit(card) { return card.slice(-1); }
+        let vals = hand.map(getValue);
+        let suits = hand.map(getSuit);
+        let valCounts = {};
+        vals.forEach(v => valCounts[v] = (valCounts[v]||0)+1);
+        let counts = Object.values(valCounts).sort((a,b)=>b-a);
+        let isFlush = suits.every(s => s === suits[0]);
+        let valOrder = ['A','K','Q','J','10','9','8','7','6','5','4','3','2'];
+        let idxs = vals.map(v=>valOrder.indexOf(v)).sort((a,b)=>a-b);
+        let isStraight = idxs.every((v,i,a)=>i===0||v===a[i-1]+1);
+        let handName = '', payout = 0;
+        if (isStraight && isFlush && vals[0]==='A') { handName = 'Royal Flush'; payout = pokerState.bet*50; }
+        else if (isStraight && isFlush) { handName = 'Straight Flush'; payout = pokerState.bet*20; }
+        else if (counts[0]===4) { handName = 'Four of a Kind'; payout = pokerState.bet*10; }
+        else if (counts[0]===3 && counts[1]===2) { handName = 'Full House'; payout = pokerState.bet*7; }
+        else if (isFlush) { handName = 'Flush'; payout = pokerState.bet*5; }
+        else if (isStraight) { handName = 'Straight'; payout = pokerState.bet*4; }
+        else if (counts[0]===3) { handName = 'Three of a Kind'; payout = pokerState.bet*3; }
+        else if (counts[0]===2 && counts[1]===2) { handName = 'Two Pair'; payout = pokerState.bet*2; }
+        else if (counts[0]===2) { handName = 'Pair'; payout = pokerState.bet*1.5; }
+        else { handName = 'No Win'; payout = 0; }
+        pokerReward.style.opacity = '1';
+        if (payout > 0) {
+            pokerState.chips += payout - pokerState.bet;
+            pokerReward.textContent = `${handName}! +$${Math.round(payout-pokerState.bet)}`;
+        } else {
+            pokerState.chips -= pokerState.bet;
+            pokerReward.textContent = 'No win!';
+        }
+        document.getElementById('poker-chips').textContent = pokerState.chips;
+        setTimeout(() => { pokerReward.style.opacity = '0'; pokerOverlay.querySelector('button').disabled = false; }, 2200);
+    }
 }
 function hidePokerAnimation() {
     if (pokerOverlay) {
-        pokerOverlay.remove();
-        pokerOverlay = null;
+        pokerOverlay.style.display = 'none';
     }
-}
-function onPokerDraw() {
-    if (pokerChances <= 0) return;
-    pokerChances--;
-    const pokerTable = document.getElementById('poker-table');
-    const pokerReward = document.getElementById('poker-reward');
-    pokerTable.innerHTML = '';
-    // Simulate poker hand
-    const suits = ['♠', '♥', '♦', '♣'];
-    const values = ['A', 'K', 'Q', 'J', '10', '9', '8', '7', '6', '5', '4', '3', '2'];
-    let hand = [];
-    for (let i = 0; i < 5; i++) {
-        let card = values[Math.floor(Math.random() * values.length)] + suits[Math.floor(Math.random() * suits.length)];
-        hand.push(card);
-    }
-    hand.forEach(card => {
-        let cardDiv = document.createElement('div');
-        cardDiv.textContent = card;
-        cardDiv.style.display = 'inline-block';
-        cardDiv.style.margin = '0 4px';
-        cardDiv.style.fontSize = '1.5em';
-        cardDiv.style.color = '#ffd700';
-        cardDiv.style.textShadow = '0 2px 8px #000a';
-        cardDiv.style.padding = '4px 8px';
-        cardDiv.style.background = 'linear-gradient(90deg,#232a36 60%,#2d3748 100%)';
-        cardDiv.style.borderRadius = '6px';
-        cardDiv.style.border = '1.5px solid #ffd700';
-        pokerTable.appendChild(cardDiv);
-    });
-    // Simple win logic: if hand contains an Ace, win
-    let win = hand.some(card => card.startsWith('A'));
-    pokerReward.style.opacity = '1';
-    if (win) {
-        pokerReward.textContent = 'POKER WIN! +$500';
-        // Add reward to player's money
-        if (typeof currentPlayerId !== 'undefined' && Array.isArray(players)) {
-            const player = players.find(p => p.id === currentPlayerId);
-            if (player) {
-                player.money = (player.money || 0) + 500;
-                if (typeof updatePlayerMoneyUI === 'function') {
-                    updatePlayerMoneyUI(player.id, player.money);
-                }
-            }
-        }
-    } else {
-        pokerReward.textContent = 'No win!';
-    }
-    setTimeout(() => { pokerReward.style.opacity = '0'; }, 1800);
 }
 // -- End Casino popups ---
 
