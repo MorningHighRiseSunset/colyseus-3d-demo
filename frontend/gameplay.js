@@ -9630,7 +9630,7 @@ function createTestingModeUI() {
     const testingModeContainer = document.createElement('div');
     testingModeContainer.id = 'testing-mode-container';
     testingModeContainer.style.position = 'fixed';
-    testingModeContainer.style.bottom = '24px';
+    testingModeContainer.style.top = '24px';
     testingModeContainer.style.left = '24px';
     testingModeContainer.style.width = '320px';
     testingModeContainer.style.maxWidth = '90vw';
