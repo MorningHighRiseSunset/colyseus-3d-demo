@@ -932,20 +932,20 @@ function onPropertyUIOpen(propertyName) {
 // -- Begin Casino popups ---
 function showCasinoAnimation(propertyName) {
     hideAllCasinoAnimations();
-    if (propertyName === "Hard Rock Hotel") {
+    if (propertyName === "Santa Fe") {
         showSlotMachine();
         return;
     }
-    if (propertyName === "Bellagio") {
+    if (propertyName === "Hard Rock Hotel") {
         showPokerAnimation();
         return;
     }
-    if (propertyName === "Caesars Palace") {
+    if (propertyName === "Bellagio") {
         showCrapsAnimation();
         return;
     }
-    if (propertyName === "Santa Fe") {
-        showLowStakesPokerAnimation();
+    if (propertyName === "Caesars Palace") {
+        showRouletteAnimation();
         return;
     }
     if (propertyName === "Wynn") {
@@ -9624,33 +9624,63 @@ setInterval(showSuggestionNotification, 240000);
 // Optionally, show once shortly after page load
 setTimeout(showSuggestionNotification, 10000);
 
-/*
+
 // Function to create a UI for testing mode
 function createTestingModeUI() {
     const testingModeContainer = document.createElement('div');
     testingModeContainer.id = 'testing-mode-container';
     testingModeContainer.style.position = 'fixed';
-    testingModeContainer.style.top = '20px';
-    testingModeContainer.style.right = '20px';
-    testingModeContainer.style.width = '300px';
-    testingModeContainer.style.padding = '10px';
-    testingModeContainer.style.backgroundColor = '#333';
-    testingModeContainer.style.color = '#fff';
-    testingModeContainer.style.borderRadius = '8px';
-    testingModeContainer.style.boxShadow = '0 0 10px rgba(0, 0, 0, 0.5)';
-    testingModeContainer.style.zIndex = '1000';
+    testingModeContainer.style.bottom = '24px';
+    testingModeContainer.style.left = '24px';
+    testingModeContainer.style.width = '320px';
+    testingModeContainer.style.maxWidth = '90vw';
+    testingModeContainer.style.padding = '18px 18px 14px 18px';
+    testingModeContainer.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
+    testingModeContainer.style.color = '#ffd700';
+    testingModeContainer.style.borderRadius = '14px';
+    testingModeContainer.style.boxShadow = '0 8px 32px #000a, 0 0 16px #ffd700';
+    testingModeContainer.style.zIndex = '2002';
+    testingModeContainer.style.fontFamily = 'Arial, sans-serif';
+    testingModeContainer.style.display = 'flex';
+    testingModeContainer.style.flexDirection = 'column';
+    testingModeContainer.style.alignItems = 'stretch';
+    testingModeContainer.style.gap = '10px';
+    testingModeContainer.style.border = '2px solid #ffd700';
+    testingModeContainer.style.opacity = '0.98';
+
+    // Responsive adjustment for small screens
+    const style = document.createElement('style');
+    style.textContent = `
+        @media (max-width: 700px) {
+            #testing-mode-container {
+                left: 8px !important;
+                bottom: 8px !important;
+                width: 98vw !important;
+                max-width: 98vw !important;
+                padding: 10px 6px 8px 6px !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
 
     const title = document.createElement('h3');
     title.textContent = 'Testing Mode';
-    title.style.marginBottom = '10px';
+    title.style.marginBottom = '6px';
+    title.style.color = '#ffd700';
+    title.style.fontWeight = 'bold';
+    title.style.fontSize = '1.1em';
+    title.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
     testingModeContainer.appendChild(title);
 
     const propertySelect = document.createElement('select');
     propertySelect.style.width = '100%';
-    propertySelect.style.padding = '5px';
-    propertySelect.style.marginBottom = '10px';
-    propertySelect.style.borderRadius = '4px';
-    propertySelect.style.border = '1px solid #ccc';
+    propertySelect.style.padding = '7px';
+    propertySelect.style.marginBottom = '8px';
+    propertySelect.style.borderRadius = '6px';
+    propertySelect.style.border = '1px solid #ffd700';
+    propertySelect.style.background = '#232a36';
+    propertySelect.style.color = '#ffd700';
+    propertySelect.style.fontSize = '1em';
 
     // Populate the dropdown with place names
     placeNames.forEach((placeName, index) => {
@@ -9665,12 +9695,20 @@ function createTestingModeUI() {
     const testButton = document.createElement('button');
     testButton.textContent = 'Show Property UI';
     testButton.style.width = '100%';
-    testButton.style.padding = '10px';
+    testButton.style.padding = '12px';
     testButton.style.border = 'none';
-    testButton.style.borderRadius = '4px';
-    testButton.style.backgroundColor = '#4CAF50';
-    testButton.style.color = '#fff';
+    testButton.style.borderRadius = '8px';
+    testButton.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+    testButton.style.color = '#232a36';
+    testButton.style.fontWeight = 'bold';
+    testButton.style.fontSize = '1.1em';
     testButton.style.cursor = 'pointer';
+    testButton.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+    testButton.style.letterSpacing = '1px';
+    testButton.style.textShadow = '0 1px 2px #fffbe6';
+    testButton.style.transition = 'transform 0.1s';
+    testButton.onmousedown = () => { testButton.style.transform = 'scale(0.97)'; };
+    testButton.onmouseup = () => { testButton.style.transform = 'scale(1)'; };
 
     testButton.onclick = () => {
         const selectedIndex = parseInt(propertySelect.value, 10);
@@ -9687,7 +9725,7 @@ function createTestingModeUI() {
 
 // Call this function to initialize the testing mode UI
 createTestingModeUI();
-*/
+
 
 // --- Add End Turn Button to DOM if not present ---
 function ensureEndTurnButton() {
