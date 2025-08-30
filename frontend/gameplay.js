@@ -4141,11 +4141,9 @@ function showPropertyUI(position) {
     const property = properties.find(p => p.name === propertyName);
     console.log(`Found property:`, property);
 
-    // Patch: Show slot machine for Hard Rock Hotel
-    if (propertyName === "Hard Rock Hotel") {
+    // Patch: Show correct casino popup for property
+    if (propertyName === "Santa Fe") {
         showSlotMachine();
-        // Ensure slot machine is only removed when property UI is closed
-        // Attach a close handler to the property popup
         setTimeout(() => {
             const overlay = document.querySelector('.property-overlay');
             if (overlay) {
@@ -4157,8 +4155,78 @@ function showPropertyUI(position) {
                 }
             }
         }, 100);
+    } else if (propertyName === "Hard Rock Hotel") {
+        showPokerAnimation();
+        setTimeout(() => {
+            const overlay = document.querySelector('.property-overlay');
+            if (overlay) {
+                const closeBtn = overlay.querySelector('button, .close, .action-button.close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        hidePokerAnimation();
+                    }, { once: true });
+                }
+            }
+        }, 100);
+    } else if (propertyName === "Bellagio") {
+        showCrapsAnimation();
+        setTimeout(() => {
+            const overlay = document.querySelector('.property-overlay');
+            if (overlay) {
+                const closeBtn = overlay.querySelector('button, .close, .action-button.close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        hideCrapsAnimation();
+                    }, { once: true });
+                }
+            }
+        }, 100);
+    } else if (propertyName === "Caesars Palace") {
+        showRouletteAnimation();
+        setTimeout(() => {
+            const overlay = document.querySelector('.property-overlay');
+            if (overlay) {
+                const closeBtn = overlay.querySelector('button, .close, .action-button.close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        hideRouletteAnimation();
+                    }, { once: true });
+                }
+            }
+        }, 100);
+    } else if (propertyName === "Wynn") {
+        showBaccaratAnimation();
+        setTimeout(() => {
+            const overlay = document.querySelector('.property-overlay');
+            if (overlay) {
+                const closeBtn = overlay.querySelector('button, .close, .action-button.close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        hideBaccaratAnimation();
+                    }, { once: true });
+                }
+            }
+        }, 100);
+    } else if (propertyName === "The Cosmopolitan") {
+        showBlackjackAnimation();
+        setTimeout(() => {
+            const overlay = document.querySelector('.property-overlay');
+            if (overlay) {
+                const closeBtn = overlay.querySelector('button, .close, .action-button.close');
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', () => {
+                        hideBlackjackAnimation();
+                    }, { once: true });
+                }
+            }
+        }, 100);
     } else {
         hideSlotMachine();
+        hidePokerAnimation && hidePokerAnimation();
+        hideCrapsAnimation && hideCrapsAnimation();
+        hideRouletteAnimation && hideRouletteAnimation();
+        hideBaccaratAnimation && hideBaccaratAnimation();
+        hideBlackjackAnimation && hideBlackjackAnimation();
     }
 
     if (!property) {
