@@ -968,6 +968,7 @@ function showCrapsAnimation() {
         crapsOverlay.style.display = '';
         return;
     }
+
     crapsState = { point: null, phase: 'comeout', chips: 100, bet: 10 };
     crapsOverlay = document.createElement('div');
     crapsOverlay.id = 'craps-overlay';
@@ -975,8 +976,8 @@ function showCrapsAnimation() {
     crapsOverlay.style.top = '50%';
     crapsOverlay.style.right = '0';
     crapsOverlay.style.transform = 'translateY(-50%)';
-    crapsOverlay.style.width = '320px';
-    crapsOverlay.style.height = '400px';
+    crapsOverlay.style.width = '340px';
+    crapsOverlay.style.height = '420px';
     crapsOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
     crapsOverlay.style.zIndex = '10050';
     crapsOverlay.style.display = 'flex';
@@ -988,14 +989,15 @@ function showCrapsAnimation() {
     crapsOverlay.style.border = '3px solid #ffd700';
     crapsOverlay.style.borderTop = '6px solid #ffd700';
     crapsOverlay.style.borderBottom = '6px solid #ffd700';
-    crapsOverlay.style.padding = '0 0 12px 0';
+    crapsOverlay.style.padding = '0 0 32px 0';
     crapsOverlay.style.overflow = 'hidden';
+    crapsOverlay.style.position = 'relative';
 
-    // Table background
+    // Table background (green felt, more realistic)
     const table = document.createElement('div');
-    table.style.width = '90%';
-    table.style.height = '120px';
-    table.style.background = 'radial-gradient(ellipse at center, #2ecc40 80%, #145a32 100%)';
+    table.style.width = '92%';
+    table.style.height = '130px';
+    table.style.background = 'repeating-linear-gradient(135deg, #2ecc40 0 8px, #27ae60 8px 16px)';
     table.style.border = '2px solid #ffd700';
     table.style.borderRadius = '18px';
     table.style.margin = '18px 0 8px 0';
@@ -1003,6 +1005,15 @@ function showCrapsAnimation() {
     table.style.flexDirection = 'column';
     table.style.alignItems = 'center';
     table.style.justifyContent = 'center';
+    // Add craps text overlay
+    const tableText = document.createElement('div');
+    tableText.textContent = 'CRAPS TABLE';
+    tableText.style.color = '#fff';
+    tableText.style.fontWeight = 'bold';
+    tableText.style.fontSize = '1.1em';
+    tableText.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    tableText.style.margin = '6px 0 0 0';
+    table.appendChild(tableText);
     crapsOverlay.appendChild(table);
 
     // Chips and bet
@@ -1023,14 +1034,28 @@ function showCrapsAnimation() {
     betDiv.innerHTML = `<span style="color:#ffd700;">Bet: </span> <button id="craps-bet-minus" style="margin:0 4px;">-</button><span id="craps-bet" style="color:#fff;">${crapsState.bet}</span><button id="craps-bet-plus" style="margin:0 4px;">+</button>`;
     crapsOverlay.appendChild(betDiv);
 
-    // Dice area
+    // Dice area (improved visuals)
     const diceArea = document.createElement('div');
     diceArea.style.display = 'flex';
     diceArea.style.justifyContent = 'center';
     diceArea.style.alignItems = 'center';
     diceArea.style.margin = '10px 0 8px 0';
-    diceArea.style.height = '60px';
-    diceArea.innerHTML = `<span id="craps-die1" style="font-size:2.5em;">🎲</span><span style="width:18px;"></span><span id="craps-die2" style="font-size:2.5em;">🎲</span>`;
+    diceArea.style.height = '64px';
+    diceArea.style.gap = '18px';
+    // SVG dice for more realistic look
+    function diceSVG(val) {
+        const dots = [
+            '',
+            '<circle cx="16" cy="16" r="4"/>',
+            '<circle cx="8" cy="8" r="4"/><circle cx="24" cy="24" r="4"/>',
+            '<circle cx="8" cy="8" r="4"/><circle cx="16" cy="16" r="4"/><circle cx="24" cy="24" r="4"/>',
+            '<circle cx="8" cy="8" r="4"/><circle cx="8" cy="24" r="4"/><circle cx="24" cy="8" r="4"/><circle cx="24" cy="24" r="4"/>',
+            '<circle cx="8" cy="8" r="4"/><circle cx="8" cy="24" r="4"/><circle cx="16" cy="16" r="4"/><circle cx="24" cy="8" r="4"/><circle cx="24" cy="24" r="4"/>',
+            '<circle cx="8" cy="8" r="4"/><circle cx="8" cy="16" r="4"/><circle cx="8" cy="24" r="4"/><circle cx="24" cy="8" r="4"/><circle cx="24" cy="16" r="4"/><circle cx="24" cy="24" r="4"/>'
+        ];
+        return `<svg width="40" height="40" viewBox="0 0 32 32" style="background:#fff; border-radius:8px; box-shadow:0 2px 8px #000a;"><rect x="2" y="2" width="28" height="28" rx="8" fill="#fff" stroke="#222" stroke-width="2"/>${dots[val]}</svg>`;
+    }
+    diceArea.innerHTML = `<span id="craps-die1" style="display:inline-block;">${diceSVG(1)}</span><span id="craps-die2" style="display:inline-block; margin-left:18px;">${diceSVG(1)}</span>`;
     crapsOverlay.appendChild(diceArea);
 
     // Status
@@ -1044,12 +1069,15 @@ function showCrapsAnimation() {
     statusDiv.textContent = 'Come Out Roll! (7/11 wins, 2/3/12 loses)';
     crapsOverlay.appendChild(statusDiv);
 
-    // Roll button
+    // Roll button (absolute bottom center)
     const rollBtn = document.createElement('button');
     rollBtn.textContent = 'ROLL DICE';
-    rollBtn.style.margin = '10px auto 0 auto';
-    rollBtn.style.width = '120px';
-    rollBtn.style.height = '38px';
+    rollBtn.style.position = 'absolute';
+    rollBtn.style.left = '50%';
+    rollBtn.style.bottom = '28px';
+    rollBtn.style.transform = 'translateX(-50%)';
+    rollBtn.style.width = '140px';
+    rollBtn.style.height = '44px';
     rollBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
     rollBtn.style.color = '#232a36';
     rollBtn.style.fontWeight = 'bold';
@@ -1067,14 +1095,14 @@ function showCrapsAnimation() {
     const resultDiv = document.createElement('div');
     resultDiv.id = 'craps-result';
     resultDiv.style.position = 'absolute';
-    resultDiv.style.bottom = '22px';
+    resultDiv.style.bottom = '80px';
     resultDiv.style.left = '50%';
     resultDiv.style.transform = 'translateX(-50%)';
     resultDiv.style.color = '#ffd700';
-    resultDiv.style.fontSize = '1.6em';
+    resultDiv.style.fontSize = '1.3em';
     resultDiv.style.fontWeight = 'bold';
     resultDiv.style.textShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
-    resultDiv.style.padding = '10px 24px';
+    resultDiv.style.padding = '8px 18px';
     resultDiv.style.background = 'rgba(30,34,44,0.92)';
     resultDiv.style.borderRadius = '12px';
     resultDiv.style.border = '2px solid #ffd700';
@@ -1102,7 +1130,7 @@ function showCrapsAnimation() {
     // Dice roll logic
     rollBtn.onclick = function() {
         rollBtn.disabled = true;
-        // Animate dice
+        // Animate dice SVG
         let animCount = 0;
         const die1 = document.getElementById('craps-die1');
         const die2 = document.getElementById('craps-die2');
@@ -1110,8 +1138,8 @@ function showCrapsAnimation() {
         const anim = setInterval(() => {
             roll1 = Math.floor(Math.random() * 6) + 1;
             roll2 = Math.floor(Math.random() * 6) + 1;
-            die1.textContent = ["⚀","⚁","⚂","⚃","⚄","⚅"][roll1-1];
-            die2.textContent = ["⚀","⚁","⚂","⚃","⚄","⚅"][roll2-1];
+            die1.innerHTML = diceSVG(roll1);
+            die2.innerHTML = diceSVG(roll2);
             animCount++;
             if (animCount > 12) {
                 clearInterval(anim);
@@ -1127,37 +1155,37 @@ function showCrapsAnimation() {
         if (crapsState.phase === 'comeout') {
             if (total === 7 || total === 11) {
                 win = true;
-                msg = `You rolled ${total}! WIN!`;
+                msg = `🎉 You rolled ${total}! WIN!`;
                 crapsState.chips += crapsState.bet;
             } else if ([2,3,12].includes(total)) {
                 lose = true;
-                msg = `You rolled ${total}. Craps! You lose.`;
+                msg = `💀 You rolled ${total}. Craps! You lose.`;
                 crapsState.chips -= crapsState.bet;
             } else {
                 crapsState.point = total;
                 crapsState.phase = 'point';
-                msg = `Point is set to ${total}. Roll again!`;
+                msg = `Point is set to <b>${total}</b>. Roll again!`;
             }
         } else if (crapsState.phase === 'point') {
             if (total === crapsState.point) {
                 win = true;
-                msg = `You hit your point (${total})! WIN!`;
+                msg = `🎉 You hit your point (${total})! WIN!`;
                 crapsState.chips += crapsState.bet;
                 crapsState.phase = 'comeout';
                 crapsState.point = null;
             } else if (total === 7) {
                 lose = true;
-                msg = `You rolled a 7. You lose.`;
+                msg = `💀 You rolled a 7. You lose.`;
                 crapsState.chips -= crapsState.bet;
                 crapsState.phase = 'comeout';
                 crapsState.point = null;
             } else {
-                msg = `You rolled ${total}. Keep rolling for your point (${crapsState.point})!`;
+                msg = `You rolled ${total}. Keep rolling for your point (<b>${crapsState.point}</b>)!`;
             }
         }
         document.getElementById('craps-chips').textContent = crapsState.chips;
-        statusDiv.textContent = crapsState.phase === 'comeout' ? 'Come Out Roll! (7/11 wins, 2/3/12 loses)' : `Point: ${crapsState.point} (Roll point to win, 7 to lose)`;
-        resultDiv.textContent = msg;
+        statusDiv.innerHTML = crapsState.phase === 'comeout' ? '<b>Come Out Roll!</b> <span style="color:#66ff66">(7/11 wins, 2/3/12 loses)</span>' : `<b>Point:</b> <span style="color:#ffd700">${crapsState.point}</span> <span style="color:#66ff66">(Roll point to win, 7 to lose)</span>`;
+        resultDiv.innerHTML = msg;
         resultDiv.style.opacity = '1';
         setTimeout(() => { resultDiv.style.opacity = '0'; }, 2000);
         rollBtn.disabled = false;
@@ -1244,12 +1272,15 @@ function showRouletteAnimation() {
     wheelArea.innerHTML = `<canvas id="roulette-canvas" width="180" height="180" style="border-radius:50%;box-shadow:0 2px 12px #000a;"></canvas><div id="roulette-pointer" style="position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:2em;">▼</div>`;
     rouletteOverlay.appendChild(wheelArea);
 
-    // Spin button
+    // Spin button (absolute bottom center)
     const spinBtn = document.createElement('button');
     spinBtn.textContent = 'SPIN WHEEL';
-    spinBtn.style.margin = '16px auto 0 auto';
-    spinBtn.style.width = '120px';
-    spinBtn.style.height = '38px';
+    spinBtn.style.position = 'absolute';
+    spinBtn.style.left = '50%';
+    spinBtn.style.bottom = '28px';
+    spinBtn.style.transform = 'translateX(-50%)';
+    spinBtn.style.width = '140px';
+    spinBtn.style.height = '44px';
     spinBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
     spinBtn.style.color = '#232a36';
     spinBtn.style.fontWeight = 'bold';
@@ -1267,14 +1298,14 @@ function showRouletteAnimation() {
     const resultDiv = document.createElement('div');
     resultDiv.id = 'roulette-result';
     resultDiv.style.position = 'absolute';
-    resultDiv.style.bottom = '22px';
+    resultDiv.style.bottom = '80px';
     resultDiv.style.left = '50%';
     resultDiv.style.transform = 'translateX(-50%)';
     resultDiv.style.color = '#ffd700';
-    resultDiv.style.fontSize = '1.6em';
+    resultDiv.style.fontSize = '1.3em';
     resultDiv.style.fontWeight = 'bold';
     resultDiv.style.textShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
-    resultDiv.style.padding = '10px 24px';
+    resultDiv.style.padding = '8px 18px';
     resultDiv.style.background = 'rgba(30,34,44,0.92)';
     resultDiv.style.borderRadius = '12px';
     resultDiv.style.border = '2px solid #ffd700';
@@ -1490,12 +1521,15 @@ function showBaccaratAnimation() {
     tableArea.style.boxShadow = '0 4px 24px #000a, 0 0 8px #ffd700';
     baccaratOverlay.appendChild(tableArea);
 
-    // Play button
+    // Play button (absolute bottom center)
     const playBtn = document.createElement('button');
     playBtn.textContent = 'PLAY HAND';
-    playBtn.style.margin = '16px auto 0 auto';
-    playBtn.style.width = '120px';
-    playBtn.style.height = '38px';
+    playBtn.style.position = 'absolute';
+    playBtn.style.left = '50%';
+    playBtn.style.bottom = '28px';
+    playBtn.style.transform = 'translateX(-50%)';
+    playBtn.style.width = '140px';
+    playBtn.style.height = '44px';
     playBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
     playBtn.style.color = '#232a36';
     playBtn.style.fontWeight = 'bold';
@@ -1513,14 +1547,14 @@ function showBaccaratAnimation() {
     const resultDiv = document.createElement('div');
     resultDiv.id = 'baccarat-result';
     resultDiv.style.position = 'absolute';
-    resultDiv.style.bottom = '22px';
+    resultDiv.style.bottom = '80px';
     resultDiv.style.left = '50%';
     resultDiv.style.transform = 'translateX(-50%)';
     resultDiv.style.color = '#ffd700';
-    resultDiv.style.fontSize = '1.6em';
+    resultDiv.style.fontSize = '1.3em';
     resultDiv.style.fontWeight = 'bold';
     resultDiv.style.textShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
-    resultDiv.style.padding = '10px 24px';
+    resultDiv.style.padding = '8px 18px';
     resultDiv.style.background = 'rgba(30,34,44,0.92)';
     resultDiv.style.borderRadius = '12px';
     resultDiv.style.border = '2px solid #ffd700';
