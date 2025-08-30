@@ -1,7 +1,7 @@
 # Vegas Metropoly Server Deployment Guide
 
 ## 🚨 Current Issue
-The server at `metropoly.onrender.com` is not responding, causing CORS and WebSocket connection failures.
+The server at `colyseus-3d-demo-9yuv.onrender.com` is not responding, causing CORS and WebSocket connection failures.
 
 ## 🔧 Quick Fixes
 
@@ -26,7 +26,7 @@ The server at `metropoly.onrender.com` is not responding, causing CORS and WebSo
    - `PORT`: `10000` (Render's default)
 
 4. **Deploy and get your URL**:
-   - Render will give you a URL like: `https://your-app-name.onrender.com`
+   - Render will give you a URL like: `https://colyseus-3d-demo-9yuv.onrender.com`
    - Update the client code with this new URL
 
 ### Option 2: Local Development
@@ -62,9 +62,9 @@ After deploying, update these files with your new server URL:
 ```javascript
 getServerUrl() {
     const servers = [
-        'wss://your-new-server.onrender.com', // Update this
+   'wss://colyseus-3d-demo-9yuv.onrender.com', // Update this
         'ws://localhost:3000',
-        'wss://metropoly.onrender.com' // Fallback
+   'wss://colyseus-3d-demo-9yuv.onrender.com' // Fallback
     ];
     return servers[0];
 }
@@ -74,9 +74,9 @@ getServerUrl() {
 ```javascript
 getServerUrl() {
     const servers = [
-        'wss://your-new-server.onrender.com', // Update this
+   'wss://colyseus-3d-demo-9yuv.onrender.com', // Update this
         'ws://localhost:3000',
-        'wss://metropoly.onrender.com' // Fallback
+   'wss://colyseus-3d-demo-9yuv.onrender.com' // Fallback
     ];
     return servers[0];
 }
@@ -84,8 +84,8 @@ getServerUrl() {
 
 ## 🧪 Test Your Deployment
 
-1. **Health Check**: Visit `https://your-server.onrender.com/health`
-2. **API Test**: Visit `https://your-server.onrender.com/api/rooms`
+1. **Health Check**: Visit `https://colyseus-3d-demo-9yuv.onrender.com/health`
+2. **API Test**: Visit `https://colyseus-3d-demo-9yuv.onrender.com/api/rooms`
 3. **WebSocket Test**: Run `node test-server.js`
 
 ## 📋 Troubleshooting

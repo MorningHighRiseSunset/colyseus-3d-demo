@@ -1,4 +1,4 @@
-const socket = io('https://colyseus-3d-demo.onrender.com');
+const socket = io('https://colyseus-3d-demo-9yuv.onrender.com');
 const createRoomBtn = document.getElementById('createRoomBtn');
 const joinRoomBtn = document.getElementById('joinRoomBtn');
 const joinRoomId = document.getElementById('joinRoomId');

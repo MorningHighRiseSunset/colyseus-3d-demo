@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
   var startBtn = document.getElementById('startGameBtn');
   var onlineStatus = document.getElementById('onlineStatus');
-  const socket = io('https://colyseus-3d-demo.onrender.com');
+  const socket = io('https://colyseus-3d-demo-9yuv.onrender.com');
 
   // Show online indicator
   socket.on('connect', function() {

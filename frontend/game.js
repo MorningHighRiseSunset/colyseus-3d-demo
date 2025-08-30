@@ -1,5 +1,5 @@
 // --- Multiplayer 3D block demo logic with ready-up and host start ---
-const socket = io('https://colyseus-3d-demo.onrender.com');
+const socket = io('https://colyseus-3d-demo-9yuv.onrender.com');
 socket.on('gameStarted', ({ hostName, roomId }) => {
   // Redirect all players to gameplay.html with roomId, playerName, and playerId
     // Save session info for gameplay.html fallback

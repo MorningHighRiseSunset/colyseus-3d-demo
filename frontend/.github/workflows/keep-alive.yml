@@ -21,4 +21,4 @@ jobs:
     - name: Run keep-alive
       run: node keep-alive.js
       env:
-        SERVER_URL: https://metropoly.onrender.com
+  SERVER_URL: https://colyseus-3d-demo-9yuv.onrender.com

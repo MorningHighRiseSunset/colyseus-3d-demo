@@ -364,7 +364,10 @@ function safeAssignSelectedTokensToPlayers(contextMsg = '') {
     assignSelectedTokensToPlayers();
     // If models are not ready, set up a one-time event to assign again when ready
     if (!window.tokenModelsReady) {
-        console.warn(`[Token Loader] safeAssignSelectedTokensToPlayers: Models NOT ready yet. Waiting. Triggered by: ${contextMsg}`);
+        if (!window._tokenModelsReadyWarned) {
+            console.warn(`[Token Loader] safeAssignSelectedTokensToPlayers: Models NOT ready yet. Waiting. Triggered by: ${contextMsg}`);
+            window._tokenModelsReadyWarned = true;
+        }
         window.addEventListener('tokenModelsReady', () => {
             console.log(`[Token Loader] safeAssignSelectedTokensToPlayers: Models now ready (event). Triggered by: ${contextMsg}`);
             assignSelectedTokensToPlayers();
@@ -1119,7 +1122,7 @@ function onPokerDraw() {
 // --- Multiplayer Initialization ---
 function setupSocketIOMultiplayer(roomId, playerId, playerName) {
     console.log('[MP DEBUG] setupSocketIOMultiplayer called with:', { roomId, playerId, playerName });
-    socket = io('https://colyseus-3d-demo.onrender.com');
+    socket = io('https://colyseus-3d-demo-9yuv.onrender.com');
     console.log('[MP DEBUG] Socket created:', !!socket);
     setupGameStartedSocketListener();
     currentRoomId = roomId || 'defaultRoom';
@@ -7570,6 +7573,10 @@ function createImageCarousel(images, position) {
             gifImg = null;
         }
 
+        // Track failed attempts for each image
+        if (!window.imageLoadFailures) window.imageLoadFailures = {};
+        if (!window.imageLoadFailures[currentImage]) window.imageLoadFailures[currentImage] = 0;
+
         // If it's a GIF, use <img> so browser animates it
         if (currentImage.endsWith('.gif')) {
             gifImg = document.createElement('img');
@@ -7581,7 +7588,6 @@ function createImageCarousel(images, position) {
                 material.map = texture;
                 material.needsUpdate = true;
 
-                // Animate the GIF by updating the texture every frame
                 function animateGifTexture() {
                     if (material.map && gifImg) {
                         material.map.needsUpdate = true;
@@ -7590,20 +7596,43 @@ function createImageCarousel(images, position) {
                 }
                 animateGifTexture();
 
-                // --- SPAWN BASEPLATE ONLY FOR GIF ---
                 spawnBaseplate();
-
-                // Set how long to show the GIF (default: 6s, or adjust as needed)
                 carouselTimeout = setTimeout(nextImage, 6000);
+            };
+            gifImg.onerror = () => {
+                window.imageLoadFailures[currentImage]++;
+                if (window.imageLoadFailures[currentImage] <= 3) {
+                    // Only log the first 3 failures
+                    console.warn(`[Image Loader] Failed to load GIF: ${currentImage} (Attempt ${window.imageLoadFailures[currentImage]})`);
+                    carouselTimeout = setTimeout(nextImage, 1000);
+                } else {
+                    // Suppress further errors and skip image
+                    carouselTimeout = setTimeout(nextImage, 0);
+                }
             };
         } else {
             // For static images, use TextureLoader
             const textureLoader = new THREE.TextureLoader();
-            textureLoader.load(currentImage, (loadedTexture) => {
-                material.map = loadedTexture;
-                material.needsUpdate = true;
-            });
-            carouselTimeout = setTimeout(nextImage, 3000);
+            textureLoader.load(
+                currentImage,
+                (loadedTexture) => {
+                    material.map = loadedTexture;
+                    material.needsUpdate = true;
+                },
+                undefined,
+                () => {
+                    window.imageLoadFailures[currentImage]++;
+                    if (window.imageLoadFailures[currentImage] <= 3) {
+                        console.warn(`[Image Loader] Failed to load image: ${currentImage} (Attempt ${window.imageLoadFailures[currentImage]})`);
+                        carouselTimeout = setTimeout(nextImage, 1000);
+                    } else {
+                        carouselTimeout = setTimeout(nextImage, 0);
+                    }
+                }
+            );
+            if (window.imageLoadFailures[currentImage] === 0) {
+                carouselTimeout = setTimeout(nextImage, 3000);
+            }
         }
     }
 

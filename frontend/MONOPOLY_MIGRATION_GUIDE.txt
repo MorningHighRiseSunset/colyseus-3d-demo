@@ -6,7 +6,7 @@
 - The backend runs on Render (Node.js server).
 - The frontend runs on Netlify (static site hosting).
 - Example URLs:
-	- Backend: https://colyseus-3d-demo.onrender.com
+	- Backend: https://colyseus-3d-demo-9yuv.onrender.com
 	- Frontend: https://colyseusdemo3d.netlify.app
 
 ## You can delete these files:
