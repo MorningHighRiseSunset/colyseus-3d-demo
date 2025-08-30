@@ -962,9 +962,401 @@ function hideAllCasinoAnimations() {
     hideSlotMachine && hideSlotMachine();
     hidePokerAnimation && hidePokerAnimation();
     hideCrapsAnimation && hideCrapsAnimation();
-    hideLowStakesPokerAnimation && hideLowStakesPokerAnimation();
+    hideRouletteAnimation && hideRouletteAnimation();
     hideBaccaratAnimation && hideBaccaratAnimation();
     hideBlackjackAnimation && hideBlackjackAnimation();
+}
+// --- Craps Popup ---
+let crapsOverlay = null;
+function showCrapsAnimation() {
+    if (crapsOverlay) return;
+    crapsOverlay = document.createElement('div');
+    crapsOverlay.id = 'craps-overlay';
+    crapsOverlay.style.position = 'fixed';
+    crapsOverlay.style.top = '60%';
+    crapsOverlay.style.right = '0';
+    crapsOverlay.style.transform = 'translateY(-50%)';
+    crapsOverlay.style.width = '240px';
+    crapsOverlay.style.height = '340px';
+    crapsOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
+    crapsOverlay.style.zIndex = '10050';
+    crapsOverlay.style.display = 'flex';
+    crapsOverlay.style.flexDirection = 'column';
+    crapsOverlay.style.justifyContent = 'flex-start';
+    crapsOverlay.style.alignItems = 'center';
+    crapsOverlay.style.borderRadius = '22px 0 0 22px';
+    crapsOverlay.style.boxShadow = '0 8px 32px #000a, 0 0 16px #ffd700';
+    crapsOverlay.style.border = '3px solid #ffd700';
+    crapsOverlay.style.borderTop = '6px solid #ffd700';
+    crapsOverlay.style.borderBottom = '6px solid #ffd700';
+    crapsOverlay.style.padding = '0 0 12px 0';
+    crapsOverlay.style.overflow = 'hidden';
+    const emojiDiv = document.createElement('div');
+    emojiDiv.textContent = '🎲';
+    emojiDiv.style.fontSize = '2.8em';
+    emojiDiv.style.margin = '10px 0 0 0';
+    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    crapsOverlay.appendChild(emojiDiv);
+    const header = document.createElement('div');
+    header.textContent = 'CRAPS TABLE';
+    header.style.color = '#ffd700';
+    header.style.fontWeight = 'bold';
+    header.style.fontSize = '1.2em';
+    header.style.margin = '12px 0 8px 0';
+    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    crapsOverlay.appendChild(header);
+    const diceBtn = document.createElement('button');
+    diceBtn.textContent = 'ROLL DICE';
+    diceBtn.style.margin = '16px auto 0 auto';
+    diceBtn.style.width = '120px';
+    diceBtn.style.height = '38px';
+    diceBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+    diceBtn.style.color = '#232a36';
+    diceBtn.style.fontWeight = 'bold';
+    diceBtn.style.fontSize = '1.2em';
+    diceBtn.style.border = 'none';
+    diceBtn.style.borderRadius = '12px';
+    diceBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+    diceBtn.style.cursor = 'pointer';
+    diceBtn.style.letterSpacing = '2px';
+    diceBtn.style.textShadow = '0 1px 2px #fffbe6';
+    diceBtn.style.transition = 'transform 0.1s';
+    diceBtn.onmousedown = () => { diceBtn.style.transform = 'scale(0.97)'; };
+    diceBtn.onmouseup = () => { diceBtn.style.transform = 'scale(1)'; };
+    crapsOverlay.appendChild(diceBtn);
+    const resultDiv = document.createElement('div');
+    resultDiv.id = 'craps-result';
+    resultDiv.style.position = 'absolute';
+    resultDiv.style.bottom = '22px';
+    resultDiv.style.left = '50%';
+    resultDiv.style.transform = 'translateX(-50%)';
+    resultDiv.style.color = '#ffd700';
+    resultDiv.style.fontSize = '1.6em';
+    resultDiv.style.fontWeight = 'bold';
+    resultDiv.style.textShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    resultDiv.style.padding = '10px 24px';
+    resultDiv.style.background = 'rgba(30,34,44,0.92)';
+    resultDiv.style.borderRadius = '12px';
+    resultDiv.style.border = '2px solid #ffd700';
+    resultDiv.style.boxShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    resultDiv.style.opacity = '0';
+    resultDiv.style.transition = 'opacity 0.3s';
+    crapsOverlay.appendChild(resultDiv);
+    document.body.appendChild(crapsOverlay);
+    diceBtn.addEventListener('click', function() {
+        const roll1 = Math.floor(Math.random() * 6) + 1;
+        const roll2 = Math.floor(Math.random() * 6) + 1;
+        const total = roll1 + roll2;
+        resultDiv.style.opacity = '1';
+        if (total === 7 || total === 11) {
+            resultDiv.textContent = 'WIN! +$400';
+        } else {
+            resultDiv.textContent = 'No win!';
+        }
+        setTimeout(() => { resultDiv.style.opacity = '0'; }, 1800);
+    });
+}
+function hideCrapsAnimation() {
+    if (crapsOverlay) {
+        crapsOverlay.remove();
+        crapsOverlay = null;
+    }
+}
+
+// --- Roulette Popup ---
+let rouletteOverlay = null;
+function showRouletteAnimation() {
+    if (rouletteOverlay) return;
+    rouletteOverlay = document.createElement('div');
+    rouletteOverlay.id = 'roulette-overlay';
+    rouletteOverlay.style.position = 'fixed';
+    rouletteOverlay.style.top = '60%';
+    rouletteOverlay.style.right = '0';
+    rouletteOverlay.style.transform = 'translateY(-50%)';
+    rouletteOverlay.style.width = '240px';
+    rouletteOverlay.style.height = '340px';
+    rouletteOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
+    rouletteOverlay.style.zIndex = '10050';
+    rouletteOverlay.style.display = 'flex';
+    rouletteOverlay.style.flexDirection = 'column';
+    rouletteOverlay.style.justifyContent = 'flex-start';
+    rouletteOverlay.style.alignItems = 'center';
+    rouletteOverlay.style.borderRadius = '22px 0 0 22px';
+    rouletteOverlay.style.boxShadow = '0 8px 32px #000a, 0 0 16px #ffd700';
+    rouletteOverlay.style.border = '3px solid #ffd700';
+    rouletteOverlay.style.borderTop = '6px solid #ffd700';
+    rouletteOverlay.style.borderBottom = '6px solid #ffd700';
+    rouletteOverlay.style.padding = '0 0 12px 0';
+    rouletteOverlay.style.overflow = 'hidden';
+    const emojiDiv = document.createElement('div');
+    emojiDiv.textContent = '🎡';
+    emojiDiv.style.fontSize = '2.8em';
+    emojiDiv.style.margin = '10px 0 0 0';
+    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    rouletteOverlay.appendChild(emojiDiv);
+    const header = document.createElement('div');
+    header.textContent = 'ROULETTE WHEEL';
+    header.style.color = '#ffd700';
+    header.style.fontWeight = 'bold';
+    header.style.fontSize = '1.2em';
+    header.style.margin = '12px 0 8px 0';
+    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    rouletteOverlay.appendChild(header);
+    const spinBtn = document.createElement('button');
+    spinBtn.textContent = 'SPIN WHEEL';
+    spinBtn.style.margin = '16px auto 0 auto';
+    spinBtn.style.width = '120px';
+    spinBtn.style.height = '38px';
+    spinBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+    spinBtn.style.color = '#232a36';
+    spinBtn.style.fontWeight = 'bold';
+    spinBtn.style.fontSize = '1.2em';
+    spinBtn.style.border = 'none';
+    spinBtn.style.borderRadius = '12px';
+    spinBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+    spinBtn.style.cursor = 'pointer';
+    spinBtn.style.letterSpacing = '2px';
+    spinBtn.style.textShadow = '0 1px 2px #fffbe6';
+    spinBtn.style.transition = 'transform 0.1s';
+    spinBtn.onmousedown = () => { spinBtn.style.transform = 'scale(0.97)'; };
+    spinBtn.onmouseup = () => { spinBtn.style.transform = 'scale(1)'; };
+    rouletteOverlay.appendChild(spinBtn);
+    const resultDiv = document.createElement('div');
+    resultDiv.id = 'roulette-result';
+    resultDiv.style.position = 'absolute';
+    resultDiv.style.bottom = '22px';
+    resultDiv.style.left = '50%';
+    resultDiv.style.transform = 'translateX(-50%)';
+    resultDiv.style.color = '#ffd700';
+    resultDiv.style.fontSize = '1.6em';
+    resultDiv.style.fontWeight = 'bold';
+    resultDiv.style.textShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    resultDiv.style.padding = '10px 24px';
+    resultDiv.style.background = 'rgba(30,34,44,0.92)';
+    resultDiv.style.borderRadius = '12px';
+    resultDiv.style.border = '2px solid #ffd700';
+    resultDiv.style.boxShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    resultDiv.style.opacity = '0';
+    resultDiv.style.transition = 'opacity 0.3s';
+    rouletteOverlay.appendChild(resultDiv);
+    document.body.appendChild(rouletteOverlay);
+    spinBtn.addEventListener('click', function() {
+        const numbers = [0, ...Array.from({length:36}, (_,i)=>i+1)];
+        const winNumber = numbers[Math.floor(Math.random()*numbers.length)];
+        resultDiv.style.opacity = '1';
+        if (winNumber === 0 || winNumber % 2 === 0) {
+            resultDiv.textContent = `WIN! +$300 (Number: ${winNumber})`;
+        } else {
+            resultDiv.textContent = `No win! (Number: ${winNumber})`;
+        }
+        setTimeout(() => { resultDiv.style.opacity = '0'; }, 1800);
+    });
+}
+function hideRouletteAnimation() {
+    if (rouletteOverlay) {
+        rouletteOverlay.remove();
+        rouletteOverlay = null;
+    }
+}
+
+// --- Baccarat Popup ---
+let baccaratOverlay = null;
+function showBaccaratAnimation() {
+    if (baccaratOverlay) return;
+    baccaratOverlay = document.createElement('div');
+    baccaratOverlay.id = 'baccarat-overlay';
+    baccaratOverlay.style.position = 'fixed';
+    baccaratOverlay.style.top = '60%';
+    baccaratOverlay.style.right = '0';
+    baccaratOverlay.style.transform = 'translateY(-50%)';
+    baccaratOverlay.style.width = '240px';
+    baccaratOverlay.style.height = '340px';
+    baccaratOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
+    baccaratOverlay.style.zIndex = '10050';
+    baccaratOverlay.style.display = 'flex';
+    baccaratOverlay.style.flexDirection = 'column';
+    baccaratOverlay.style.justifyContent = 'flex-start';
+    baccaratOverlay.style.alignItems = 'center';
+    baccaratOverlay.style.borderRadius = '22px 0 0 22px';
+    baccaratOverlay.style.boxShadow = '0 8px 32px #000a, 0 0 16px #ffd700';
+    baccaratOverlay.style.border = '3px solid #ffd700';
+    baccaratOverlay.style.borderTop = '6px solid #ffd700';
+    baccaratOverlay.style.borderBottom = '6px solid #ffd700';
+    baccaratOverlay.style.padding = '0 0 12px 0';
+    baccaratOverlay.style.overflow = 'hidden';
+    const emojiDiv = document.createElement('div');
+    emojiDiv.textContent = '🃏';
+    emojiDiv.style.fontSize = '2.8em';
+    emojiDiv.style.margin = '10px 0 0 0';
+    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    baccaratOverlay.appendChild(emojiDiv);
+    const header = document.createElement('div');
+    header.textContent = 'BACCARAT TABLE';
+    header.style.color = '#ffd700';
+    header.style.fontWeight = 'bold';
+    header.style.fontSize = '1.2em';
+    header.style.margin = '12px 0 8px 0';
+    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    baccaratOverlay.appendChild(header);
+    const playBtn = document.createElement('button');
+    playBtn.textContent = 'PLAY HAND';
+    playBtn.style.margin = '16px auto 0 auto';
+    playBtn.style.width = '120px';
+    playBtn.style.height = '38px';
+    playBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+    playBtn.style.color = '#232a36';
+    playBtn.style.fontWeight = 'bold';
+    playBtn.style.fontSize = '1.2em';
+    playBtn.style.border = 'none';
+    playBtn.style.borderRadius = '12px';
+    playBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+    playBtn.style.cursor = 'pointer';
+    playBtn.style.letterSpacing = '2px';
+    playBtn.style.textShadow = '0 1px 2px #fffbe6';
+    playBtn.style.transition = 'transform 0.1s';
+    playBtn.onmousedown = () => { playBtn.style.transform = 'scale(0.97)'; };
+    playBtn.onmouseup = () => { playBtn.style.transform = 'scale(1)'; };
+    baccaratOverlay.appendChild(playBtn);
+    const resultDiv = document.createElement('div');
+    resultDiv.id = 'baccarat-result';
+    resultDiv.style.position = 'absolute';
+    resultDiv.style.bottom = '22px';
+    resultDiv.style.left = '50%';
+    resultDiv.style.transform = 'translateX(-50%)';
+    resultDiv.style.color = '#ffd700';
+    resultDiv.style.fontSize = '1.6em';
+    resultDiv.style.fontWeight = 'bold';
+    resultDiv.style.textShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    resultDiv.style.padding = '10px 24px';
+    resultDiv.style.background = 'rgba(30,34,44,0.92)';
+    resultDiv.style.borderRadius = '12px';
+    resultDiv.style.border = '2px solid #ffd700';
+    resultDiv.style.boxShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    resultDiv.style.opacity = '0';
+    resultDiv.style.transition = 'opacity 0.3s';
+    baccaratOverlay.appendChild(resultDiv);
+    document.body.appendChild(baccaratOverlay);
+    playBtn.addEventListener('click', function() {
+        // Simulate player and banker hands (random 1-9)
+        const playerHand = Math.floor(Math.random()*9)+1;
+        const bankerHand = Math.floor(Math.random()*9)+1;
+        resultDiv.style.opacity = '1';
+        if (playerHand > bankerHand) {
+            resultDiv.textContent = `PLAYER WIN! +$350 (Player: ${playerHand}, Banker: ${bankerHand})`;
+        } else if (playerHand < bankerHand) {
+            resultDiv.textContent = `BANKER WIN! +$200 (Player: ${playerHand}, Banker: ${bankerHand})`;
+        } else {
+            resultDiv.textContent = `TIE! (Player: ${playerHand}, Banker: ${bankerHand})`;
+        }
+        setTimeout(() => { resultDiv.style.opacity = '0'; }, 1800);
+    });
+}
+function hideBaccaratAnimation() {
+    if (baccaratOverlay) {
+        baccaratOverlay.remove();
+        baccaratOverlay = null;
+    }
+}
+
+// --- Blackjack Popup ---
+let blackjackOverlay = null;
+function showBlackjackAnimation() {
+    if (blackjackOverlay) return;
+    blackjackOverlay = document.createElement('div');
+    blackjackOverlay.id = 'blackjack-overlay';
+    blackjackOverlay.style.position = 'fixed';
+    blackjackOverlay.style.top = '60%';
+    blackjackOverlay.style.right = '0';
+    blackjackOverlay.style.transform = 'translateY(-50%)';
+    blackjackOverlay.style.width = '240px';
+    blackjackOverlay.style.height = '340px';
+    blackjackOverlay.style.background = 'linear-gradient(135deg, #232a36 60%, #2d3748 100%)';
+    blackjackOverlay.style.zIndex = '10050';
+    blackjackOverlay.style.display = 'flex';
+    blackjackOverlay.style.flexDirection = 'column';
+    blackjackOverlay.style.justifyContent = 'flex-start';
+    blackjackOverlay.style.alignItems = 'center';
+    blackjackOverlay.style.borderRadius = '22px 0 0 22px';
+    blackjackOverlay.style.boxShadow = '0 8px 32px #000a, 0 0 16px #ffd700';
+    blackjackOverlay.style.border = '3px solid #ffd700';
+    blackjackOverlay.style.borderTop = '6px solid #ffd700';
+    blackjackOverlay.style.borderBottom = '6px solid #ffd700';
+    blackjackOverlay.style.padding = '0 0 12px 0';
+    blackjackOverlay.style.overflow = 'hidden';
+    const emojiDiv = document.createElement('div');
+    emojiDiv.textContent = '🂡';
+    emojiDiv.style.fontSize = '2.8em';
+    emojiDiv.style.margin = '10px 0 0 0';
+    emojiDiv.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    blackjackOverlay.appendChild(emojiDiv);
+    const header = document.createElement('div');
+    header.textContent = 'BLACKJACK TABLE';
+    header.style.color = '#ffd700';
+    header.style.fontWeight = 'bold';
+    header.style.fontSize = '1.2em';
+    header.style.margin = '12px 0 8px 0';
+    header.style.textShadow = '0 2px 8px #000a, 0 0 2px #ffd700';
+    blackjackOverlay.appendChild(header);
+    const playBtn = document.createElement('button');
+    playBtn.textContent = 'PLAY HAND';
+    playBtn.style.margin = '16px auto 0 auto';
+    playBtn.style.width = '120px';
+    playBtn.style.height = '38px';
+    playBtn.style.background = 'linear-gradient(90deg, #ffd700 60%, #fffbe6 100%)';
+    playBtn.style.color = '#232a36';
+    playBtn.style.fontWeight = 'bold';
+    playBtn.style.fontSize = '1.2em';
+    playBtn.style.border = 'none';
+    playBtn.style.borderRadius = '12px';
+    playBtn.style.boxShadow = '0 2px 8px #0007, 0 0 4px #ffd700';
+    playBtn.style.cursor = 'pointer';
+    playBtn.style.letterSpacing = '2px';
+    playBtn.style.textShadow = '0 1px 2px #fffbe6';
+    playBtn.style.transition = 'transform 0.1s';
+    playBtn.onmousedown = () => { playBtn.style.transform = 'scale(0.97)'; };
+    playBtn.onmouseup = () => { playBtn.style.transform = 'scale(1)'; };
+    blackjackOverlay.appendChild(playBtn);
+    const resultDiv = document.createElement('div');
+    resultDiv.id = 'blackjack-result';
+    resultDiv.style.position = 'absolute';
+    resultDiv.style.bottom = '22px';
+    resultDiv.style.left = '50%';
+    resultDiv.style.transform = 'translateX(-50%)';
+    resultDiv.style.color = '#ffd700';
+    resultDiv.style.fontSize = '1.6em';
+    resultDiv.style.fontWeight = 'bold';
+    resultDiv.style.textShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    resultDiv.style.padding = '10px 24px';
+    resultDiv.style.background = 'rgba(30,34,44,0.92)';
+    resultDiv.style.borderRadius = '12px';
+    resultDiv.style.border = '2px solid #ffd700';
+    resultDiv.style.boxShadow = '0 2px 12px #000a, 0 0 4px #ffd700';
+    resultDiv.style.opacity = '0';
+    resultDiv.style.transition = 'opacity 0.3s';
+    blackjackOverlay.appendChild(resultDiv);
+    document.body.appendChild(blackjackOverlay);
+    playBtn.addEventListener('click', function() {
+        // Simulate player and dealer hands (random 15-21)
+        const playerHand = Math.floor(Math.random()*7)+15;
+        const dealerHand = Math.floor(Math.random()*7)+15;
+        resultDiv.style.opacity = '1';
+        if (playerHand > dealerHand && playerHand <= 21) {
+            resultDiv.textContent = `PLAYER WIN! +$400 (Player: ${playerHand}, Dealer: ${dealerHand})`;
+        } else if (dealerHand > playerHand && dealerHand <= 21) {
+            resultDiv.textContent = `DEALER WIN! +$200 (Player: ${playerHand}, Dealer: ${dealerHand})`;
+        } else if (playerHand === dealerHand) {
+            resultDiv.textContent = `TIE! (Player: ${playerHand}, Dealer: ${dealerHand})`;
+        } else {
+            resultDiv.textContent = `BUST! No win.`;
+        }
+        setTimeout(() => { resultDiv.style.opacity = '0'; }, 1800);
+    });
+}
+function hideBlackjackAnimation() {
+    if (blackjackOverlay) {
+        blackjackOverlay.remove();
+        blackjackOverlay = null;
+    }
 }
 
 let pokerOverlay = null;
