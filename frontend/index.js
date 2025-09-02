@@ -1,7 +1,7 @@
 import * as THREE from 'https://unpkg.com/three@0.153.0/build/three.module.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.153.0/examples/jsm/loaders/GLTFLoader.js';
 
-// Vegas Strip 3D Background using Three.js (ES Modules)
+// Vegas Strip 3D Background using global THREE (like gameplay.js)
 // 3D Las Vegas Strip Background
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
@@ -18,7 +18,7 @@ dirLight.position.set(10, 20, 10);
 scene.add(dirLight);
 
 // Load Las Vegas Strip GLB model
-const loader = new GLTFLoader();
+const loader = new THREE.GLTFLoader();
 loader.load('Models/las_vegas.glb', function(gltf) {
     const model = gltf.scene;
     model.position.set(0, 0, 0);
