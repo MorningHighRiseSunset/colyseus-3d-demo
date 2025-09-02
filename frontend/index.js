@@ -1,5 +1,3 @@
-import * as THREE from 'https://unpkg.com/three@0.153.0/build/three.module.js';
-import { GLTFLoader } from 'https://unpkg.com/three@0.153.0/examples/jsm/loaders/GLTFLoader.js';
 
 // Vegas Strip 3D Background using global THREE (like gameplay.js)
 // 3D Las Vegas Strip Background
