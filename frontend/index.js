@@ -1,4 +1,3 @@
-
 // Vegas Strip 3D Background using global THREE (r128)
 console.log('Three.js version:', THREE.REVISION);
 const scene = new THREE.Scene();
@@ -9,8 +8,13 @@ console.log('Camera created:', camera);
 const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x000000, 0); // transparent background
-document.getElementById('bg-3d').appendChild(renderer.domElement);
-console.log('Renderer created and attached.');
+
+// Attach renderer
+var bg3d = document.getElementById('bg-3d');
+if (bg3d) {
+  bg3d.appendChild(renderer.domElement);
+  console.log('Renderer created and attached.');
+}
 
 // Ambient and directional light
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
@@ -20,27 +24,36 @@ scene.add(dirLight);
 console.log('Lights added.');
 
 // Load Las Vegas Strip GLB model
-if (THREE.GLTFLoader) {
-  console.log('GLTFLoader is available:', THREE.GLTFLoader);
-  const loader = new THREE.GLTFLoader();
-  loader.load('Models/las_vegas/scene.glb', function(gltf) {
-    console.log('GLB loaded:', gltf);
-    const model = gltf.scene;
-    model.position.set(0, 0, 0);
-    model.scale.set(10, 10, 10); // Adjust scale as needed
-    scene.add(model);
-    console.log('Model added to scene.');
-  }, function(xhr) {
-    console.log('GLB loading progress:', (xhr.loaded / xhr.total * 100) + '% loaded');
-  }, function(error) {
-    console.error('Error loading GLB:', error);
-  });
+if (typeof THREE.DRACOLoader !== 'undefined') {
+  console.log('DRACOLoader is available:', THREE.DRACOLoader);
+  var loader = new THREE.GLTFLoader();
+  var dracoLoader = new THREE.DRACOLoader();
+  dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
+  loader.setDRACOLoader(dracoLoader);
+  console.log('DRACOLoader set for GLTFLoader.');
+  loader.load('Models/las_vegas/scene.glb',
+    function(gltf) {
+      console.log('GLB loaded:', gltf);
+      var model = gltf.scene;
+      model.position.set(0, 0, 0);
+      model.scale.set(10, 10, 10); // Adjust scale as needed
+      scene.add(model);
+      console.log('Model added to scene.');
+    },
+    function(xhr) {
+      var percent = xhr.total ? (xhr.loaded / xhr.total * 100) : 0;
+      console.log('GLB loading progress:', percent + '% loaded', xhr);
+    },
+    function(error) {
+      console.error('Error loading GLB:', error);
+    }
+  );
 } else {
-  console.error('THREE.GLTFLoader is NOT available!');
+  console.error('THREE.DRACOLoader is NOT available!');
 }
 
 // Responsive resize
-window.addEventListener('resize', () => {
+window.addEventListener('resize', function() {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
