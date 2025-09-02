@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Socket.IO Multiplayer Demo</title>
+  <link rel="stylesheet" href="index.css">
+  </head>
+</head>
+<body>
+  <!-- 3D Las Vegas Strip Background -->
+  <div id="bg-3d" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:0;overflow:hidden;"></div>
+  <div class="container" style="position:relative;z-index:1;">
+    <h1>Welcome to Socket.IO Multiplayer Demo</h1>
+    <div id="onlineStatus" style="margin-bottom:16px;"></div>
+    <button id="startGameBtn" class="btn">Start Game</button>
+  </div>
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+  <!-- Three.js and GLTFLoader -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script>
+  // 3D Las Vegas Strip Background
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+  camera.position.set(0, 10, 40);
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x000000, 0); // transparent background
+  document.getElementById('bg-3d').appendChild(renderer.domElement);
+
+  // Ambient and directional light
+  scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+  const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+  dirLight.position.set(10, 20, 10);
+  scene.add(dirLight);
+
+  // Load Las Vegas Strip GLB model
+  const loader = new THREE.GLTFLoader();
+  loader.load('Models/las_vegas.glb', function(gltf) {
+    const model = gltf.scene;
+    model.position.set(0, 0, 0);
+    model.scale.set(10, 10, 10); // Adjust scale as needed
+    scene.add(model);
+  }, undefined, function(error) {
+    console.error('Error loading GLB:', error);
+  });
+
+  // Responsive resize
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  // Animation loop
+  function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+  }
+  animate();
+  </script>
+  <script src="index.js"></script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+
+# Metropoly Migration Guide (Updated)
+
+## Project Context
+- This is a Socket.IO multiplayer online game template.
+- The backend runs on Render (Node.js server).
+- The frontend runs on Netlify (static site hosting).
+- Example URLs:
+	- Backend: https://colyseus-3d-demo-9yuv.onrender.com
+	- Frontend: https://colyseusdemo3d.netlify.app
+
+## You can delete these files:
+- `frontend/game.js` (3D block demo)
+- `frontend/game.html` (3D block demo)
+- `frontend/game.css` (3D block demo)
+- `backend/index.js` (Socket.IO backend for demo)
+
+## What to do next:
+- Rename your game and references to "Metropoly" as needed.
+- Replace `backend/index.js` with your own Monopoly game server logic. You can use the room creation, player naming, and socket connection patterns from this demo as a reference, but you do NOT need any of the 3D block code.
+- In your Monopoly JS, connect to your new backend using Socket.IO and implement Monopoly-specific events (move, buy, trade, etc).
+- You can reuse or adapt the lobby files (`frontend/lobby.html`, `frontend/lobby.js`, `frontend/lobby.css`) for room creation and player naming.
+
+
+## Notes:
+- The deleted backend/index.js file is only used for the 3D block demo and basic room logic. For Metropoly, you will need a custom backend to handle game state, turns, board, and player actions.
+- The frontend lobby files are modular and can be adapted for Metropoly.
+- You do not need any Three.js code for Metropoly.
+- Make sure your Socket.IO client URLs match your deployed backend and frontend URLs.
+- If you change deployment platforms, update CORS and connection URLs accordingly.
+
+---
+This file is safe to delete after migration.
+
+---
+This file is safe to delete after migration.
