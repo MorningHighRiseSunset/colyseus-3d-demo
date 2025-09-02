@@ -8,7 +8,7 @@ const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHei
 camera.position.set(0, 10, 40);
 const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x000000, 0); // transparent background
+renderer.setClearColor(0x000000, 0); // transparent background (no blue)
 document.getElementById('bg-3d').appendChild(renderer.domElement);
 
 // Ambient and directional light
