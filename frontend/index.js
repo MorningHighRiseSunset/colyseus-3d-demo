@@ -1,3 +1,47 @@
+import * as THREE from 'https://unpkg.com/three@0.153.0/build/three.module.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.153.0/examples/jsm/loaders/GLTFLoader.js';
+
+// Vegas Strip 3D Background using Three.js (ES Modules)
+// 3D Las Vegas Strip Background
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
+camera.position.set(0, 10, 40);
+const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000, 0); // transparent background
+document.getElementById('bg-3d').appendChild(renderer.domElement);
+
+// Ambient and directional light
+scene.add(new THREE.AmbientLight(0xffffff, 0.7));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+dirLight.position.set(10, 20, 10);
+scene.add(dirLight);
+
+// Load Las Vegas Strip GLB model
+const loader = new GLTFLoader();
+loader.load('Models/las_vegas.glb', function(gltf) {
+    const model = gltf.scene;
+    model.position.set(0, 0, 0);
+    model.scale.set(10, 10, 10); // Adjust scale as needed
+    scene.add(model);
+}, undefined, function(error) {
+    console.error('Error loading GLB:', error);
+});
+
+// Responsive resize
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Animation loop
+function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+}
+animate();
+
 document.addEventListener('DOMContentLoaded', function() {
   var startBtn = document.getElementById('startGameBtn');
   var onlineStatus = document.getElementById('onlineStatus');
