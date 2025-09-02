@@ -1,44 +1,59 @@
 
-// Vegas Strip 3D Background using global THREE (like gameplay.js)
-// 3D Las Vegas Strip Background
+// Vegas Strip 3D Background using global THREE (r128)
+console.log('Three.js version:', THREE.REVISION);
 const scene = new THREE.Scene();
+console.log('Scene created:', scene);
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 1000);
 camera.position.set(0, 10, 40);
+console.log('Camera created:', camera);
 const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
-renderer.setClearColor(0x000000, 0); // transparent background (no blue)
+renderer.setClearColor(0x000000, 0); // transparent background
 document.getElementById('bg-3d').appendChild(renderer.domElement);
+console.log('Renderer created and attached.');
 
 // Ambient and directional light
 scene.add(new THREE.AmbientLight(0xffffff, 0.7));
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
 dirLight.position.set(10, 20, 10);
 scene.add(dirLight);
+console.log('Lights added.');
 
 // Load Las Vegas Strip GLB model
-const loader = new THREE.GLTFLoader();
-loader.load('Models/las_vegas.glb', function(gltf) {
+if (THREE.GLTFLoader) {
+  console.log('GLTFLoader is available:', THREE.GLTFLoader);
+  const loader = new THREE.GLTFLoader();
+  loader.load('Models/las_vegas.glb', function(gltf) {
+    console.log('GLB loaded:', gltf);
     const model = gltf.scene;
     model.position.set(0, 0, 0);
     model.scale.set(10, 10, 10); // Adjust scale as needed
     scene.add(model);
-}, undefined, function(error) {
+    console.log('Model added to scene.');
+  }, function(xhr) {
+    console.log('GLB loading progress:', (xhr.loaded / xhr.total * 100) + '% loaded');
+  }, function(error) {
     console.error('Error loading GLB:', error);
-});
+  });
+} else {
+  console.error('THREE.GLTFLoader is NOT available!');
+}
 
 // Responsive resize
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  console.log('Window resized.');
 });
 
 // Animation loop
 function animate() {
-    requestAnimationFrame(animate);
-    renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
 }
 animate();
+console.log('Animation started.');
 
 document.addEventListener('DOMContentLoaded', function() {
   var startBtn = document.getElementById('startGameBtn');
