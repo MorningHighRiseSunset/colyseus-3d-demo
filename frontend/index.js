@@ -23,7 +23,7 @@ console.log('Lights added.');
 if (THREE.GLTFLoader) {
   console.log('GLTFLoader is available:', THREE.GLTFLoader);
   const loader = new THREE.GLTFLoader();
-  loader.load('Models/las_vegas.glb', function(gltf) {
+  loader.load('Models/las_vegas/scene.glb', function(gltf) {
     console.log('GLB loaded:', gltf);
     const model = gltf.scene;
     model.position.set(0, 0, 0);
