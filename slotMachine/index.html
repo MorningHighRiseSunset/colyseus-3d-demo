@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Slot Machine Game</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<div class="slot-machine-frame">
+		<div class="slot-machine-top">
+			<div class="slot-title">SLOT MACHINE</div>
+			<div class="slot-lights">
+				<span class="light"></span>
+				<span class="light"></span>
+				<span class="light"></span>
+				<span class="light"></span>
+				<span class="light"></span>
+			</div>
+
+		</div>
+		<div class="slot-machine-body">
+			<div class="slot-lever" id="slot-lever">
+				<div class="lever-bar" id="lever-bar"></div>
+				<div class="lever-knob"></div>
+			</div>
+			<div class="slot-machine-container">
+				<div class="slot-reels-rect">
+					<div class="reel-rect">
+						<div class="reel-highlight"></div>
+						<div class="reel-strip" id="reel1-strip"></div>
+					</div>
+					<div class="reel-rect">
+						<div class="reel-highlight"></div>
+						<div class="reel-strip" id="reel2-strip"></div>
+					</div>
+					<div class="reel-rect">
+						<div class="reel-highlight"></div>
+						<div class="reel-strip" id="reel3-strip"></div>
+					</div>
+				</div>
+				<button id="spinBtn">Spin</button>
+				<div class="message" id="message"></div>
+				<div class="sparkles" id="sparkles"></div>
+			</div>
+		</div>
+	</div>
+	<script src="script.js"></script>
+</body>
+</html>
