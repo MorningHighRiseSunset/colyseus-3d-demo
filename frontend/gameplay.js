@@ -100,10 +100,10 @@ async function loadRouletteMinigame() {
     container.style.position = 'absolute';
     container.style.top = '0';
     container.style.right = '0';
-    container.style.width = '520px';
+    container.style.width = '1200px';
     container.style.height = '100%';
     container.style.zIndex = '1002';
-    container.style.background = 'none';
+    container.style.background = '#0a4a23';
     container.style.display = 'flex';
     container.style.alignItems = 'center';
     container.style.justifyContent = 'center';
@@ -122,18 +122,7 @@ async function loadRouletteMinigame() {
     // Fetch HTML fragment
     const html = await fetch('Roulette/index.html').then(r => r.text());
     container.innerHTML = html;
-    // Resize SVG/table if present
-    const svg = container.querySelector('svg');
-    if (svg) {
-        svg.setAttribute('width', '480');
-        svg.setAttribute('height', '340');
-        svg.style.maxWidth = '480px';
-        svg.style.maxHeight = '340px';
-    }
-    const table = container.querySelector('.roulette-table');
-    if (table) {
-        table.style.maxWidth = '480px';
-    }
+    // No forced SVG/table resizing; let the minigame use its natural size
 
     // Load script if not already loaded
     if (!window.initRouletteMinigame) {
@@ -2773,6 +2762,13 @@ function closePropertyUI() {
     if (popup) {
         popup.classList.remove('show');
         popup.classList.add('hide');
+        // Reset popup position styles
+        popup.style.position = '';
+        popup.style.left = '';
+        popup.style.top = '';
+        popup.style.right = '';
+        popup.style.margin = '0 auto';
+        popup.style.zIndex = '';
     }
     setTimeout(() => {
         if (overlay && overlay.parentElement) {
@@ -3677,6 +3673,28 @@ function showPropertyUI(position) {
     popup.style.width = '340px';
     popup.style.maxWidth = '95vw';
     popup.style.margin = '0 auto';
+
+    // --- Dynamically shift property UI left if minigame is open ---
+    setTimeout(() => {
+        const minigame = document.getElementById('minigame-container');
+        if (minigame && minigame.offsetWidth) {
+            // Shift property popup left by minigame width + 24px margin
+            popup.style.position = 'absolute';
+            popup.style.left = `calc(50% - ${minigame.offsetWidth / 2 + 24}px)`;
+            popup.style.top = '40px';
+            popup.style.right = 'auto';
+            popup.style.margin = '0';
+            popup.style.zIndex = '1003';
+        } else {
+            // Default centering
+            popup.style.position = '';
+            popup.style.left = '';
+            popup.style.top = '';
+            popup.style.right = '';
+            popup.style.margin = '0 auto';
+            popup.style.zIndex = '';
+        }
+    }, 50);
 
     const content = document.createElement('div');
     content.className = 'property-content';
