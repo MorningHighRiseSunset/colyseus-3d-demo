@@ -1,8 +1,8 @@
-// --- Minigame Loader: Slot Machine for Cosmopolitan ---
+// --- Minigame Loader: Slot Machine for Santa Fe ---
 async function loadSlotMachineMinigame() {
+    // Only create one container
     let container = document.getElementById('minigame-container');
     if (!container) {
-        // Create the container if it doesn't exist
         container = document.createElement('div');
         container.id = 'minigame-container';
         container.style.position = 'absolute';
@@ -16,8 +16,11 @@ async function loadSlotMachineMinigame() {
         container.style.alignItems = 'center';
         container.style.justifyContent = 'center';
         document.body.appendChild(container);
+    } else {
+        // Remove any previous slot machine root to prevent duplicates
+        const oldRoot = container.querySelector('#slot-machine-root');
+        if (oldRoot) oldRoot.remove();
     }
-    container.innerHTML = '';
 
     // Load CSS if not already loaded
     if (!document.getElementById('slot-machine-style')) {
@@ -41,14 +44,15 @@ async function loadSlotMachineMinigame() {
     }
 }
 
-// Example: Call this function when Cosmopolitan is landed on and property UI is shown
+// Map hotel names to minigames
 function onPropertyUILoaded(hotelName) {
-    if (hotelName === 'The Cosmopolitan') {
+    // Only show slot machine for Santa Fe
+    if (hotelName === 'Santa Fe' || hotelName === 'Santa Fe Hotel and Casino') {
         loadSlotMachineMinigame();
     } else {
-        // Optionally hide/remove minigame container if not Cosmopolitan
+        // Remove minigame container if not Santa Fe
         const container = document.getElementById('minigame-container');
-        if (container) container.innerHTML = '';
+        if (container) container.remove();
     }
 }
 // --- Woman Animation Helpers ---
@@ -3389,6 +3393,11 @@ function showPropertyUI(position) {
     // Show minigame if this property is mapped to one
     if (property && property.name) {
         onPropertyUILoaded(property.name);
+    }
+    // Remove overlay background to allow interaction with minigame
+    if (overlay && overlay.style) {
+        overlay.style.background = 'transparent';
+        overlay.style.pointerEvents = 'none';
     }
 
     const popup = document.createElement('div');
