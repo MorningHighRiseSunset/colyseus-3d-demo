@@ -44,16 +44,70 @@ async function loadSlotMachineMinigame() {
     document.body.appendChild(script);
 }
 
+// --- Minigame Loader: Poker for Hard Rock Hotel ---
+async function loadPokerMinigame() {
+    // Remove any existing minigame
+    let oldContainer = document.getElementById('minigame-container');
+    if (oldContainer) oldContainer.remove();
+
+    // Create container
+    const container = document.createElement('div');
+    container.id = 'minigame-container';
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.right = '0';
+    container.style.width = '650px';
+    container.style.height = '100%';
+    container.style.zIndex = '1002';
+    container.style.background = 'rgba(36,82,36,0.98)';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.style.boxShadow = '-4px 0 24px #000a';
+    document.body.appendChild(container);
+
+    // Load CSS if not already loaded
+    if (!document.getElementById('poker-minigame-style')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'PokerFP/style.css';
+        link.id = 'poker-minigame-style';
+        document.head.appendChild(link);
+    }
+
+    // Fetch HTML fragment
+    const html = await fetch('PokerFP/index.html').then(r => r.text());
+    container.innerHTML = html;
+
+    // Load script if not already loaded
+    if (!window.initPokerMinigame) {
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'PokerFP/script.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.body.appendChild(script);
+        });
+    }
+
+    // Initialize minigame
+    if (window.initPokerMinigame) {
+        window.initPokerMinigame(container.querySelector('.poker-container'));
+    }
+}
+
 // Map hotel names to minigames
 function onPropertyUILoaded(hotelName) {
-    // Only show slot machine for Santa Fe
+    // Remove any existing minigame first
+    const old = document.getElementById('minigame-container');
+    if (old) old.remove();
+
     if (hotelName === 'Santa Fe' || hotelName === 'Santa Fe Hotel and Casino') {
         loadSlotMachineMinigame();
-    } else {
-        // Remove minigame container if not Santa Fe
-        const container = document.getElementById('minigame-container');
-        if (container) container.remove();
+    } else if (hotelName === 'Hard Rock Hotel') {
+        loadPokerMinigame();
     }
+    // Add more mappings as needed
 }
 // --- Woman Animation Helpers ---
 function playWalkAnimation(token) {
@@ -2498,6 +2552,9 @@ function closePropertyUI() {
     const overlay = document.querySelector('.property-overlay');
     if (!overlay) {
         resumeHelicopterAudio();
+        // Also remove minigame if present
+        const minigame = document.getElementById('minigame-container');
+        if (minigame) minigame.remove();
         return;
     }
     const popup = overlay.querySelector('.property-popup');
@@ -2509,6 +2566,9 @@ function closePropertyUI() {
         if (overlay && overlay.parentElement) {
             overlay.parentElement.removeChild(overlay);
         }
+        // Also remove minigame if present
+        const minigame = document.getElementById('minigame-container');
+        if (minigame) minigame.remove();
     }, 300);
 }
 
