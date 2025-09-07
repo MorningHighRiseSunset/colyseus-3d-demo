@@ -1,6 +1,13 @@
 // --- Roulette Game Logic & Animation ---
 // Supports both standalone and dynamic loader usage
 window.initRouletteMinigame = function(root) {
+	// Attach Spin button event handler (works for both standalone and dynamic)
+	const spinBtn = q('#spin-btn');
+	if (spinBtn) {
+		spinBtn.onclick = function() {
+			if (typeof window.spinWheel === 'function') window.spinWheel();
+		};
+	}
 	root = root || document;
 	function q(sel) { return (root.querySelector ? root.querySelector(sel) : document.querySelector(sel)); }
 	function qa(sel) { return Array.from(root.querySelectorAll ? root.querySelectorAll(sel) : document.querySelectorAll(sel)); }
