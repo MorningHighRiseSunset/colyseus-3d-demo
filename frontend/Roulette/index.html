@@ -1,33 +1,43 @@
-<!-- Instructions Modal -->
-<div id="instructions-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center;">
-  <div style="background:#fffbe6;color:#222;padding:32px 28px 24px 28px;border-radius:18px;max-width:420px;box-shadow:0 8px 32px #0008;position:relative;">
-    <h2 style="margin-top:0">How to Play Roulette</h2>
-    <ol style="font-size:1.1em;line-height:1.6;margin-bottom:18px;">
-      <li>Click any number, or any box at the bottom of the table, to place a bet (multiple bets allowed).</li>
-      <li>Bottom boxes let you bet on groups: dozens (1st 12, 2nd 12, 3rd 12), columns (2 to 1), even/odd, red/black, and low/high (1 to 18, 19 to 36).</li>
-      <li>Click <b>SPIN</b> to spin the wheel and launch the ball.</li>
-      <li>If the ball lands on a number or group you bet on, you win!</li>
-      <li>To play again, place new bets and spin.</li>
-    </ol>
-    <button id="close-instructions" style="position:absolute;top:10px;right:14px;font-size:1.2em;background:none;border:none;color:#222;cursor:pointer;">&times;</button>
-  </div>
-</div>
-<div class="roulette-container" style="display:flex;flex-direction:row;align-items:flex-start;justify-content:center;gap:40px;padding:32px 0;position:relative;background:#fffbe6;border-radius:24px;box-shadow:0 8px 32px #0003;max-width:1200px;margin:40px auto;overflow-x:auto;">
-  <div style="display:flex;flex-direction:column;align-items:center;gap:18px;min-width:420px;">
-    <canvas id="wheel" width="400" height="400" aria-label="Roulette wheel"></canvas>
-    <div style="display:flex;gap:16px;justify-content:center;">
-      <button id="instructions-btn" style="padding:10px 22px;font-size:1em;background:#e2b07a;color:#222;border-radius:10px;border:none;box-shadow:0 2px 8px #0005;cursor:pointer;font-weight:bold;z-index:20;">INSTRUCTIONS</button>
-      <button id="spin-btn" style="padding:12px 32px;font-size:1.3em;background:#e2b07a;color:#222;border-radius:12px;border:none;box-shadow:0 2px 8px #0005;cursor:pointer;font-weight:bold;letter-spacing:2px;z-index:10;">SPIN</button>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Roulette Wheel & Table</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Instructions Modal -->
+  <div id="instructions-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.45);z-index:100;align-items:center;justify-content:center;">
+    <div style="background:#fffbe6;color:#222;padding:32px 28px 24px 28px;border-radius:18px;max-width:420px;box-shadow:0 8px 32px #0008;position:relative;">
+      <h2 style="margin-top:0">How to Play Roulette</h2>
+      <ol style="font-size:1.1em;line-height:1.6;margin-bottom:18px;">
+  <li>Click any number, or any box at the bottom of the table, to place a bet (multiple bets allowed).</li>
+  <li>Bottom boxes let you bet on groups: dozens (1st 12, 2nd 12, 3rd 12), columns (2 to 1), even/odd, red/black, and low/high (1 to 18, 19 to 36).</li>
+  <li>Click <b>SPIN</b> to spin the wheel and launch the ball.</li>
+  <li>If the ball lands on a number or group you bet on, you win!</li>
+  <li>To play again, place new bets and spin.</li>
+      </ol>
+      <button id="close-instructions" style="position:absolute;top:10px;right:14px;font-size:1.2em;background:none;border:none;color:#222;cursor:pointer;">&times;</button>
     </div>
   </div>
+  <div class="roulette-container" style="display:flex;flex-direction:row;align-items:flex-start;justify-content:center;gap:40px;padding:32px 0;position:relative;background:#fffbe6;border-radius:24px;box-shadow:0 8px 32px #0003;max-width:1200px;margin:40px auto;overflow-x:auto;">
+    <div style="display:flex;flex-direction:column;align-items:center;gap:18px;min-width:420px;">
+      <canvas id="wheel" width="400" height="400" aria-label="Roulette wheel"></canvas>
+      <div style="display:flex;gap:16px;justify-content:center;">
+        <button id="instructions-btn" style="padding:10px 22px;font-size:1em;background:#e2b07a;color:#222;border-radius:10px;border:none;box-shadow:0 2px 8px #0005;cursor:pointer;font-weight:bold;z-index:20;">INSTRUCTIONS</button>
+        <button id="spin-btn" style="padding:12px 32px;font-size:1.3em;background:#e2b07a;color:#222;border-radius:12px;border:none;box-shadow:0 2px 8px #0005;cursor:pointer;font-weight:bold;letter-spacing:2px;z-index:10;">SPIN</button>
+      </div>
+    </div>
 
-  <!-- First roulette table -->
-  <div class="roulette-table" aria-label="Roulette betting table" role="table" style="min-width:600px;">
-    <div class="table-grid">
-      <!-- Zero and Double Zero Cells for American Roulette -->
-      <div class="number-cell zero" role="gridcell" aria-label="0" style="grid-column: 1; grid-row: 1 / 2;">0</div>
-      <div class="number-cell zero" role="gridcell" aria-label="00" style="grid-column: 1; grid-row: 2 / 3;">00</div>
-      <!-- Numbers 1 to 36 - arranged in 3 rows and 12 columns -->
+    <!-- First roulette table -->
+    <div class="roulette-table" aria-label="Roulette betting table" role="table" style="min-width:600px;">
+      <div class="table-grid">
+  <!-- Zero and Double Zero Cells for American Roulette -->
+  <div class="number-cell zero" role="gridcell" aria-label="0" style="grid-column: 1; grid-row: 1 / 2;">0</div>
+  <div class="number-cell zero" role="gridcell" aria-label="00" style="grid-column: 1; grid-row: 2 / 3;">00</div>
+  <!-- Numbers 1 to 36 - arranged in 3 rows and 12 columns -->
       <!-- Row 1 -->
       <div class="number-cell red" style="grid-column: 2; grid-row:1;" role="gridcell" aria-label="3">3</div>
       <div class="number-cell black" style="grid-column: 3; grid-row:1;" role="gridcell" aria-label="6">6</div>
@@ -108,3 +118,23 @@
     </div>
   </div>
 </div>
+
+<script src="script.js"></script>
+<script>
+// Instructions modal logic
+const instrBtn = document.getElementById('instructions-btn');
+const instrModal = document.getElementById('instructions-modal');
+const closeInstr = document.getElementById('close-instructions');
+instrBtn.onclick = () => { instrModal.style.display = 'flex'; };
+closeInstr.onclick = () => { instrModal.style.display = 'none'; };
+instrModal.onclick = e => { if (e.target === instrModal) instrModal.style.display = 'none'; };
+// Move spin button logic to new button
+const spinBtn = document.getElementById('spin-btn');
+spinBtn.onclick = () => { if (typeof spinWheel === 'function') spinWheel(); };
+// Remove old spin button if present
+const oldSpinBtn = document.querySelector('button[style*="SPIN"]');
+if (oldSpinBtn && oldSpinBtn.id !== 'spin-btn') oldSpinBtn.remove();
+</script>
+
+</body>
+</html>
