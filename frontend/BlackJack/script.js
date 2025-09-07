@@ -140,12 +140,14 @@ window.initBlackjackMinigame = function(container) {
 	}
 
 	// --- Instructions modal logic ---
-	if (instructionsBtn && instructionsModal && closeInstructions) {
+	if (instructionsBtn && instructionsModal) {
 		instructionsBtn.addEventListener('click', () => {
 			instructionsModal.style.display = 'flex';
-		});
-		closeInstructions.addEventListener('click', () => {
-			instructionsModal.style.display = 'none';
+			// Always re-query and re-attach close button listener
+			const closeBtn = container.querySelector('#close-instructions');
+			if (closeBtn) {
+				closeBtn.onclick = () => { instructionsModal.style.display = 'none'; };
+			}
 		});
 		instructionsModal.addEventListener('click', (e) => {
 			if (e.target === instructionsModal) instructionsModal.style.display = 'none';
