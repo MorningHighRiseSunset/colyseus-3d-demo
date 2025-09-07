@@ -215,6 +215,7 @@ body {
     padding: 0;
     min-height: 100vh;
     overflow-x: hidden;
+    background: #1e3c72;
 }
 
 .container {
