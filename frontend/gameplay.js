@@ -100,7 +100,7 @@ async function loadRouletteMinigame() {
     container.style.position = 'absolute';
     container.style.top = '0';
     container.style.right = '0';
-    container.style.width = '1200px';
+    container.style.width = '520px';
     container.style.height = '100%';
     container.style.zIndex = '1002';
     container.style.background = 'none';
@@ -122,6 +122,18 @@ async function loadRouletteMinigame() {
     // Fetch HTML fragment
     const html = await fetch('Roulette/index.html').then(r => r.text());
     container.innerHTML = html;
+    // Resize SVG/table if present
+    const svg = container.querySelector('svg');
+    if (svg) {
+        svg.setAttribute('width', '480');
+        svg.setAttribute('height', '340');
+        svg.style.maxWidth = '480px';
+        svg.style.maxHeight = '340px';
+    }
+    const table = container.querySelector('.roulette-table');
+    if (table) {
+        table.style.maxWidth = '480px';
+    }
 
     // Load script if not already loaded
     if (!window.initRouletteMinigame) {

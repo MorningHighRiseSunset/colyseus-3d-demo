@@ -1,6 +1,6 @@
 .bet-area.clickable {
     cursor: pointer;
-    background: rgba(255,255,255,0.08);
+    background: #184d2b;
     border: 2px solid #ffd70099;
     color: #ffd700;
     font-weight: bold;
@@ -11,7 +11,7 @@
     transition: background 0.2s, box-shadow 0.2s;
 }
 .bet-area.clickable:hover {
-    background: #ffd70033;
+    background: #184d2b;
     box-shadow: 0 0 10px 2px #ffd70099;
 }
 .bet-area {

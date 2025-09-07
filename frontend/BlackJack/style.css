@@ -19,12 +19,13 @@ body {
 	justify-content: center;
 }
 
-body {
+	body {
 	margin: 0;
 	height: 100vh;
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	background: #1e1e1e;
 }
 #game-ui {
 	position: relative;

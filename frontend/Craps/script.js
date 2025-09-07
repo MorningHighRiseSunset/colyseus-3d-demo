@@ -30,8 +30,8 @@ window.initCrapsMinigame = function(container) {
 
     // --- UI helpers ---
     function showDice(d1, d2, animate = true) {
-        dice1Img.src = `assets/dice${d1}.svg`;
-        dice2Img.src = `assets/dice${d2}.svg`;
+        dice1Img.src = `Craps/assets/dice${d1}.svg`;
+        dice2Img.src = `Craps/assets/dice${d2}.svg`;
         if (animate) {
             dice1Img.classList.add('dice-rolling');
             dice2Img.classList.add('dice-rolling');
