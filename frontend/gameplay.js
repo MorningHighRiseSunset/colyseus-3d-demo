@@ -122,7 +122,6 @@ async function loadRouletteMinigame() {
     // Fetch HTML fragment
     const html = await fetch('Roulette/index.html').then(r => r.text());
     container.innerHTML = html;
-    // No forced SVG/table resizing; let the minigame use its natural size
 
     // Load script if not already loaded
     if (!window.initRouletteMinigame) {
@@ -135,9 +134,10 @@ async function loadRouletteMinigame() {
         });
     }
 
-    // Initialize minigame
+    // Initialize minigame (like Poker: pass the .roulette-container)
     if (window.initRouletteMinigame) {
-        window.initRouletteMinigame(container.querySelector('.roulette-container'));
+        const rouletteRoot = container.querySelector('.roulette-container');
+        window.initRouletteMinigame(rouletteRoot);
     }
 }
 // --- Minigame Loader: Craps for Bellagio ---

@@ -309,6 +309,8 @@ function spinWheel() {
 	drawWheel(spinAngle, ballAngle); // Draw initial ball position
 	animate();
 }
+// Expose spinWheel globally for standalone HTML
+window.spinWheel = spinWheel;
 
 function showResult() {
 	const winNum = numbers[resultIndex];
@@ -369,6 +371,8 @@ function updatePlayerInfo() {
 	if (betsElem) betsElem.textContent = betsList;
 	if (remElem) remElem.textContent = `$${remaining}`;
 }
+// Expose updatePlayerInfo globally for standalone HTML
+window.updatePlayerInfo = updatePlayerInfo;
 window.updatePlayerInfo = updatePlayerInfo;
 
 // Update info on bet for bottom table bets
@@ -385,6 +389,37 @@ window.spinWheel = function() {
 	origSpinWheel();
 	updatePlayerInfo();
 // End of initRouletteMinigame
+
+// Auto-initialize if running standalone (for index.html direct open)
+if (typeof window.initRouletteMinigame === 'function') {
+	function exposeGlobals(root) {
+		// Expose spinWheel and updatePlayerInfo to window for inline script/buttons
+		if (typeof window.spinWheel === 'undefined' && typeof root._spinWheel === 'function') {
+			window.spinWheel = root._spinWheel;
+		}
+		if (typeof window.updatePlayerInfo === 'undefined' && typeof root._updatePlayerInfo === 'function') {
+			window.updatePlayerInfo = root._updatePlayerInfo;
+		}
+	}
+	function tryInit() {
+		var root = document.querySelector('.roulette-container');
+		if (root) {
+			window.initRouletteMinigame(root);
+			// Try to expose spinWheel and updatePlayerInfo if they exist
+			if (typeof window.spinWheel !== 'function' && typeof root._spinWheel === 'function') {
+				window.spinWheel = root._spinWheel;
+			}
+			if (typeof window.updatePlayerInfo !== 'function' && typeof root._updatePlayerInfo === 'function') {
+				window.updatePlayerInfo = root._updatePlayerInfo;
+			}
+		}
+	}
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', tryInit);
+	} else {
+		tryInit();
+	}
+}
 
 // Remove alert, show result in info bar
 const origShowResult = showResult;
