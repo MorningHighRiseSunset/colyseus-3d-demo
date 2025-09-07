@@ -1,3 +1,56 @@
+// --- Minigame Loader: Slot Machine for Cosmopolitan ---
+async function loadSlotMachineMinigame() {
+    let container = document.getElementById('minigame-container');
+    if (!container) {
+        // Create the container if it doesn't exist
+        container = document.createElement('div');
+        container.id = 'minigame-container';
+        container.style.position = 'absolute';
+        container.style.top = '0';
+        container.style.right = '0';
+        container.style.width = '500px';
+        container.style.height = '100%';
+        container.style.background = 'rgba(30,30,30,0.97)';
+        container.style.zIndex = '1000';
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center';
+        document.body.appendChild(container);
+    }
+    container.innerHTML = '';
+
+    // Load CSS if not already loaded
+    if (!document.getElementById('slot-machine-style')) {
+        const link = document.createElement('link');
+        link.id = 'slot-machine-style';
+        link.rel = 'stylesheet';
+        link.href = '../slotMachine/style.css';
+        document.head.appendChild(link);
+    }
+
+    // Load HTML
+    const html = await fetch('../slotMachine/index.html').then(r => r.text());
+    container.innerHTML = html;
+
+    // Load JS and initialize
+    if (!window.initSlotMachine) {
+        await import('../slotMachine/script.js');
+    }
+    if (window.initSlotMachine) {
+        window.initSlotMachine(container.querySelector('#slot-machine-root'));
+    }
+}
+
+// Example: Call this function when Cosmopolitan is landed on and property UI is shown
+function onPropertyUILoaded(hotelName) {
+    if (hotelName === 'The Cosmopolitan') {
+        loadSlotMachineMinigame();
+    } else {
+        // Optionally hide/remove minigame container if not Cosmopolitan
+        const container = document.getElementById('minigame-container');
+        if (container) container.innerHTML = '';
+    }
+}
 // --- Woman Animation Helpers ---
 function playWalkAnimation(token) {
     if (!token || !token.userData || !token.userData.tokenName) return;
@@ -3329,8 +3382,14 @@ function showPropertyUI(position) {
     const overlay = document.createElement('div');
     overlay.className = 'property-overlay';
 
+
     // Lower helicopter audio when UI is shown
     pauseHelicopterAudio();
+
+    // Show minigame if this property is mapped to one
+    if (property && property.name) {
+        onPropertyUILoaded(property.name);
+    }
 
     const popup = document.createElement('div');
     popup.className = 'property-popup';

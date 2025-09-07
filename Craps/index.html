@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Craps: Player vs AI</title>
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<div id="casino-table">
+		<div id="table-felt">
+			<div id="chips-area">
+				<div class="chip-stack player">
+					<div class="chip-label">You</div>
+					<div class="chips" id="player-chips"></div>
+				</div>
+				<div class="chip-stack ai">
+					<div class="chip-label">AI</div>
+					<div class="chips" id="ai-chips"></div>
+				</div>
+			</div>
+			<!-- Interactive bet areas -->
+			<div id="bet-areas">
+				<div class="bet-area clickable" id="pass-line-area">Pass Line</div>
+				<div class="bet-area clickable" id="dont-pass-area">Don't Pass</div>
+				<!-- You can add more areas for Field, Place, etc. -->
+				<div class="bet-area" id="player-bet-area"></div>
+				<div class="bet-area" id="ai-bet-area"></div>
+			</div>
+			<div id="craps-layout">
+				<div id="point-area">
+					<span>Point:</span>
+					<span id="point-value" class="point-glow">-</span>
+				</div>
+				<div id="dice-area">
+					<img id="dice1" class="dice-img" src="assets/dice1.svg" alt="Dice 1" />
+					<img id="dice2" class="dice-img" src="assets/dice1.svg" alt="Dice 2" />
+				</div>
+				<div id="status"></div>
+				<div id="betting">
+					<label for="player-bet">Your Bet: $</label>
+					<input type="number" id="player-bet" min="1" value="10">
+					<button id="roll-btn">🎲 Roll Dice</button>
+				</div>
+				<div id="ai-status"></div>
+				<div id="scores">
+					<p>Your Money: $<span id="player-money">100</span></p>
+					<p>AI Money: $<span id="ai-money">100</span></p>
+				</div>
+			</div>
+		</div>
+	</div>
+	<script src="script.js"></script>
+</body>
+</html>
