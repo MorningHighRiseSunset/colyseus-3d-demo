@@ -1,44 +1,32 @@
 // --- Roulette Game Logic & Animation ---
-window.initRouletteMinigame = function(root) {
-	// If root is not provided, use document
-	root = root || document;
 
-	// Helper to query inside root (works for both document and element)
-	function q(sel) {
-		return root.querySelector(sel) || document.querySelector(sel);
-	}
-	function qa(sel) {
-		return Array.from(root.querySelectorAll(sel) || document.querySelectorAll(sel));
-	}
+const canvasWheel = document.getElementById('wheel');
+const ctxWheel = canvasWheel.getContext('2d');
 
-	const canvasWheel = q('#wheel');
-	if (!canvasWheel) return;
-	const ctxWheel = canvasWheel.getContext('2d');
+// American roulette numbers in order for American roulette
+const numbers = [0, 28, 9, 26, 30, 11, 7, 20, 32, 17, 5, 22, 34, 15, 3, 24, 36, 13, 1, '00', 27, 10, 25, 29, 12, 8, 19, 31, 18, 6, 21, 33, 16, 4, 23, 35, 14, 2];
+const slotCount = numbers.length;
 
-	// American roulette numbers in order for American roulette
-	const numbers = [0, 28, 9, 26, 30, 11, 7, 20, 32, 17, 5, 22, 34, 15, 3, 24, 36, 13, 1, '00', 27, 10, 25, 29, 12, 8, 19, 31, 18, 6, 21, 33, 16, 4, 23, 35, 14, 2];
-	const slotCount = numbers.length;
+// Colors: Green for 0 and 00, Red for others as per standard
+const colors = {};
+const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
+const blackNumbers = [2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35];
+numbers.forEach(num => {
+	if (num === 0 || num === '00') colors[num] = 'green';
+	else if (redNumbers.includes(num)) colors[num] = 'red';
+	else colors[num] = 'black';
+});
 
-	// Colors: Green for 0 and 00, Red for others as per standard
-	const colors = {};
-	const redNumbers = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36];
-	const blackNumbers = [2, 4, 6, 8, 10, 11, 13, 15, 17, 20, 22, 24, 26, 28, 29, 31, 33, 35];
-	numbers.forEach(num => {
-		if (num === 0 || num === '00') colors[num] = 'green';
-		else if (redNumbers.includes(num)) colors[num] = 'red';
-		else colors[num] = 'black';
-	});
-
-	// --- Game State ---
-	let bets = {}; // {number: amount}
-	let spinning = false;
-	let spinAngle = 0;
-	let spinSpeed = 0;
-	let ballAngle = 0;
-	let ballSpeed = 0;
-	let ballRadius = 0;
-	let resultIndex = null;
-	let animationFrame = null;
+// --- Game State ---
+let bets = {}; // {number: amount}
+let spinning = false;
+let spinAngle = 0;
+let spinSpeed = 0;
+let ballAngle = 0;
+let ballSpeed = 0;
+let ballRadius = 0;
+let resultIndex = null;
+let animationFrame = null;
 
 // --- Draw Wheel, Ball, and Pointer ---
 function drawWheel(angle = 0, ballA = null) {
@@ -249,7 +237,7 @@ function placeBet(num) {
 }
 
 // Enable betting on bottom table options
-qa('.bet-box').forEach(box => {
+document.querySelectorAll('.bet-box').forEach(box => {
 	box.addEventListener('click', () => {
 		let label = box.textContent.trim();
 		let betType = label;
@@ -262,7 +250,7 @@ qa('.bet-box').forEach(box => {
 });
 
 // Enable betting on column bets
-qa('.column-bet').forEach((col, i) => {
+document.querySelectorAll('.column-bet').forEach((col, i) => {
 	col.addEventListener('click', () => {
 		let betType = `Column ${i+1}`;
 		bets[betType] = (bets[betType] || 0) + 1;
@@ -309,8 +297,6 @@ function spinWheel() {
 	drawWheel(spinAngle, ballAngle); // Draw initial ball position
 	animate();
 }
-// Expose spinWheel globally for standalone HTML
-window.spinWheel = spinWheel;
 
 function showResult() {
 	const winNum = numbers[resultIndex];
@@ -346,7 +332,7 @@ function showResult() {
 }
 
 // --- Table Interactivity ---
-qa('.number-cell').forEach(cell => {
+document.querySelectorAll('.number-cell').forEach(cell => {
 	cell.addEventListener('click', () => {
 		const num = cell.getAttribute('aria-label');
 		placeBet(num);
@@ -371,15 +357,13 @@ function updatePlayerInfo() {
 	if (betsElem) betsElem.textContent = betsList;
 	if (remElem) remElem.textContent = `$${remaining}`;
 }
-// Expose updatePlayerInfo globally for standalone HTML
-window.updatePlayerInfo = updatePlayerInfo;
 window.updatePlayerInfo = updatePlayerInfo;
 
 // Update info on bet for bottom table bets
-qa('.bet-box').forEach(box => {
+document.querySelectorAll('.bet-box').forEach(box => {
 	box.addEventListener('click', updatePlayerInfo);
 });
-qa('.column-bet').forEach(box => {
+document.querySelectorAll('.column-bet').forEach(box => {
 	box.addEventListener('click', updatePlayerInfo);
 });
 
@@ -388,38 +372,7 @@ const origSpinWheel = spinWheel;
 window.spinWheel = function() {
 	origSpinWheel();
 	updatePlayerInfo();
-// End of initRouletteMinigame
-
-// Auto-initialize if running standalone (for index.html direct open)
-if (typeof window.initRouletteMinigame === 'function') {
-	function exposeGlobals(root) {
-		// Expose spinWheel and updatePlayerInfo to window for inline script/buttons
-		if (typeof window.spinWheel === 'undefined' && typeof root._spinWheel === 'function') {
-			window.spinWheel = root._spinWheel;
-		}
-		if (typeof window.updatePlayerInfo === 'undefined' && typeof root._updatePlayerInfo === 'function') {
-			window.updatePlayerInfo = root._updatePlayerInfo;
-		}
-	}
-	function tryInit() {
-		var root = document.querySelector('.roulette-container');
-		if (root) {
-			window.initRouletteMinigame(root);
-			// Try to expose spinWheel and updatePlayerInfo if they exist
-			if (typeof window.spinWheel !== 'function' && typeof root._spinWheel === 'function') {
-				window.spinWheel = root._spinWheel;
-			}
-			if (typeof window.updatePlayerInfo !== 'function' && typeof root._updatePlayerInfo === 'function') {
-				window.updatePlayerInfo = root._updatePlayerInfo;
-			}
-		}
-	}
-	if (document.readyState === 'loading') {
-		document.addEventListener('DOMContentLoaded', tryInit);
-	} else {
-		tryInit();
-	}
-}
+};
 
 // Remove alert, show result in info bar
 const origShowResult = showResult;
@@ -455,7 +408,7 @@ window.showResult = function() {
 	}
 	updatePlayerInfo();
 	// Show popup/modal for result
-	let resultModal = q('#result-modal');
+	let resultModal = document.getElementById('result-modal');
 	if (!resultModal) {
 		resultModal = document.createElement('div');
 		resultModal.id = 'result-modal';
@@ -464,12 +417,12 @@ window.showResult = function() {
 		inner.style = 'background:#fffbe6;color:#222;padding:32px 28px 24px 28px;border-radius:18px;max-width:420px;box-shadow:0 8px 32px #0008;position:relative;text-align:center;';
 		inner.id = 'result-modal-inner';
 		resultModal.appendChild(inner);
-		(root.body || document.body).appendChild(resultModal);
+		document.body.appendChild(resultModal);
 	}
-	let inner = q('#result-modal-inner');
+	let inner = document.getElementById('result-modal-inner');
 	inner.innerHTML = `<h2>${win ? 'You Win!' : 'No Win'}</h2><p>${msg}</p><div style='margin:12px 0;font-weight:bold;'>Money Available: <span id='modal-player-balance'>$${window.playerBalance}</span></div><button id=\"close-result-modal\" style=\"margin-top:18px;padding:8px 22px;font-size:1em;background:#e2b07a;color:#222;border-radius:10px;border:none;box-shadow:0 2px 8px #0005;cursor:pointer;font-weight:bold;\">OK</button>`;
 	resultModal.style.display = 'flex';
-	q('#close-result-modal').onclick = function() {
+	document.getElementById('close-result-modal').onclick = function() {
 		resultModal.style.display = 'none';
 	};
 	// Also update the main money counter in the info bar
@@ -483,5 +436,3 @@ window.showResult = function() {
 let restingBallAngle = Math.PI * 1.5; // Top center
 drawWheel(0, restingBallAngle);
 updatePlayerInfo();
-};
-};
