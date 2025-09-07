@@ -1,26 +1,24 @@
+
 // --- Minigame Loader: Slot Machine for Santa Fe ---
 async function loadSlotMachineMinigame() {
-    // Only create one container
-    let container = document.getElementById('minigame-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'minigame-container';
-        container.style.position = 'absolute';
-        container.style.top = '0';
-        container.style.right = '0';
-        container.style.width = '500px';
-        container.style.height = '100%';
-        container.style.background = 'rgba(30,30,30,0.97)';
-        container.style.zIndex = '1000';
-        container.style.display = 'flex';
-        container.style.alignItems = 'center';
-        container.style.justifyContent = 'center';
-        document.body.appendChild(container);
-    } else {
-        // Remove any previous slot machine root to prevent duplicates
-        const oldRoot = container.querySelector('#slot-machine-root');
-        if (oldRoot) oldRoot.remove();
-    }
+    // Remove any existing container to prevent duplicates
+    let oldContainer = document.getElementById('minigame-container');
+    if (oldContainer) oldContainer.remove();
+
+    // Create new container
+    const container = document.createElement('div');
+    container.id = 'minigame-container';
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.right = '0';
+    container.style.width = '500px';
+    container.style.height = '100%';
+    container.style.background = 'rgba(30,30,30,0.97)';
+    container.style.zIndex = '1000';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    document.body.appendChild(container);
 
     // Load CSS if not already loaded
     if (!document.getElementById('slot-machine-style')) {
@@ -35,13 +33,15 @@ async function loadSlotMachineMinigame() {
     const html = await fetch('../slotMachine/index.html').then(r => r.text());
     container.innerHTML = html;
 
-    // Load JS and initialize
-    if (!window.initSlotMachine) {
-        await import('../slotMachine/script.js');
-    }
-    if (window.initSlotMachine) {
-        window.initSlotMachine(container.querySelector('#slot-machine-root'));
-    }
+    // Dynamically load the script after HTML is injected
+    const script = document.createElement('script');
+    script.src = '../slotMachine/script.js';
+    script.onload = function() {
+        if (window.initSlotMachine) {
+            window.initSlotMachine(container.querySelector('#slot-machine-root'));
+        }
+    };
+    document.body.appendChild(script);
 }
 
 // Map hotel names to minigames
