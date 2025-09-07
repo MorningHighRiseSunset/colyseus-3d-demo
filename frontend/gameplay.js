@@ -12,7 +12,7 @@ async function loadBlackjackMinigame() {
     container.style.right = '0';
     container.style.width = '1000px';
     container.style.height = '100%';
-    container.style.zIndex = '1002';
+    container.style.zIndex = '3000';
     container.style.background = 'none';
     container.style.display = 'flex';
     container.style.alignItems = 'center';
@@ -57,7 +57,7 @@ async function loadBaccaratMinigame() {
     container.style.right = '0';
     container.style.width = '700px';
     container.style.height = '100%';
-    container.style.zIndex = '1002';
+    container.style.zIndex = '3000';
     container.style.background = 'none';
     container.style.display = 'flex';
     container.style.alignItems = 'center';
@@ -102,7 +102,7 @@ async function loadRouletteMinigame() {
     container.style.right = '0';
     container.style.width = '1200px';
     container.style.height = '100%';
-    container.style.zIndex = '1002';
+    container.style.zIndex = '3000';
     container.style.background = '#0a4a23';
     container.style.display = 'flex';
     container.style.alignItems = 'center';
@@ -154,7 +154,7 @@ async function loadCrapsMinigame() {
     container.style.right = '0';
     container.style.width = '700px';
     container.style.height = '100%';
-    container.style.zIndex = '1002';
+    container.style.zIndex = '3000';
     container.style.background = 'none';
     container.style.display = 'flex';
     container.style.alignItems = 'center';
@@ -207,7 +207,7 @@ async function loadSlotMachineMinigame() {
     container.style.width = '500px';
     container.style.height = '100%';
     container.style.background = 'rgba(30,30,30,0.97)';
-    container.style.zIndex = '1000';
+    container.style.zIndex = '3000';
     container.style.display = 'flex';
     container.style.alignItems = 'center';
     container.style.justifyContent = 'center';
@@ -251,7 +251,7 @@ async function loadPokerMinigame() {
     container.style.right = '0';
     container.style.width = '650px';
     container.style.height = '100%';
-    container.style.zIndex = '1002';
+    container.style.zIndex = '3000';
     container.style.background = 'none';
     container.style.display = 'flex';
     container.style.alignItems = 'center';
