@@ -1,3 +1,195 @@
+// --- Minigame Loader: Blackjack for The Cosmopolitan ---
+async function loadBlackjackMinigame() {
+    // Remove any existing minigame
+    let oldContainer = document.getElementById('minigame-container');
+    if (oldContainer) oldContainer.remove();
+
+    // Create container
+    const container = document.createElement('div');
+    container.id = 'minigame-container';
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.right = '0';
+    container.style.width = '1000px';
+    container.style.height = '100%';
+    container.style.zIndex = '1002';
+    container.style.background = 'none';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.style.boxShadow = '-4px 0 24px #000a';
+    document.body.appendChild(container);
+
+    // Load CSS if not already loaded
+    if (!document.getElementById('blackjack-minigame-style')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '../BlackJack/style.css';
+        link.id = 'blackjack-minigame-style';
+        document.head.appendChild(link);
+    }
+
+    // Fetch HTML fragment
+    const html = await fetch('../BlackJack/index.html').then(r => r.text());
+    container.innerHTML = html;
+
+    // Load script if not already loaded
+    if (!window.initBlackjackMinigame) {
+        await import('../BlackJack/script.js');
+    }
+
+    // Initialize minigame
+    if (window.initBlackjackMinigame) {
+        window.initBlackjackMinigame(container);
+    }
+}
+// --- Minigame Loader: Baccarat for Wynn ---
+async function loadBaccaratMinigame() {
+    // Remove any existing minigame
+    let oldContainer = document.getElementById('minigame-container');
+    if (oldContainer) oldContainer.remove();
+
+    // Create container
+    const container = document.createElement('div');
+    container.id = 'minigame-container';
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.right = '0';
+    container.style.width = '700px';
+    container.style.height = '100%';
+    container.style.zIndex = '1002';
+    container.style.background = 'none';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.style.boxShadow = '-4px 0 24px #000a';
+    document.body.appendChild(container);
+
+    // Load CSS if not already loaded
+    if (!document.getElementById('baccarat-minigame-style')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = '../Baccarat/style.css';
+        link.id = 'baccarat-minigame-style';
+        document.head.appendChild(link);
+    }
+
+    // Fetch HTML fragment
+    const html = await fetch('../Baccarat/index.html').then(r => r.text());
+    container.innerHTML = html;
+
+    // Load script if not already loaded
+    if (!window.initBaccaratMinigame) {
+        await import('../Baccarat/script.js');
+    }
+
+    // Initialize minigame
+    if (window.initBaccaratMinigame) {
+        window.initBaccaratMinigame(container);
+    }
+}
+// --- Minigame Loader: Roulette for Caesars Palace ---
+async function loadRouletteMinigame() {
+    // Remove any existing minigame
+    let oldContainer = document.getElementById('minigame-container');
+    if (oldContainer) oldContainer.remove();
+
+    // Create container
+    const container = document.createElement('div');
+    container.id = 'minigame-container';
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.right = '0';
+    container.style.width = '1200px';
+    container.style.height = '100%';
+    container.style.zIndex = '1002';
+    container.style.background = 'none';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.style.boxShadow = '-4px 0 24px #000a';
+    document.body.appendChild(container);
+
+    // Load CSS if not already loaded
+    if (!document.getElementById('roulette-minigame-style')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'Roulette/style.css';
+        link.id = 'roulette-minigame-style';
+        document.head.appendChild(link);
+    }
+
+    // Fetch HTML fragment
+    const html = await fetch('Roulette/index.html').then(r => r.text());
+    container.innerHTML = html;
+
+    // Load script if not already loaded
+    if (!window.initRouletteMinigame) {
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'Roulette/script.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.body.appendChild(script);
+        });
+    }
+
+    // Initialize minigame
+    if (window.initRouletteMinigame) {
+        window.initRouletteMinigame(container.querySelector('.roulette-container'));
+    }
+}
+// --- Minigame Loader: Craps for Bellagio ---
+async function loadCrapsMinigame() {
+    // Remove any existing minigame
+    let oldContainer = document.getElementById('minigame-container');
+    if (oldContainer) oldContainer.remove();
+
+    // Create container
+    const container = document.createElement('div');
+    container.id = 'minigame-container';
+    container.style.position = 'absolute';
+    container.style.top = '0';
+    container.style.right = '0';
+    container.style.width = '700px';
+    container.style.height = '100%';
+    container.style.zIndex = '1002';
+    container.style.background = 'none';
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.justifyContent = 'center';
+    container.style.boxShadow = '-4px 0 24px #000a';
+    document.body.appendChild(container);
+
+    // Load CSS if not already loaded
+    if (!document.getElementById('craps-minigame-style')) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = 'Craps/style.css';
+        link.id = 'craps-minigame-style';
+        document.head.appendChild(link);
+    }
+
+    // Fetch HTML fragment
+    const html = await fetch('Craps/index.html').then(r => r.text());
+    container.innerHTML = html;
+
+    // Load script if not already loaded
+    if (!window.initCrapsMinigame) {
+        await new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            script.src = 'Craps/script.js';
+            script.onload = resolve;
+            script.onerror = reject;
+            document.body.appendChild(script);
+        });
+    }
+
+    // Initialize minigame
+    if (window.initCrapsMinigame) {
+        window.initCrapsMinigame(container.querySelector('#casino-table'));
+    }
+}
 
 // --- Minigame Loader: Slot Machine for Santa Fe ---
 async function loadSlotMachineMinigame() {
@@ -59,7 +251,7 @@ async function loadPokerMinigame() {
     container.style.width = '650px';
     container.style.height = '100%';
     container.style.zIndex = '1002';
-    container.style.background = 'rgba(36,82,36,0.98)';
+    container.style.background = 'none';
     container.style.display = 'flex';
     container.style.alignItems = 'center';
     container.style.justifyContent = 'center';
@@ -106,6 +298,14 @@ function onPropertyUILoaded(hotelName) {
         loadSlotMachineMinigame();
     } else if (hotelName === 'Hard Rock Hotel') {
         loadPokerMinigame();
+    } else if (hotelName === 'Bellagio') {
+        loadCrapsMinigame();
+    } else if (hotelName === 'Caesars Palace') {
+        loadRouletteMinigame();
+    } else if (hotelName === 'Wynn') {
+        loadBaccaratMinigame();
+    } else if (hotelName === 'The Cosmopolitan') {
+        loadBlackjackMinigame();
     }
     // Add more mappings as needed
 }

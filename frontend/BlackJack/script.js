@@ -1,256 +1,342 @@
-// Instructions modal logic
-const instructionsBtn = document.getElementById('instructions-btn');
-const instructionsModal = document.getElementById('instructions-modal');
-const closeInstructions = document.getElementById('close-instructions');
 
-if (instructionsBtn && instructionsModal && closeInstructions) {
-	instructionsBtn.addEventListener('click', () => {
-		instructionsModal.style.display = 'flex';
-	});
-	closeInstructions.addEventListener('click', () => {
-		instructionsModal.style.display = 'none';
-	});
-	instructionsModal.addEventListener('click', (e) => {
-		if (e.target === instructionsModal) instructionsModal.style.display = 'none';
-	});
-}
-// Animate a chip being placed on a betting square
-function animateChip(squareIdx, amount) {
-	// Find center of polygon
-	const poly = betSquares[squareIdx];
-	const pts = poly.getAttribute('points').split(' ').map(pt => pt.split(',').map(Number));
-	const cx = pts.reduce((sum, p) => sum + p[0], 0) / pts.length;
-	const cy = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
-	// Create chip SVG
-	const chip = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-	chip.setAttribute('cx', cx);
-	chip.setAttribute('cy', cy);
-	chip.setAttribute('r', 22);
-	chip.setAttribute('class', 'chip animate');
-	chip.setAttribute('fill', '#e53935');
-	chip.setAttribute('stroke', '#fff');
-	chip.setAttribute('stroke-width', '2');
-	// Add text
-	const chipText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-	chipText.setAttribute('x', cx);
-	chipText.setAttribute('y', cy+7);
-	chipText.setAttribute('text-anchor', 'middle');
-	chipText.setAttribute('font-size', '18');
-	chipText.setAttribute('fill', '#fff');
-	chipText.textContent = `$${amount}`;
-	chipsLayer.appendChild(chip);
-	chipsLayer.appendChild(chipText);
-	setTimeout(() => chip.classList.remove('animate'), 700);
-}
-// Remove all chips from the chips layer
-function clearChips() {
-	while (chipsLayer.firstChild) chipsLayer.removeChild(chipsLayer.firstChild);
-}
-// Mini Blackjack Game - Animated Singleplayer
-// Ace value selection dialog
-function showAceChoiceDialog(cardIdx, callback) {
-	const dialog = document.createElement('div');
-	dialog.style.position = 'absolute';
-	dialog.style.left = '50%';
-	dialog.style.top = '50%';
-	dialog.style.transform = 'translate(-50%, -50%)';
-	dialog.style.background = 'rgba(255,255,255,0.95)';
-	dialog.style.border = '2px solid #222';
-	dialog.style.borderRadius = '16px';
-	dialog.style.padding = '24px 32px';
-	dialog.style.zIndex = '200';
-	dialog.style.boxShadow = '0 4px 16px rgba(0,0,0,0.25)';
-	dialog.style.textAlign = 'center';
-	dialog.innerHTML = `<div style='font-size:1.3em;margin-bottom:12px;'>You got an Ace!<br>Choose its value:</div>`;
-	const btn1 = document.createElement('button');
-	btn1.textContent = '1';
-	btn1.style.margin = '0 12px';
-	btn1.style.fontSize = '1.2em';
-	btn1.onclick = () => {
-		callback(1);
-		dialog.remove();
-	};
-	const btn11 = document.createElement('button');
-	btn11.textContent = '11';
-	btn11.style.margin = '0 12px';
-	btn11.style.fontSize = '1.2em';
-	btn11.onclick = () => {
-		callback(11);
-		dialog.remove();
-	};
-	dialog.appendChild(btn1);
-	dialog.appendChild(btn11);
-	document.getElementById('game-ui').appendChild(dialog);
-}
+// Modular Blackjack Minigame
+window.initBlackjackMinigame = function(container) {
+	// Helper for scoping
+	function q(sel) { return container.querySelector(sel); }
+	function qa(sel) { return Array.from(container.querySelectorAll(sel)); }
 
-const betSquares = Array.from({length: 9}, (_, i) => document.getElementById(`bet${i}`));
-const chipsLayer = document.getElementById('chips-layer');
-const cardsLayer = document.getElementById('cards-layer');
-const dealBtn = document.getElementById('deal-btn');
-const hitBtn = document.getElementById('hit-btn');
-const standBtn = document.getElementById('stand-btn');
-const balanceSpan = document.getElementById('balance');
-const chipSound = document.getElementById('chip-sound');
-const cardSound = document.getElementById('card-sound');
+	// --- DOM refs ---
+	const gameUI = q('#game-ui');
+	const instructionsBtn = q('#instructions-btn');
+	const instructionsModal = q('#instructions-modal');
+	const closeInstructions = q('#close-instructions');
+	const betSquares = Array.from({length: 9}, (_, i) => q(`#bet${i}`));
+	const chipsLayer = q('#chips-layer');
+	const cardsLayer = q('#cards-layer');
+	const dealBtn = q('#deal-btn');
+	const hitBtn = q('#hit-btn');
+	const standBtn = q('#stand-btn');
+	const balanceSpan = q('#balance');
+	const chipSound = q('#chip-sound');
+	const cardSound1 = q('#card-sound1');
+	const cardSound2 = q('#card-sound2');
 
-let balance = 1000;
-let currentBet = 0;
-let currentBetSquare = null;
-let playerHand = [];
-let dealerHand = [];
-let gameState = 'bet'; // 'bet', 'deal', 'player', 'dealer', 'result'
+	// --- State ---
+	let balance = 1000;
+	let currentBet = 0;
+	let currentBetSquare = null;
+	let playerHand = [];
+	let dealerHand = [];
+	let gameState = 'bet'; // 'bet', 'deal', 'player', 'dealer', 'result'
+	let playerAceChoices = [];
+	let deck = [];
+	let insuranceBet = 0;
+	let insuranceActive = false;
 
-// Card deck
-const suits = ['♠', '♥', '♦', '♣'];
-const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-function createDeck() {
-	const deck = [];
-	for (let s of suits) {
-		for (let r of ranks) {
-			deck.push({suit: s, rank: r});
-		}
-	}
-	return deck;
-}
-
-// Track ace choices for player hand
-let playerAceChoices = [];
-
-function shuffle(deck) {
-	for (let i = deck.length - 1; i > 0; i--) {
-		const j = Math.floor(Math.random() * (i + 1));
-		[deck[i], deck[j]] = [deck[j], deck[i]];
-	}
-}
-
-let deck = [];
-
-// Utility: get value of hand
-function handValue(hand) {
-	// Returns the blackjack value of a hand
-	let value = 0;
-	let aces = 0;
-	for (let i = 0; i < hand.length; i++) {
-		const card = hand[i];
-		if (card.rank === 'A') {
-			// Use chosen value if available (only for playerHand)
-			if (playerAceChoices && playerAceChoices[i] !== undefined) {
-				value += playerAceChoices[i];
-			} else {
-				value += 11;
-				aces++;
+	// --- Deck helpers ---
+	const suits = ['0', '5', '6', '3'];
+	const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+	function createDeck() {
+		const deck = [];
+		for (let s of suits) {
+			for (let r of ranks) {
+				deck.push({suit: s, rank: r});
 			}
-		} else if (['K', 'Q', 'J'].includes(card.rank)) {
-			value += 10;
-		} else {
-			value += parseInt(card.rank);
+		}
+		return deck;
+	}
+	function shuffle(deck) {
+		for (let i = deck.length - 1; i > 0; i--) {
+			const j = Math.floor(Math.random() * (i + 1));
+			[deck[i], deck[j]] = [deck[j], deck[i]];
 		}
 	}
-	// Adjust for aces
-	while (value > 21 && aces > 0) {
-		value -= 10;
-		aces--;
-	}
-	return value;
-}
-
-function animateCard(handType, idx, card, faceUp = true) {
-  // handType: 'player' or 'dealer'
-  // idx: position in hand
-  // card: {suit, rank}
-  // faceUp: bool
-
-  const y = handType === 'player' ? 370 : 120;
-  const x = 180 + idx * 70;
-
-  // SVG group for card
-  const cardGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-  // Card rectangle
-  const cardRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-  cardRect.setAttribute('x', x);
-  cardRect.setAttribute('y', y);
-  cardRect.setAttribute('width', 60);
-  cardRect.setAttribute('height', 90);
-  cardRect.setAttribute('class', 'card animate');
-  cardRect.setAttribute('rx', 12);
-
-
-	// Set initial card appearance
-	if (faceUp) {
-		cardRect.setAttribute('fill', '#fff');
-		cardRect.setAttribute('stroke', '#222');
-		cardRect.setAttribute('stroke-width', '2');
-	} else {
-		cardRect.setAttribute('fill', '#00543a');
-		cardRect.setAttribute('stroke', '#FFD700');
-		cardRect.setAttribute('stroke-width', '3');
-	}
-	cardGroup.appendChild(cardRect);
-	cardsLayer.appendChild(cardGroup);
-
-	// --- Safe audio playback ---
-	const sound1 = document.getElementById('card-sound1');
-	const sound2 = document.getElementById('card-sound2');
-	const sound = Math.random() < 0.5 ? sound1 : sound2;
-	if (sound) {
-		try {
-			sound.currentTime = 0;
-			sound.play().catch(err => console.warn('Sound play blocked:', err));
-		} catch (e) {
-			console.warn('Audio error:', e);
-		}
-	}
-
-	// After animation, add card face or back
-	setTimeout(() => {
-		cardRect.classList.remove('animate');
-		if (faceUp) {
-			// Rank
-			const rankText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-			rankText.setAttribute('x', x + 12);
-			rankText.setAttribute('y', y + 28);
-			rankText.setAttribute(
-				'class',
-				'card-face' + (card.suit === '♥' || card.suit === '♦' ? ' red' : '')
-			);
-			rankText.textContent = card.rank;
-			// Suit
-			const suitText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-			suitText.setAttribute('x', x + 48);
-			suitText.setAttribute('y', y + 80);
-			suitText.setAttribute(
-				'class',
-				'card-suit' + (card.suit === '♥' || card.suit === '♦' ? ' red' : '')
-			);
-			suitText.textContent = card.suit;
-			cardGroup.appendChild(rankText);
-			cardGroup.appendChild(suitText);
-		} else {
-			// Card back: tight diamond grid pattern
-			const cardWidth = 60, cardHeight = 90;
-			const gridSize = 12;
-			for (let gx = 6; gx < cardWidth; gx += gridSize) {
-				for (let gy = 6; gy < cardHeight; gy += gridSize) {
-					// Only draw diamonds fully inside the card
-					if (gy + 4 < cardHeight && gy - 4 > 0) {
-						const diamond = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-						const points = [
-							[x + gx, y + gy - 4],
-							[x + gx + 4, y + gy],
-							[x + gx, y + gy + 4],
-							[x + gx - 4, y + gy]
-						].map(p => p.join(",")).join(" ");
-						diamond.setAttribute('points', points);
-						diamond.setAttribute('fill', '#FFD700');
-						diamond.setAttribute('opacity', '0.25');
-						cardGroup.appendChild(diamond);
-					}
+	function handValue(hand) {
+		let value = 0;
+		let aces = 0;
+		for (let i = 0; i < hand.length; i++) {
+			const card = hand[i];
+			if (card.rank === 'A') {
+				if (playerAceChoices && playerAceChoices[i] !== undefined) {
+					value += playerAceChoices[i];
+				} else {
+					value += 11;
+					aces++;
 				}
+			} else if (['K', 'Q', 'J'].includes(card.rank)) {
+				value += 10;
+			} else {
+				value += parseInt(card.rank);
 			}
 		}
-	}, 700);
-}
+		while (value > 21 && aces > 0) {
+			value -= 10;
+			aces--;
+		}
+		return value;
+	}
+
+	// --- UI helpers ---
+	function animateChip(squareIdx, amount) {
+		const poly = betSquares[squareIdx];
+		const pts = poly.getAttribute('points').split(' ').map(pt => pt.split(',').map(Number));
+		const cx = pts.reduce((sum, p) => sum + p[0], 0) / pts.length;
+		const cy = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
+		const chip = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+		chip.setAttribute('cx', cx);
+		chip.setAttribute('cy', cy);
+		chip.setAttribute('r', 22);
+		chip.setAttribute('class', 'chip animate');
+		chip.setAttribute('fill', '#e53935');
+		chip.setAttribute('stroke', '#fff');
+		chip.setAttribute('stroke-width', '2');
+		const chipText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+		chipText.setAttribute('x', cx);
+		chipText.setAttribute('y', cy+7);
+		chipText.setAttribute('text-anchor', 'middle');
+		chipText.setAttribute('font-size', '18');
+		chipText.setAttribute('fill', '#fff');
+		chipText.textContent = `$${amount}`;
+		chipsLayer.appendChild(chip);
+		chipsLayer.appendChild(chipText);
+		setTimeout(() => chip.classList.remove('animate'), 700);
+	}
+	function clearChips() {
+		while (chipsLayer.firstChild) chipsLayer.removeChild(chipsLayer.firstChild);
+	}
+	function clearCards() {
+		while (cardsLayer.firstChild) cardsLayer.removeChild(cardsLayer.firstChild);
+	}
+	function updateBalance() {
+		balanceSpan.textContent = `Balance: $${balance}`;
+	}
+	function showAceChoiceDialog(cardIdx, callback) {
+		const dialog = document.createElement('div');
+		dialog.style.position = 'absolute';
+		dialog.style.left = '50%';
+		dialog.style.top = '50%';
+		dialog.style.transform = 'translate(-50%, -50%)';
+		dialog.style.background = 'rgba(255,255,255,0.95)';
+		dialog.style.border = '2px solid #222';
+		dialog.style.borderRadius = '16px';
+		dialog.style.padding = '24px 32px';
+		dialog.style.zIndex = '200';
+		dialog.style.boxShadow = '0 4px 16px rgba(0,0,0,0.25)';
+		dialog.style.textAlign = 'center';
+		dialog.innerHTML = `<div style='font-size:1.3em;margin-bottom:12px;'>You got an Ace!<br>Choose its value:</div>`;
+		const btn1 = document.createElement('button');
+		btn1.textContent = '1';
+		btn1.style.margin = '0 12px';
+		btn1.style.fontSize = '1.2em';
+		btn1.onclick = () => { callback(1); dialog.remove(); };
+		const btn11 = document.createElement('button');
+		btn11.textContent = '11';
+		btn11.style.margin = '0 12px';
+		btn11.style.fontSize = '1.2em';
+		btn11.onclick = () => { callback(11); dialog.remove(); };
+		dialog.appendChild(btn1);
+		dialog.appendChild(btn11);
+		gameUI.appendChild(dialog);
+	}
+
+	// --- Instructions modal logic ---
+	if (instructionsBtn && instructionsModal && closeInstructions) {
+		instructionsBtn.addEventListener('click', () => {
+			instructionsModal.style.display = 'flex';
+		});
+		closeInstructions.addEventListener('click', () => {
+			instructionsModal.style.display = 'none';
+		});
+		instructionsModal.addEventListener('click', (e) => {
+			if (e.target === instructionsModal) instructionsModal.style.display = 'none';
+		});
+	}
+
+	// --- Burger button toggles controls bar ---
+	const burgerBtn = q('#burger-btn');
+	const controlsBar = q('#controls');
+	if (burgerBtn && controlsBar) {
+		burgerBtn.addEventListener('click', () => {
+			controlsBar.style.display = controlsBar.style.display === 'flex' ? 'none' : 'flex';
+		});
+		controlsBar.style.display = 'none';
+	}
+
+	// --- Betting interaction ---
+	betSquares.forEach((poly, idx) => {
+		poly.addEventListener('click', () => {
+			if (gameState !== 'bet') return;
+			clearChips();
+			currentBetSquare = idx;
+			currentBet = 100;
+			animateChip(idx, currentBet);
+			dealBtn.disabled = false;
+		});
+	});
+
+	// --- Deal button ---
+	dealBtn.addEventListener('click', () => {
+		if (gameState !== 'bet' || currentBetSquare === null) return;
+		if (balance < currentBet) return;
+		balance -= currentBet;
+		updateBalance();
+		gameState = 'deal';
+		dealBtn.disabled = true;
+		hitBtn.disabled = false;
+		standBtn.disabled = false;
+		clearCards();
+		deck = createDeck();
+		shuffle(deck);
+		playerHand = [deck.pop(), deck.pop()];
+		dealerHand = [deck.pop(), deck.pop()];
+		playerAceChoices = [];
+		// Animate cards
+		animateCard('player', 0, playerHand[0]);
+		animateCard('player', 1, playerHand[1]);
+		animateCard('dealer', 0, dealerHand[0]);
+		animateCard('dealer', 1, dealerHand[1], false); // face down
+		// Ask for ace value if player has ace(s)
+		playerHand.forEach((card, idx) => {
+			if (card.rank === 'A') {
+				showAceChoiceDialog(idx, val => {
+					playerAceChoices[idx] = val;
+					updateBalance();
+				});
+			}
+		});
+		gameState = 'player';
+	});
+
+	// --- Hit button ---
+	hitBtn.addEventListener('click', () => {
+		if (gameState !== 'player') return;
+		const card = deck.pop();
+		playerHand.push(card);
+		playerAceChoices.push(undefined);
+		animateCard('player', playerHand.length-1, card);
+		if (card.rank === 'A') {
+			showAceChoiceDialog(playerHand.length-1, val => {
+				playerAceChoices[playerHand.length-1] = val;
+				updateBalance();
+			});
+		}
+		if (handValue(playerHand) > 21) {
+			endRound();
+		}
+	});
+
+	// --- Stand button ---
+	standBtn.addEventListener('click', () => {
+		if (gameState !== 'player') return;
+		gameState = 'dealer';
+		playDealer();
+	});
+
+	// --- Dealer logic ---
+	function playDealer() {
+		clearCards();
+		dealerHand.forEach((card, i) => animateCard('dealer', i, card));
+		playerHand.forEach((card, i) => animateCard('player', i, card));
+		setTimeout(() => {
+			let dealerVal = handValue(dealerHand);
+			while (dealerVal < 17) {
+				const card = deck.pop();
+				dealerHand.push(card);
+				animateCard('dealer', dealerHand.length-1, card);
+				dealerVal = handValue(dealerHand);
+			}
+			setTimeout(endRound, 1000);
+		}, 800);
+	}
+
+	// --- End round logic ---
+	function endRound() {
+		hitBtn.disabled = true;
+		standBtn.disabled = true;
+		gameState = 'result';
+		clearCards();
+		dealerHand.forEach((card, i) => animateCard('dealer', i, card));
+		playerHand.forEach((card, i) => animateCard('player', i, card));
+		const playerVal = handValue(playerHand);
+		const dealerVal = handValue(dealerHand);
+		let result = '', win = false, push = false;
+		if (playerVal > 21) {
+			result = 'Bust! You lose.';
+			win = false;
+		} else if (dealerVal > 21) {
+			result = 'Dealer busts! You win!';
+			balance += currentBet * 2;
+			win = true;
+		} else if (playerVal > dealerVal) {
+			result = 'You win!';
+			balance += currentBet * 2;
+			win = true;
+		} else if (playerVal === dealerVal) {
+			result = 'Push.';
+			balance += currentBet;
+			push = true;
+		} else {
+			result = 'You lose.';
+			win = false;
+		}
+		updateBalance();
+		showResult(result);
+		if (currentBetSquare !== null) {
+			const poly = betSquares[currentBetSquare];
+			poly.classList.remove('win', 'lose', 'push');
+			if (push) {
+				poly.classList.add('push');
+			} else if (win) {
+				poly.classList.add('win');
+			} else {
+				poly.classList.add('lose');
+			}
+			setTimeout(() => {
+				poly.classList.remove('win', 'lose', 'push');
+			}, 2200);
+		}
+	}
+
+	function showResult(text) {
+		const resultDiv = document.createElement('div');
+		resultDiv.textContent = text;
+		resultDiv.style.position = 'absolute';
+		resultDiv.style.left = '50%';
+		resultDiv.style.top = '60%';
+		resultDiv.style.transform = 'translate(-50%, -50%)';
+		resultDiv.style.background = 'rgba(0,0,0,0.8)';
+		resultDiv.style.color = '#FFD700';
+		resultDiv.style.fontSize = '2em';
+		resultDiv.style.padding = '20px 40px';
+		resultDiv.style.borderRadius = '20px';
+		resultDiv.style.zIndex = '100';
+		gameUI.appendChild(resultDiv);
+		setTimeout(() => {
+			resultDiv.remove();
+			resetRound();
+		}, 2200);
+	}
+
+	function resetRound() {
+		clearCards();
+		clearChips();
+		currentBet = 0;
+		currentBetSquare = null;
+		dealBtn.disabled = true;
+		hitBtn.disabled = true;
+		standBtn.disabled = true;
+		gameState = 'bet';
+		playerAceChoices = [];
+		insuranceBet = 0;
+		insuranceActive = false;
+	}
+
+	// --- Initial state ---
+	dealBtn.disabled = true;
+	hitBtn.disabled = true;
+	standBtn.disabled = true;
+	updateBalance();
+};
 
 function animateCard(handType, idx, card, faceUp = true) {
 	// Position cards at the bet square for player, fixed for dealer
