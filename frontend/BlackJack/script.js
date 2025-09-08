@@ -262,17 +262,27 @@ window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBa
 
 	// --- Instructions modal logic ---
 	if (instructionsBtn && instructionsModal) {
-		instructionsBtn.addEventListener('click', () => {
-			instructionsModal.style.display = 'flex';
-			// Always re-query and re-attach close button listener
-			const closeBtn = container.querySelector('#close-instructions');
-			if (closeBtn) {
-				closeBtn.onclick = () => { instructionsModal.style.display = 'none'; };
-			}
-		});
-		instructionsModal.addEventListener('click', (e) => {
-			if (e.target === instructionsModal) instructionsModal.style.display = 'none';
-		});
+		   instructionsBtn.addEventListener('click', () => {
+			   instructionsModal.style.display = 'flex';
+			   // Move modal to right side
+			   instructionsModal.style.position = 'absolute';
+			   instructionsModal.style.top = '40px';
+			   instructionsModal.style.right = '40px';
+			   instructionsModal.style.left = 'auto';
+			   instructionsModal.style.transform = 'none';
+			   // Always re-query and re-attach close button listener
+			   const closeBtn = container.querySelector('#close-instructions');
+			   if (closeBtn) {
+				   closeBtn.onclick = (e) => {
+					   e.stopPropagation();
+					   instructionsModal.style.display = 'none';
+				   };
+			   }
+		   });
+		   // Make sure clicking outside closes, but not clicking the modal itself or close button
+		   instructionsModal.addEventListener('click', (e) => {
+			   if (e.target === instructionsModal) instructionsModal.style.display = 'none';
+		   });
 	}
 
 	// --- Burger button toggles controls bar ---
@@ -286,7 +296,15 @@ window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBa
 			newBurgerBtn.addEventListener('click', () => {
 				controlsBar.style.display = controlsBar.style.display === 'flex' ? 'none' : 'flex';
 			});
-			controlsBar.style.display = 'none';
+			// Open the controls bar by default
+			controlsBar.style.display = 'flex';
+			// Remove burger button entirely for now (optional, or just disable it)
+			if (burgerBtn) burgerBtn.style.display = 'none';
+   // Make controls visible immediately
+   setTimeout(() => {
+	   const controlsBar = q('#controls');
+	   if (controlsBar) controlsBar.style.display = 'flex';
+   }, 0);
 		}
 	}
 	setupBurgerButton();
