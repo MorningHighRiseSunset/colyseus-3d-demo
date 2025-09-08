@@ -1,7 +1,8 @@
 
 <div id="game-ui">
   <!-- Simple burger button for controls -->
-  <button id="burger-btn" style="position:absolute;top:16px;right:16px;z-index:100; background:#222; border:none; border-radius:8px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:2em; color:#FFD700;">&#9776;</button>
+  <button id="burger-btn" style="position:absolute;top:16px;right:60px;z-index:100; background:#222; border:none; border-radius:8px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:2em; color:#FFD700;">&#9776;</button>
+  <button id="burger-btn" style="position:absolute;top:16px;right:60px;z-index:100; background:#222; border:none; border-radius:8px; width:44px; height:44px; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:2em; color:#FFD700;">&#9776;</button>
   <svg class="table-svg" width="1000" height="700" viewBox="0 0 1000 700" xmlns="http://www.w3.org/2000/svg">
     <!-- Blackjack table image as background -->
     <image href="images/blackjack-red-yellow-square-box-complete-for-printing-and-website-Classic-Green-343-C.gif" x="0" y="0" width="1000" height="700" />
@@ -28,7 +29,7 @@
     <span id="balance">Balance: $1000</span>
   </div>
   <audio id="chip-sound" src="Sounds/cardSoundOne.mp3" preload="auto"></audio>
-  <audio id="card-sound1" src="Sounds/cardSoundOne.mp3" preload="auto"></audio>
+  <audio id="card-sound1" src="Sounds/cardSoundOne.mp3" preload="auto" onerror="this.src='Sounds/flipcard-91468.mp3'"></audio>
   <audio id="card-sound2" src="Sounds/flipcard-91468.mp3" preload="auto"></audio>
 
   <!-- Instructions Modal -->

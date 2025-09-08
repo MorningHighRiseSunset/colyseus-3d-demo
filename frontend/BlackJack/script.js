@@ -6,7 +6,7 @@ window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBa
 	   const controlsBar = container.querySelector('#controls');
 	   if (controlsBar) controlsBar.style.display = 'flex';
 	   const burgerBtn = container.querySelector('#burger-btn');
-	   if (burgerBtn) burgerBtn.style.display = 'none';
+	   if (burgerBtn) burgerBtn.style.display = 'block';
    }, 0);
 	// --- Animate card (moved inside for access to state) ---
 	function animateCard(handType, idx, card, faceUp = true) {
@@ -118,7 +118,11 @@ window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBa
 	const instructionsBtn = q('#instructions-btn');
 	const instructionsModal = q('#instructions-modal');
 	const closeInstructions = q('#close-instructions');
-	const betSquares = Array.from({length: 9}, (_, i) => q(`#bet${i}`));
+	   let betSquares = Array.from({length: 9}, (_, i) => q(`#bet${i}`));
+	   // Fallback for betSquares if not found
+	   if (!betSquares || betSquares.some(sq => !sq)) {
+		   betSquares = Array.from(container.querySelectorAll('.bet-square'));
+	   }
 	const chipsLayer = q('#chips-layer');
 	const cardsLayer = q('#cards-layer');
 	const dealBtn = q('#deal-btn');
@@ -268,29 +272,28 @@ window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBa
 	observer.observe(document.body, {childList: true});
 
 	// --- Instructions modal logic ---
-	if (instructionsBtn && instructionsModal) {
-		   instructionsBtn.addEventListener('click', () => {
+	   if (instructionsBtn && instructionsModal) {
+		   // Use event delegation and fallback for modal
+		   instructionsBtn.onclick = () => {
 			   instructionsModal.style.display = 'flex';
-			   // Move modal to right side
 			   instructionsModal.style.position = 'absolute';
 			   instructionsModal.style.top = '40px';
 			   instructionsModal.style.right = '40px';
 			   instructionsModal.style.left = 'auto';
 			   instructionsModal.style.transform = 'none';
-			   // Always re-query and re-attach close button listener
-			   const closeBtn = container.querySelector('#close-instructions');
-			   if (closeBtn) {
-				   closeBtn.onclick = (e) => {
-					   e.stopPropagation();
-					   instructionsModal.style.display = 'none';
-				   };
-			   }
-		   });
-		   // Make sure clicking outside closes, but not clicking the modal itself or close button
+		   };
+		   // Always re-query and re-attach close button listener
+		   const closeBtn = container.querySelector('#close-instructions');
+		   if (closeBtn) {
+			   closeBtn.onclick = (e) => {
+				   e.stopPropagation();
+				   instructionsModal.style.display = 'none';
+			   };
+		   }
 		   instructionsModal.addEventListener('click', (e) => {
 			   if (e.target === instructionsModal) instructionsModal.style.display = 'none';
 		   });
-	}
+	   }
 
 	// --- Burger button toggles controls bar ---
 	function setupBurgerButton() {

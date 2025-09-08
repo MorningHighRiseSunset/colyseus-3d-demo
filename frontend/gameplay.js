@@ -9697,7 +9697,7 @@ function createTestingModeUI() {
     document.head.appendChild(style);
 
     const title = document.createElement('h3');
-    title.textContent = 'Testing Mode';
+    title.textContent = 'Testing Mode - Click to change hotel ui';
     title.style.marginBottom = '6px';
     title.style.color = '#ffd700';
     title.style.fontWeight = 'bold';
