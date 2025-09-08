@@ -277,12 +277,14 @@ window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBa
 		   instructionsBtn.onclick = () => {
 			   instructionsModal.style.display = 'flex';
 			   instructionsModal.style.position = 'fixed';
-			   instructionsModal.style.top = '0';
-			   instructionsModal.style.left = '0';
-			   instructionsModal.style.width = '100vw';
-			   instructionsModal.style.height = '100vh';
-			   instructionsModal.style.alignItems = 'center';
-			   instructionsModal.style.justifyContent = 'center';
+			   instructionsModal.style.top = '60px';
+			   instructionsModal.style.right = '40px';
+			   instructionsModal.style.left = 'auto';
+			   instructionsModal.style.bottom = 'auto';
+			   instructionsModal.style.width = '420px';
+			   instructionsModal.style.height = 'auto';
+			   instructionsModal.style.alignItems = 'flex-start';
+			   instructionsModal.style.justifyContent = 'flex-end';
 			   instructionsModal.style.transform = 'none';
 		   };
 		   // Always re-query and re-attach close button listener
