@@ -1,5 +1,20 @@
 // --- Minigame Loader: Blackjack for The Cosmopolitan ---
 async function loadBlackjackMinigame() {
+    // Hide player/token selection UI in testing mode (force, even if created later)
+    if (window.testingMode) {
+        function hideTestingModeUIs() {
+            const tokenSel = document.getElementById('token-selection-ui');
+            if (tokenSel) tokenSel.style.display = 'none';
+            const playerList = document.getElementById('players-list');
+            if (playerList) playerList.style.display = 'none';
+            const otherPlayers = document.getElementById('other-players-list');
+            if (otherPlayers) otherPlayers.style.display = 'none';
+        }
+        hideTestingModeUIs();
+        // Also observe DOM for late creation
+        const observer = new MutationObserver(hideTestingModeUIs);
+        observer.observe(document.body, {childList: true, subtree: true});
+    }
     // --- TESTING MODE UI ---
     if (window.testingMode) {
         // Add a subtle banner if not already present
