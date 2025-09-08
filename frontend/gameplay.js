@@ -1,3 +1,5 @@
+// --- Enable Testing Mode (auto) ---
+window.testingMode = true;
 // --- Minigame Loader: Blackjack for The Cosmopolitan ---
 async function loadBlackjackMinigame() {
     // Hide player/token selection UI in testing mode (force, even if created later)
