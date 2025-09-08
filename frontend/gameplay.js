@@ -177,15 +177,24 @@ async function loadBlackjackMinigame() {
         }
     }
 
-    // Load script if not already loaded
-    if (!window.initBlackjackMinigame) {
-        await import('../BlackJack/script.js');
+
+    // Load script if not already loaded (classic script tag, not import)
+    function loadBlackjackScript(callback) {
+        if (window.initBlackjackMinigame) {
+            callback();
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = '../BlackJack/script.js';
+        script.onload = callback;
+        document.body.appendChild(script);
     }
 
-    // Initialize minigame
-    if (window.initBlackjackMinigame) {
-        window.initBlackjackMinigame(container, playerMoney, updateMainGameBalance);
-    }
+    loadBlackjackScript(() => {
+        if (window.initBlackjackMinigame) {
+            window.initBlackjackMinigame(container, playerMoney, updateMainGameBalance);
+        }
+    });
 
     // On close, update main game balance
     container.addEventListener('minigame-balance-update', e => {
