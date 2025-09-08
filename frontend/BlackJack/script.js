@@ -1,4 +1,3 @@
-
 // Modular Blackjack Minigame
 window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBalance) {
    // --- Force controls bar visible and burger hidden immediately on load ---
@@ -286,15 +285,21 @@ window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBa
 			   instructionsModal.style.alignItems = 'flex-start';
 			   instructionsModal.style.justifyContent = 'flex-end';
 			   instructionsModal.style.transform = 'none';
+			   // Always re-attach close button event when modal is opened
+			   const closeBtn = container.querySelector('#close-instructions') || document.getElementById('close-instructions');
+			   if (closeBtn) {
+				   closeBtn.onclick = (e) => {
+					   e.stopPropagation();
+					   instructionsModal.style.display = 'none';
+				   };
+			   }
 		   };
-		   // Always re-query and re-attach close button listener
-		   const closeBtn = container.querySelector('#close-instructions') || document.getElementById('close-instructions');
-		   if (closeBtn) {
-			   closeBtn.onclick = (e) => {
-				   e.stopPropagation();
+		   // Fallback: global event listener for close button
+		   document.addEventListener('click', function(e) {
+			   if (e.target && e.target.id === 'close-instructions') {
 				   instructionsModal.style.display = 'none';
-			   };
-		   }
+			   }
+		   });
 		   instructionsModal.addEventListener('click', (e) => {
 			   if (e.target === instructionsModal) instructionsModal.style.display = 'none';
 		   });
