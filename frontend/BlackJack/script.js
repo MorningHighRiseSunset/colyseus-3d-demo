@@ -1,6 +1,107 @@
 
 // Modular Blackjack Minigame
 window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBalance) {
+	// --- Animate card (moved inside for access to state) ---
+	function animateCard(handType, idx, card, faceUp = true) {
+		// Position cards at the bet square for player, fixed for dealer
+		let x, y, angle = 0;
+		if (handType === 'player' && currentBetSquare !== null) {
+			// Get bet square center
+			const poly = betSquares[currentBetSquare];
+			const pts = poly.getAttribute('points').split(' ').map(pt => pt.split(',').map(Number));
+			x = pts.reduce((sum, p) => sum + p[0], 0) / pts.length;
+			y = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
+			// Fan out cards at slight angle, and place below the bet square
+			x += (idx - 0.5) * 40;
+			y += 70; // move cards below the square
+			angle = (idx - 0.5) * 8;
+		} else {
+			// Dealer cards: fixed position above center
+			x = 500 + (idx - 0.5) * 70;
+			y = 186; // moved down further from 150 to 186 for more clearance
+			angle = (idx - 0.5) * 8;
+		}
+
+		// SVG group for card
+		const cardGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+		cardGroup.setAttribute('transform', `translate(${x},${y}) rotate(${angle})`);
+		cardGroup.setAttribute('opacity', '0');
+
+		// Card rectangle (realistic look)
+		const cardRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+		cardRect.setAttribute('x', -30);
+		cardRect.setAttribute('y', -45);
+		cardRect.setAttribute('width', 60);
+		cardRect.setAttribute('height', 90);
+		cardRect.setAttribute('rx', 10);
+		cardRect.setAttribute('class', 'card animate');
+		cardRect.setAttribute('fill', faceUp ? '#fff' : '#00543a');
+		cardRect.setAttribute('stroke', faceUp ? '#222' : '#FFD700');
+		cardRect.setAttribute('stroke-width', faceUp ? '2' : '3');
+		cardGroup.appendChild(cardRect);
+		cardsLayer.appendChild(cardGroup);
+
+		// Animate fade/slide in
+		setTimeout(() => {
+			cardGroup.setAttribute('opacity', '1');
+		}, 10);
+
+		// --- Safe audio playback ---
+		const sound1 = document.getElementById('card-sound1');
+		const sound2 = document.getElementById('card-sound2');
+		const sound = Math.random() < 0.5 ? sound1 : sound2;
+		if (sound) {
+			try {
+				sound.currentTime = 0;
+				sound.play().catch(err => console.warn('Sound play blocked:', err));
+			} catch (e) {
+				console.warn('Audio error:', e);
+			}
+		}
+
+		// After animation, add card face or back
+		setTimeout(() => {
+			cardRect.classList.remove('animate');
+			if (faceUp) {
+				// Rank (top-left, bold)
+				const rankText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+				rankText.setAttribute('x', -22);
+				rankText.setAttribute('y', -22);
+				rankText.setAttribute('class', 'card-face' + (card.suit === '♥' || card.suit === '♦' ? ' red' : ''));
+				rankText.textContent = card.rank;
+				// Suit (bottom-right, large)
+				const suitText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+				suitText.setAttribute('x', 18);
+				suitText.setAttribute('y', 32);
+				suitText.setAttribute('class', 'card-suit' + (card.suit === '♥' || card.suit === '♦' ? ' red' : ''));
+				suitText.textContent = card.suit;
+				cardGroup.appendChild(rankText);
+				cardGroup.appendChild(suitText);
+			} else {
+				// Card back: tight diamond grid pattern
+				const cardWidth = 60, cardHeight = 90;
+				const gridSize = 12;
+				for (let gx = -24; gx < cardWidth; gx += gridSize) {
+					for (let gy = -41; gy < cardHeight; gy += gridSize) {
+						// Only draw diamonds fully inside the card
+						if (gy + 4 <= 45 && gy - 4 >= -45) {
+							const diamond = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+							const points = [
+								[gx, gy - 4],
+								[gx + 4, gy],
+								[gx, gy + 4],
+								[gx - 4, gy]
+							].map(p => p.join(",")).join(" ");
+							diamond.setAttribute('points', points);
+							diamond.setAttribute('fill', '#FFD700');
+							diamond.setAttribute('opacity', '0.25');
+							cardGroup.appendChild(diamond);
+						}
+					}
+				}
+			}
+		}, 400);
+	}
 	// Helper for scoping
 	function q(sel) { return container.querySelector(sel); }
 	function qa(sel) { return Array.from(container.querySelectorAll(sel)); }
@@ -175,14 +276,20 @@ window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBa
 	}
 
 	// --- Burger button toggles controls bar ---
-	const burgerBtn = q('#burger-btn');
-	const controlsBar = q('#controls');
-	if (burgerBtn && controlsBar) {
-		burgerBtn.addEventListener('click', () => {
-			controlsBar.style.display = controlsBar.style.display === 'flex' ? 'none' : 'flex';
-		});
-		controlsBar.style.display = 'none';
+	function setupBurgerButton() {
+		const burgerBtn = q('#burger-btn');
+		const controlsBar = q('#controls');
+		if (burgerBtn && controlsBar) {
+			// Remove previous listeners by cloning
+			const newBurgerBtn = burgerBtn.cloneNode(true);
+			burgerBtn.parentNode.replaceChild(newBurgerBtn, burgerBtn);
+			newBurgerBtn.addEventListener('click', () => {
+				controlsBar.style.display = controlsBar.style.display === 'flex' ? 'none' : 'flex';
+			});
+			controlsBar.style.display = 'none';
+		}
 	}
+	setupBurgerButton();
 
 	// --- Betting interaction ---
 	betSquares.forEach((poly, idx) => {
@@ -393,106 +500,6 @@ window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBa
 	updateBalance();
 };
 
-function animateCard(handType, idx, card, faceUp = true) {
-	// Position cards at the bet square for player, fixed for dealer
-	let x, y, angle = 0;
-		if (handType === 'player' && currentBetSquare !== null) {
-			// Get bet square center
-			const poly = betSquares[currentBetSquare];
-			const pts = poly.getAttribute('points').split(' ').map(pt => pt.split(',').map(Number));
-			x = pts.reduce((sum, p) => sum + p[0], 0) / pts.length;
-			y = pts.reduce((sum, p) => sum + p[1], 0) / pts.length;
-			// Fan out cards at slight angle, and place below the bet square
-			x += (idx - 0.5) * 40;
-			y += 70; // move cards below the square
-			angle = (idx - 0.5) * 8;
-	} else {
-	// Dealer cards: fixed position above center
-	x = 500 + (idx - 0.5) * 70;
-	y = 186; // moved down further from 150 to 186 for more clearance
-	angle = (idx - 0.5) * 8;
-	}
-
-	// SVG group for card
-	const cardGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-	cardGroup.setAttribute('transform', `translate(${x},${y}) rotate(${angle})`);
-	cardGroup.setAttribute('opacity', '0');
-
-	// Card rectangle (realistic look)
-	const cardRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-	cardRect.setAttribute('x', -30);
-	cardRect.setAttribute('y', -45);
-	cardRect.setAttribute('width', 60);
-	cardRect.setAttribute('height', 90);
-	cardRect.setAttribute('rx', 10);
-	cardRect.setAttribute('class', 'card animate');
-	cardRect.setAttribute('fill', faceUp ? '#fff' : '#00543a');
-	cardRect.setAttribute('stroke', faceUp ? '#222' : '#FFD700');
-	cardRect.setAttribute('stroke-width', faceUp ? '2' : '3');
-	cardGroup.appendChild(cardRect);
-	cardsLayer.appendChild(cardGroup);
-
-	// Animate fade/slide in
-	setTimeout(() => {
-		cardGroup.setAttribute('opacity', '1');
-	}, 10);
-
-	// --- Safe audio playback ---
-	const sound1 = document.getElementById('card-sound1');
-	const sound2 = document.getElementById('card-sound2');
-	const sound = Math.random() < 0.5 ? sound1 : sound2;
-	if (sound) {
-		try {
-			sound.currentTime = 0;
-			sound.play().catch(err => console.warn('Sound play blocked:', err));
-		} catch (e) {
-			console.warn('Audio error:', e);
-		}
-	}
-
-	// After animation, add card face or back
-	setTimeout(() => {
-		cardRect.classList.remove('animate');
-		if (faceUp) {
-			// Rank (top-left, bold)
-			const rankText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-			rankText.setAttribute('x', -22);
-			rankText.setAttribute('y', -22);
-			rankText.setAttribute('class', 'card-face' + (card.suit === '♥' || card.suit === '♦' ? ' red' : ''));
-			rankText.textContent = card.rank;
-			// Suit (bottom-right, large)
-			const suitText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-			suitText.setAttribute('x', 18);
-			suitText.setAttribute('y', 32);
-			suitText.setAttribute('class', 'card-suit' + (card.suit === '♥' || card.suit === '♦' ? ' red' : ''));
-			suitText.textContent = card.suit;
-			cardGroup.appendChild(rankText);
-			cardGroup.appendChild(suitText);
-		} else {
-			// Card back: tight diamond grid pattern
-			const cardWidth = 60, cardHeight = 90;
-			const gridSize = 12;
-			for (let gx = -24; gx < cardWidth; gx += gridSize) {
-				for (let gy = -41; gy < cardHeight; gy += gridSize) {
-					// Only draw diamonds fully inside the card
-					if (gy + 4 <= 45 && gy - 4 >= -45) {
-						const diamond = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-						const points = [
-							[gx, gy - 4],
-							[gx + 4, gy],
-							[gx, gy + 4],
-							[gx - 4, gy]
-						].map(p => p.join(",")).join(" ");
-						diamond.setAttribute('points', points);
-						diamond.setAttribute('fill', '#FFD700');
-						diamond.setAttribute('opacity', '0.25');
-						cardGroup.appendChild(diamond);
-					}
-				}
-			}
-		}
-	}, 400);
-}
 
 
 function clearCards() {

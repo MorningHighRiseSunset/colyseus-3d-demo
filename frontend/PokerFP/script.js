@@ -1,7 +1,7 @@
 
 // Texas Hold'em Poker - Single Player vs AI (Modular)
 
-window.initPokerMinigame = function(container) {
+window.initPokerMinigame = function(container, playerMoney, updateMainGameBalance) {
 	// --- Card and Deck Utilities ---
 	const SUITS = ['♠', '♥', '♦', '♣'];
 	const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
@@ -28,7 +28,8 @@ window.initPokerMinigame = function(container) {
 	}
 
 	// --- Game State ---
-	let playerChips = 1000;
+	let playerChips = (typeof playerMoney === 'number' && !isNaN(playerMoney)) ? playerMoney : 1000;
+	let startingChips = playerChips;
 	let aiChips = 1000;
 	let pot = 0;
 	let deck = [];
@@ -93,7 +94,7 @@ window.initPokerMinigame = function(container) {
 		}
 	}
 
-	function updateUI() {
+	function updateUI(showSummary = false) {
 		// Player cards
 		for (let i = 0; i < 2; i++) {
 			if (playerHand[i]) {
@@ -128,8 +129,17 @@ window.initPokerMinigame = function(container) {
 		playerChipsEl.textContent = playerChips;
 		aiChipsEl.textContent = aiChips;
 		potEl.textContent = pot;
-		// Message
-		messageEl.textContent = message;
+		// Message or summary
+		if (showSummary) {
+			let diff = playerChips - startingChips;
+			let summary = `You finished with $${playerChips}. `;
+			if (diff > 0) summary += `You won $${diff}!`;
+			else if (diff < 0) summary += `You lost $${-diff}.`;
+			else summary += `You broke even.`;
+			messageEl.textContent = summary;
+		} else {
+			messageEl.textContent = message;
+		}
 	}
 
 	function setControls(enabled) {
@@ -334,6 +344,25 @@ window.initPokerMinigame = function(container) {
 	btnCall.addEventListener('click', playerCall);
 	btnBet.addEventListener('click', playerBetAction);
 	btnNewGame.addEventListener('click', startNewGame);
+
+	// --- Minigame close: export balance and show summary ---
+	function showEndSummaryAndExport() {
+		updateUI(true);
+		if (typeof updateMainGameBalance === 'function') {
+			updateMainGameBalance(playerChips);
+		} else if (container && typeof CustomEvent === 'function') {
+			container.dispatchEvent(new CustomEvent('minigame-balance-update', {detail: {balance: playerChips}}));
+		}
+	}
+
+	// Listen for removal of minigame container to export balance
+	const observer = new MutationObserver(() => {
+		if (!document.body.contains(container)) {
+			showEndSummaryAndExport();
+			observer.disconnect();
+		}
+	});
+	observer.observe(document.body, {childList: true});
 
 	// --- Start Game ---
 	startNewGame();
