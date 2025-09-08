@@ -272,5 +272,6 @@ window.initCrapsMinigame = function(container) {
 
     // Initial UI
     pointValue.textContent = '-';
+    showDice(1, 1, false); // Show both dice as 1 on load
     updateUI('Place your bet and roll the dice!');
 };

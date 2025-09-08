@@ -231,7 +231,14 @@ async function loadSlotMachineMinigame() {
     script.src = '../slotMachine/script.js';
     script.onload = function() {
         if (window.initSlotMachine) {
-            window.initSlotMachine(container.querySelector('#slot-machine-root'));
+            // Find the current player (assume currentPlayerIndex and players[] are in scope)
+            let playerMoney = 5000;
+            try {
+                if (typeof currentPlayerIndex !== 'undefined' && Array.isArray(players) && players[currentPlayerIndex]) {
+                    playerMoney = players[currentPlayerIndex].money;
+                }
+            } catch (e) {}
+            window.initSlotMachine(container.querySelector('#slot-machine-root'), playerMoney);
         }
     };
     document.body.appendChild(script);

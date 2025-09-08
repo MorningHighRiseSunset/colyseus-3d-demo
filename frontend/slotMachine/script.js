@@ -1,5 +1,5 @@
 // Refactored for dynamic loading
-window.initSlotMachine = function(container) {
+window.initSlotMachine = function(container, playerMoney) {
 	const symbols = ['🍒', '7️⃣', '💎'];
 	const spinBtn = container.querySelector('#spinBtn');
 	const message = container.querySelector('#message');
@@ -8,6 +8,11 @@ window.initSlotMachine = function(container) {
 		container.querySelector('#reel2-strip'),
 		container.querySelector('#reel3-strip')
 	];
+	const balanceSpan = container.querySelector('#slot-balance');
+	let balance = typeof playerMoney === 'number' ? playerMoney : 5000;
+	function updateBalanceDisplay() {
+		balanceSpan.textContent = balance;
+	}
 
 	function getRandomSymbol() {
 		return symbols[Math.floor(Math.random() * symbols.length)];
@@ -49,6 +54,13 @@ window.initSlotMachine = function(container) {
 	}
 
 	function spin() {
+		if (balance < 100) {
+			message.textContent = 'Not enough money to spin!';
+			message.style.color = '#fff';
+			return;
+		}
+		balance -= 100;
+		updateBalanceDisplay();
 		spinBtn.disabled = true;
 		message.textContent = '';
 		// Animate lever
@@ -94,11 +106,17 @@ window.initSlotMachine = function(container) {
 
 	function checkWin(finalSymbols) {
 		if (finalSymbols[0] === finalSymbols[1] && finalSymbols[1] === finalSymbols[2]) {
-			message.textContent = `🎉 Jackpot! Three ${finalSymbols[0]}! You win!`;
+			let reward = 1000;
+			balance += reward;
+			updateBalanceDisplay();
+			message.textContent = `🎉 Jackpot! Three ${finalSymbols[0]}! You win $${reward}!`;
 			message.style.color = '#FFD700';
 			showSparkles();
 		} else if (finalSymbols[0] === finalSymbols[1] || finalSymbols[1] === finalSymbols[2] || finalSymbols[0] === finalSymbols[2]) {
-			message.textContent = `Nice! Two matching symbols!`;
+			let reward = 200;
+			balance += reward;
+			updateBalanceDisplay();
+			message.textContent = `Nice! Two matching symbols! You win $${reward}!`;
 			message.style.color = '#FFA500';
 		} else {
 			message.textContent = 'Try again!';
@@ -121,6 +139,7 @@ window.initSlotMachine = function(container) {
 
 	spinBtn.addEventListener('click', spin);
 	fillInitialReels();
+	updateBalanceDisplay();
 };
 						message.style.color = '#fff';
 

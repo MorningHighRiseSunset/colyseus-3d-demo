@@ -169,6 +169,9 @@ window.initBlackjackMinigame = function(container) {
 		poly.addEventListener('click', () => {
 			if (gameState !== 'bet') return;
 			clearChips();
+			// Visually highlight selected bet square
+			betSquares.forEach(sq => sq.classList.remove('selected-bet'));
+			poly.classList.add('selected-bet');
 			currentBetSquare = idx;
 			currentBet = 100;
 			animateChip(idx, currentBet);
@@ -178,8 +181,15 @@ window.initBlackjackMinigame = function(container) {
 
 	// --- Deal button ---
 	dealBtn.addEventListener('click', () => {
-		if (gameState !== 'bet' || currentBetSquare === null) return;
-		if (balance < currentBet) return;
+		if (gameState !== 'bet') return;
+		if (currentBetSquare === null) {
+			showTempMessage('Please select a bet square first.');
+			return;
+		}
+		if (balance < currentBet) {
+			showTempMessage('Not enough balance to place bet.');
+			return;
+		}
 		balance -= currentBet;
 		updateBalance();
 		gameState = 'deal';
@@ -208,6 +218,29 @@ window.initBlackjackMinigame = function(container) {
 		});
 		gameState = 'player';
 	});
+
+	// Helper to show a temporary message to the user
+	function showTempMessage(msg) {
+		let msgDiv = container.querySelector('.blackjack-temp-msg');
+		if (!msgDiv) {
+			msgDiv = document.createElement('div');
+			msgDiv.className = 'blackjack-temp-msg';
+			msgDiv.style.position = 'absolute';
+			msgDiv.style.top = '20px';
+			msgDiv.style.left = '50%';
+			msgDiv.style.transform = 'translateX(-50%)';
+			msgDiv.style.background = 'rgba(0,0,0,0.85)';
+			msgDiv.style.color = '#fff';
+			msgDiv.style.padding = '10px 24px';
+			msgDiv.style.borderRadius = '8px';
+			msgDiv.style.zIndex = '9999';
+			msgDiv.style.fontSize = '1.2em';
+			container.appendChild(msgDiv);
+		}
+		msgDiv.textContent = msg;
+		msgDiv.style.display = 'block';
+		setTimeout(() => { msgDiv.style.display = 'none'; }, 1800);
+	}
 
 	// --- Hit button ---
 	hitBtn.addEventListener('click', () => {
