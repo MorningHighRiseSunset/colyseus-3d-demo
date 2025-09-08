@@ -276,10 +276,13 @@ window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBa
 		   // Use event delegation and fallback for modal
 		   instructionsBtn.onclick = () => {
 			   instructionsModal.style.display = 'flex';
-			   instructionsModal.style.position = 'absolute';
-			   instructionsModal.style.top = '40px';
-			   instructionsModal.style.right = '40px';
-			   instructionsModal.style.left = 'auto';
+			   instructionsModal.style.position = 'fixed';
+			   instructionsModal.style.top = '0';
+			   instructionsModal.style.left = '0';
+			   instructionsModal.style.width = '100vw';
+			   instructionsModal.style.height = '100vh';
+			   instructionsModal.style.alignItems = 'center';
+			   instructionsModal.style.justifyContent = 'center';
 			   instructionsModal.style.transform = 'none';
 		   };
 		   // Always re-query and re-attach close button listener
