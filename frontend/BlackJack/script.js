@@ -1,6 +1,13 @@
 
 // Modular Blackjack Minigame
 window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBalance) {
+   // --- Force controls bar visible and burger hidden immediately on load ---
+   setTimeout(() => {
+	   const controlsBar = container.querySelector('#controls');
+	   if (controlsBar) controlsBar.style.display = 'flex';
+	   const burgerBtn = container.querySelector('#burger-btn');
+	   if (burgerBtn) burgerBtn.style.display = 'none';
+   }, 0);
 	// --- Animate card (moved inside for access to state) ---
 	function animateCard(handType, idx, card, faceUp = true) {
 		// Position cards at the bet square for player, fixed for dealer
