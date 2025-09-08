@@ -8808,9 +8808,22 @@ function showDiceResult(total, roll1, roll2) {
     }, 100);
 }
 
-// Modify your initPlayerTokenSelection function to create the dice button
+
+// --- Patch: Prevent token selection UI in testing mode ---
 const originalInitPlayerTokenSelection = initPlayerTokenSelection;
 initPlayerTokenSelection = function() {
+    // If testing mode is active, do NOT show token selection UI
+    if (window.TESTING_MODE || window.testingModeActive) {
+        // Remove any token selection UI if it exists
+        setTimeout(() => {
+            const tokenUI = document.getElementById('token-selection-ui') || document.querySelector('.token-selection-ui');
+            if (tokenUI) tokenUI.remove();
+            // Also hide any modal overlays
+            const overlays = document.querySelectorAll('.modal-overlay, .token-modal-overlay');
+            overlays.forEach(el => el.remove());
+        }, 0);
+        return;
+    }
     originalInitPlayerTokenSelection();
     createDiceButton();
 };
@@ -9738,7 +9751,6 @@ function createTestingModeUI() {
 
     // Only show casino minigame properties in test mode
     const allowedProperties = [
-        "Santa Fe",
         "Santa Fe Hotel and Casino",
         "Hard Rock Hotel",
         "Bellagio",
