@@ -43,6 +43,15 @@ async function loadBlackjackMinigame() {
             btn.style.display = 'flex';
             btn.style.alignItems = 'center';
             btn.style.justifyContent = 'center';
+            // Show Santa Fe first in the dropdown
+            const hotelMinigameMap = [
+                ['Santa Fe', 'Slot Machine'],
+                ['Hard Rock Hotel', 'Poker'],
+                ['Bellagio', 'Craps'],
+                ['Caesars Palace', 'Roulette'],
+                ['Wynn', 'Baccarat'],
+                ['The Cosmopolitan', 'Blackjack']
+            ];
             btn.onclick = () => {
                 // Show a minimal selector
                 let selector = document.getElementById('testing-mode-hotel-selector');
@@ -58,20 +67,12 @@ async function loadBlackjackMinigame() {
                     selector.style.borderRadius = '10px';
                     selector.style.zIndex = '4002';
                     selector.style.boxShadow = '0 2px 8px #0006';
-                    selector.style.minWidth = '180px';
+                    selector.style.minWidth = '220px';
                     selector.style.fontSize = '1em';
                     selector.innerHTML = '<b>Select Minigame:</b><br>';
-                    const hotels = [
-                        'The Cosmopolitan',
-                        'Wynn',
-                        'Bellagio',
-                        'Caesars Palace',
-                        'Santa Fe',
-                        'Hard Rock Hotel'
-                    ];
-                    hotels.forEach(hotel => {
+                    hotelMinigameMap.forEach(([hotel, minigame]) => {
                         const hBtn = document.createElement('button');
-                        hBtn.textContent = hotel;
+                        hBtn.textContent = `${hotel}  (${minigame})`;
                         hBtn.style.display = 'block';
                         hBtn.style.width = '100%';
                         hBtn.style.margin = '6px 0';
@@ -9697,7 +9698,7 @@ function createTestingModeUI() {
     document.head.appendChild(style);
 
     const title = document.createElement('h3');
-    title.textContent = 'Testing Mode - Click to change hotel ui';
+    title.textContent = 'Testing Mode - Click to change hotel UI';
     title.style.marginBottom = '6px';
     title.style.color = '#ffd700';
     title.style.fontWeight = 'bold';
