@@ -1,6 +1,6 @@
 
 // Modular Blackjack Minigame
-window.initBlackjackMinigame = function(container) {
+window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBalance) {
 	// Helper for scoping
 	function q(sel) { return container.querySelector(sel); }
 	function qa(sel) { return Array.from(container.querySelectorAll(sel)); }
@@ -22,7 +22,7 @@ window.initBlackjackMinigame = function(container) {
 	const cardSound2 = q('#card-sound2');
 
 	// --- State ---
-	let balance = 1000;
+	let balance = (typeof playerMoney === 'number' && !isNaN(playerMoney)) ? playerMoney : 1000;
 	let currentBet = 0;
 	let currentBetSquare = null;
 	let playerHand = [];
@@ -109,6 +109,12 @@ window.initBlackjackMinigame = function(container) {
 	}
 	function updateBalance() {
 		balanceSpan.textContent = `Balance: $${balance}`;
+		if (typeof updateMainGameBalance === 'function') {
+			updateMainGameBalance(balance);
+		} else if (container && typeof CustomEvent === 'function') {
+			// Fallback: dispatch event for loader to catch
+			container.dispatchEvent(new CustomEvent('minigame-balance-update', {detail: {balance}}));
+		}
 	}
 	function showAceChoiceDialog(cardIdx, callback) {
 		const dialog = document.createElement('div');
@@ -138,6 +144,20 @@ window.initBlackjackMinigame = function(container) {
 		dialog.appendChild(btn11);
 		gameUI.appendChild(dialog);
 	}
+
+	// --- Minigame close: export balance ---
+	// Listen for removal of minigame container to export balance
+	const observer = new MutationObserver(() => {
+		if (!document.body.contains(container)) {
+			if (typeof updateMainGameBalance === 'function') {
+				updateMainGameBalance(balance);
+			} else if (container && typeof CustomEvent === 'function') {
+				container.dispatchEvent(new CustomEvent('minigame-balance-update', {detail: {balance}}));
+			}
+			observer.disconnect();
+		}
+	});
+	observer.observe(document.body, {childList: true});
 
 	// --- Instructions modal logic ---
 	if (instructionsBtn && instructionsModal) {

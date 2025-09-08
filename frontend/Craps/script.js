@@ -1,11 +1,11 @@
 
 // Craps: Singleplayer vs AI (Modular)
-window.initCrapsMinigame = function(container) {
+window.initCrapsMinigame = function(container, playerMoney, updateMainGameBalance) {
     // --- DOM helpers ---
     function q(sel) { return container.querySelector(sel); }
 
     // --- State ---
-    let playerMoney = 100;
+    playerMoney = typeof playerMoney === 'number' ? playerMoney : 100;
     let aiMoney = 100;
     let point = null;
     let gameActive = true;
@@ -72,7 +72,24 @@ window.initCrapsMinigame = function(container) {
         updateChips(playerChipsDiv, playerMoney);
         updateChips(aiChipsDiv, aiMoney);
         if (msg) statusDiv.textContent = msg;
+        if (typeof updateMainGameBalance === 'function') {
+            updateMainGameBalance(playerMoney);
+        } else if (container && typeof CustomEvent === 'function') {
+            container.dispatchEvent(new CustomEvent('minigame-balance-update', {detail: {balance: playerMoney}}));
+        }
     }
+    // --- Minigame close: export balance ---
+    const observer = new MutationObserver(() => {
+        if (!document.body.contains(container)) {
+            if (typeof updateMainGameBalance === 'function') {
+                updateMainGameBalance(playerMoney);
+            } else if (container && typeof CustomEvent === 'function') {
+                container.dispatchEvent(new CustomEvent('minigame-balance-update', {detail: {balance: playerMoney}}));
+            }
+            observer.disconnect();
+        }
+    });
+    observer.observe(document.body, {childList: true});
     function clearAllBetHighlights() {
         passLineArea.classList.remove('selected');
         dontPassArea.classList.remove('selected');

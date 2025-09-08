@@ -33,6 +33,22 @@ async function loadBlackjackMinigame() {
     const html = await fetch('../BlackJack/index.html').then(r => r.text());
     container.innerHTML = html;
 
+    // Get player balance
+    let playerMoney = 5000;
+    try {
+        if (typeof currentPlayerIndex !== 'undefined' && Array.isArray(players) && players[currentPlayerIndex]) {
+            playerMoney = players[currentPlayerIndex].money;
+        }
+    } catch (e) {}
+
+    // Callback to update main game balance
+    function updateMainGameBalance(newBalance) {
+        if (typeof currentPlayerIndex !== 'undefined' && Array.isArray(players) && players[currentPlayerIndex]) {
+            players[currentPlayerIndex].money = newBalance;
+            if (typeof updateMoneyDisplay === 'function') updateMoneyDisplay();
+        }
+    }
+
     // Load script if not already loaded
     if (!window.initBlackjackMinigame) {
         await import('../BlackJack/script.js');
@@ -40,8 +56,17 @@ async function loadBlackjackMinigame() {
 
     // Initialize minigame
     if (window.initBlackjackMinigame) {
-        window.initBlackjackMinigame(container);
+        window.initBlackjackMinigame(container, playerMoney, updateMainGameBalance);
     }
+
+    // On close, update main game balance
+    container.addEventListener('minigame-balance-update', e => {
+        if (e.detail && typeof e.detail.balance === 'number') {
+            updateMainGameBalance(e.detail.balance);
+        }
+    });
+    // Optionally, you can dispatch this event from the minigame when it closes
+    // Example: container.dispatchEvent(new CustomEvent('minigame-balance-update', {detail: {balance: updatedBalance}}));
 }
 // --- Minigame Loader: Baccarat for Wynn ---
 async function loadBaccaratMinigame() {
@@ -175,6 +200,22 @@ async function loadCrapsMinigame() {
     const html = await fetch('Craps/index.html').then(r => r.text());
     container.innerHTML = html;
 
+    // Get player balance
+    let playerMoney = 5000;
+    try {
+        if (typeof currentPlayerIndex !== 'undefined' && Array.isArray(players) && players[currentPlayerIndex]) {
+            playerMoney = players[currentPlayerIndex].money;
+        }
+    } catch (e) {}
+
+    // Callback to update main game balance
+    function updateMainGameBalance(newBalance) {
+        if (typeof currentPlayerIndex !== 'undefined' && Array.isArray(players) && players[currentPlayerIndex]) {
+            players[currentPlayerIndex].money = newBalance;
+            if (typeof updateMoneyDisplay === 'function') updateMoneyDisplay();
+        }
+    }
+
     // Load script if not already loaded
     if (!window.initCrapsMinigame) {
         await new Promise((resolve, reject) => {
@@ -188,8 +229,15 @@ async function loadCrapsMinigame() {
 
     // Initialize minigame
     if (window.initCrapsMinigame) {
-        window.initCrapsMinigame(container.querySelector('#casino-table'));
+        window.initCrapsMinigame(container.querySelector('#casino-table'), playerMoney, updateMainGameBalance);
     }
+
+    // On close, update main game balance
+    container.addEventListener('minigame-balance-update', e => {
+        if (e.detail && typeof e.detail.balance === 'number') {
+            updateMainGameBalance(e.detail.balance);
+        }
+    });
 }
 
 // --- Minigame Loader: Slot Machine for Santa Fe ---
