@@ -43,7 +43,7 @@ async function loadBlackjackMinigame() {
             btn.style.display = 'flex';
             btn.style.alignItems = 'center';
             btn.style.justifyContent = 'center';
-            // Show Santa Fe first in the dropdown
+            // Show Santa Fe first in the dropdown and always display minigame name
             const hotelMinigameMap = [
                 ['Santa Fe', 'Slot Machine'],
                 ['Hard Rock Hotel', 'Poker'],
@@ -72,7 +72,7 @@ async function loadBlackjackMinigame() {
                     selector.innerHTML = '<b>Select Minigame:</b><br>';
                     hotelMinigameMap.forEach(([hotel, minigame]) => {
                         const hBtn = document.createElement('button');
-                        hBtn.textContent = `${hotel}  (${minigame})`;
+                        hBtn.innerHTML = `<b>${hotel}</b><span style='font-size:0.95em;opacity:0.8;'> &rarr; ${minigame}</span>`;
                         hBtn.style.display = 'block';
                         hBtn.style.width = '100%';
                         hBtn.style.margin = '6px 0';
@@ -88,6 +88,11 @@ async function loadBlackjackMinigame() {
                         };
                         selector.appendChild(hBtn);
                     });
+    // Hide player/token selection UI in testing mode
+    if (window.testingMode) {
+        const tokenSel = document.getElementById('token-selection-ui');
+        if (tokenSel) tokenSel.style.display = 'none';
+    }
                     // Dismiss on click outside
                     setTimeout(() => {
                         function outsideClick(e) {
