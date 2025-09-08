@@ -234,3 +234,9 @@ button:disabled {
   line-height: 1;
   z-index: 1002;
 }
+#instructions-modal, #instructions-modal * {
+  user-select: text !important;
+}
+#instructions-modal > div, #close-instructions {
+  pointer-events: auto !important;
+}
