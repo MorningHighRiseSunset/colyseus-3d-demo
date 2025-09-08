@@ -288,7 +288,7 @@ window.initBlackjackMinigame = function(container, playerMoney, updateMainGameBa
 			   instructionsModal.style.transform = 'none';
 		   };
 		   // Always re-query and re-attach close button listener
-		   const closeBtn = container.querySelector('#close-instructions');
+		   const closeBtn = container.querySelector('#close-instructions') || document.getElementById('close-instructions');
 		   if (closeBtn) {
 			   closeBtn.onclick = (e) => {
 				   e.stopPropagation();
