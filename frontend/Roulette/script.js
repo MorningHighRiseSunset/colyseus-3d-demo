@@ -3,6 +3,33 @@
 window.initRouletteMinigame = function(root) {
 	// Attach Spin button event handler (works for both standalone and dynamic)
 	const spinBtn = q('#spin-btn');
+	// Add spin sound
+	let spinAudio = document.getElementById('spin-audio');
+	// Web Audio API fallback for roulette SFX
+	function playRouletteSFX() {
+		try {
+			const ctx = new (window.AudioContext || window.webkitAudioContext)();
+			const duration = 2.2;
+			const osc = ctx.createOscillator();
+			const gain = ctx.createGain();
+			osc.type = 'triangle';
+			osc.frequency.setValueAtTime(180, ctx.currentTime);
+			osc.frequency.linearRampToValueAtTime(60, ctx.currentTime + duration);
+			gain.gain.setValueAtTime(0.18, ctx.currentTime);
+			gain.gain.linearRampToValueAtTime(0, ctx.currentTime + duration);
+			osc.connect(gain).connect(ctx.destination);
+			osc.start();
+			osc.stop(ctx.currentTime + duration);
+			osc.onended = () => ctx.close();
+		} catch (e) {}
+	}
+	if (!spinAudio) {
+		spinAudio = document.createElement('audio');
+		spinAudio.id = 'spin-audio';
+		spinAudio.src = 'https://cdn.pixabay.com/audio/2022/10/16/audio_12b6b2b7b2.mp3'; // Free roulette spin sound
+		spinAudio.preload = 'auto';
+		document.body.appendChild(spinAudio);
+	}
 	if (spinBtn) {
 		spinBtn.onclick = function() {
 			if (typeof window.spinWheel === 'function') window.spinWheel();
@@ -222,10 +249,12 @@ function drawWheel(angle = 0, ballA = null) {
 function animate() {
 	if (!spinning) return;
 	spinAngle += spinSpeed;
-	spinSpeed *= 0.998; // much slower friction for much longer spin
+	spinSpeed *= 0.995; // slightly less friction for longer spin
 	if (spinSpeed < 0.07) spinSpeed = 0.07;
+	// Ball slows in sync with wheel for realism
+	let syncFriction = Math.max(0.992, 1 - (spinSpeed / 20));
 	ballAngle -= ballSpeed;
-	ballSpeed *= 0.998;
+	ballSpeed *= syncFriction;
 	if (ballSpeed < 0.09) ballSpeed = 0.09;
 
 	// Ball slows and falls into slot
@@ -235,7 +264,11 @@ function animate() {
 		ballAngle = ((resultIndex + 0.5) * slotAngleRad - spinAngle * Math.PI / 180) % (2 * Math.PI);
 		drawWheel(spinAngle, ballAngle);
 		spinning = false;
-		setTimeout(() => showResult(), 1200);
+		// Wait 1.2s before showing result, but do not cover the number
+		if (coverTimeout) clearTimeout(coverTimeout);
+		coverTimeout = setTimeout(() => {
+			showResult();
+		}, 1200);
 		return;
 	}
 	drawWheel(spinAngle, ballAngle);
@@ -243,20 +276,40 @@ function animate() {
 }
 
 // --- Betting and UI ---
-function placeBet(num) {
+function placeBet(num, amount) {
 	if (spinning) return;
-	bets[num] = (bets[num] || 0) + 1;
+	let betVal = parseInt(amount) || window.betAmount || 100;
+	bets[num] = (bets[num] || 0) + betVal / (window.betAmount || 100);
 	highlightBet(num);
 }
 
 // Enable betting on bottom table options
+	// Add input for custom bet amount
+	let betInput = document.getElementById('bet-amount-input');
+	if (!betInput) {
+		betInput = document.createElement('input');
+		betInput.type = 'number';
+		betInput.min = 1;
+		betInput.value = window.betAmount || 100;
+		betInput.id = 'bet-amount-input';
+		betInput.style = 'margin-left:8px;width:70px;padding:2px 6px;border-radius:6px;border:1px solid #aaa;';
+		let betLabel = document.createElement('label');
+		betLabel.textContent = 'Bet Amount:';
+		betLabel.style = 'margin-left:12px;font-weight:bold;';
+		spinBtn.parentNode && spinBtn.parentNode.insertBefore(betLabel, spinBtn);
+		spinBtn.parentNode && spinBtn.parentNode.insertBefore(betInput, spinBtn);
+		betInput.onchange = function() {
+			window.betAmount = parseInt(betInput.value) || 100;
+		};
+	}
 	qa('.bet-box').forEach(box => {
 		box.addEventListener('click', () => {
 			let label = box.textContent.trim();
 			let betType = label;
 			if (box.classList.contains('red')) betType = 'Red';
 			if (box.classList.contains('black')) betType = 'Black';
-			bets[betType] = (bets[betType] || 0) + 1;
+			let amount = betInput.value || window.betAmount || 100;
+			bets[betType] = (bets[betType] || 0) + parseInt(amount) / (window.betAmount || 100);
 			box.style.boxShadow = '0 0 16px 4px #ffe066, 0 2px 8px #0005 inset';
 			setTimeout(() => box.style.boxShadow = '', 500);
 			updatePlayerInfo();
@@ -350,7 +403,8 @@ function showResult() {
 	qa('.number-cell').forEach(cell => {
 		cell.addEventListener('click', () => {
 			const num = cell.getAttribute('aria-label');
-			placeBet(num);
+			let amount = betInput.value || window.betAmount || 100;
+			placeBet(num, amount);
 			updatePlayerInfo();
 		});
 	});
@@ -361,6 +415,7 @@ function showResult() {
 // --- Player Info Logic ---
 window.playerBalance = 5000;
 window.betAmount = 100;
+
 function updatePlayerInfo() {
 	let totalBets = Object.values(bets || {}).reduce((a,b) => a+b, 0);
 	let betsList = Object.keys(bets || {}).length ? Object.entries(bets).map(([k,v]) => `${k} ($${v*window.betAmount})`).join(', ') : 'No bets placed yet';
@@ -378,6 +433,16 @@ window.updatePlayerInfo = updatePlayerInfo;
 
 // Update info on spin
 	window.spinWheel = function() {
+		// Play spin sound (try audio, fallback to Web Audio SFX)
+		let played = false;
+		if (spinAudio && spinAudio.play) {
+			try {
+				spinAudio.currentTime = 0;
+				spinAudio.play();
+				played = true;
+			} catch (e) {}
+		}
+		if (!played) playRouletteSFX();
 		spinWheel();
 		updatePlayerInfo();
 	};
@@ -386,31 +451,37 @@ window.updatePlayerInfo = updatePlayerInfo;
 	window.showResult = function() {
 		const winNum = numbers[resultIndex];
 		let win = false;
-		if (bets[winNum]) win = true;
+		let payout = 0;
+		// Number bet
+		if (bets[winNum]) {
+			win = true;
+			payout += bets[winNum] * (window.betAmount || 100) * 36; // 36:1 payout
+		}
 		// Dozens
-		if (winNum >= 1 && winNum <= 12 && bets['1st 12']) win = true;
-		if (winNum >= 13 && winNum <= 24 && bets['2nd 12']) win = true;
-		if (winNum >= 25 && winNum <= 36 && bets['3rd 12']) win = true;
+		if (winNum >= 1 && winNum <= 12 && bets['1st 12']) { win = true; payout += bets['1st 12'] * (window.betAmount || 100) * 3; }
+		if (winNum >= 13 && winNum <= 24 && bets['2nd 12']) { win = true; payout += bets['2nd 12'] * (window.betAmount || 100) * 3; }
+		if (winNum >= 25 && winNum <= 36 && bets['3rd 12']) { win = true; payout += bets['3rd 12'] * (window.betAmount || 100) * 3; }
 		// Low/High
-		if (winNum >= 1 && winNum <= 18 && bets['1 to 18']) win = true;
-		if (winNum >= 19 && winNum <= 36 && bets['19 to 36']) win = true;
+		if (winNum >= 1 && winNum <= 18 && bets['1 to 18']) { win = true; payout += bets['1 to 18'] * (window.betAmount || 100) * 2; }
+		if (winNum >= 19 && winNum <= 36 && bets['19 to 36']) { win = true; payout += bets['19 to 36'] * (window.betAmount || 100) * 2; }
 		// Even/Odd
-		if (winNum !== 0 && winNum !== '00' && winNum % 2 === 0 && bets['EVEN']) win = true;
-		if (winNum % 2 === 1 && bets['ODD']) win = true;
+		if (winNum !== 0 && winNum !== '00' && winNum % 2 === 0 && bets['EVEN']) { win = true; payout += bets['EVEN'] * (window.betAmount || 100) * 2; }
+		if (winNum % 2 === 1 && bets['ODD']) { win = true; payout += bets['ODD'] * (window.betAmount || 100) * 2; }
 		// Red/Black
-		if (redNumbers.includes(winNum) && bets['Red']) win = true;
-		if (blackNumbers.includes(winNum) && bets['Black']) win = true;
+		if (redNumbers.includes(winNum) && bets['Red']) { win = true; payout += bets['Red'] * (window.betAmount || 100) * 2; }
+		if (blackNumbers.includes(winNum) && bets['Black']) { win = true; payout += bets['Black'] * (window.betAmount || 100) * 2; }
 		// Columns
 		for (let i = 0; i < 12; i++) {
 			let colNums = [3-i*3, 2-i*3, 1-i*3].map(n => n + i*3);
-			if (colNums.includes(winNum) && bets[`Column ${i+1}`]) win = true;
+			if (colNums.includes(winNum) && bets[`Column ${i+1}`]) { win = true; payout += bets[`Column ${i+1}`] * (window.betAmount || 100) * 3; }
 		}
+		let totalBet = Object.values(bets || {}).reduce((a,b) => a+b, 0) * (window.betAmount || 100);
 		let msg = `Winning number: ${winNum}`;
 		if (win) {
-			window.playerBalance += Object.values(bets || {}).reduce((a,b) => a+b, 0) * window.betAmount * 2; // Simple payout: 2x
-			msg += ' | You win!';
+			window.playerBalance += payout;
+			msg += ` | You win $${payout}!`;
 		} else {
-			window.playerBalance -= Object.values(bets || {}).reduce((a,b) => a+b, 0) * window.betAmount;
+			window.playerBalance -= totalBet;
 			msg += ' | No win.';
 		}
 		updatePlayerInfo();

@@ -107,10 +107,17 @@ window.initSlotMachine = function(container, playerMoney) {
 	function checkWin(finalSymbols) {
 		if (finalSymbols[0] === finalSymbols[1] && finalSymbols[1] === finalSymbols[2]) {
 			let reward = 1000;
+			let symbol = finalSymbols[0];
+			if (symbol === '💎') {
+				reward = 5000;
+				message.textContent = `💎💎💎 DIAMOND JACKPOT! Three Diamonds! You win $${reward}!`;
+				message.style.color = '#00eaff';
+			} else {
+				message.textContent = `🎉 Jackpot! Three ${symbol}! You win $${reward}!`;
+				message.style.color = '#FFD700';
+			}
 			balance += reward;
 			updateBalanceDisplay();
-			message.textContent = `🎉 Jackpot! Three ${finalSymbols[0]}! You win $${reward}!`;
-			message.style.color = '#FFD700';
 			showSparkles();
 		} else if (finalSymbols[0] === finalSymbols[1] || finalSymbols[1] === finalSymbols[2] || finalSymbols[0] === finalSymbols[2]) {
 			let reward = 200;
