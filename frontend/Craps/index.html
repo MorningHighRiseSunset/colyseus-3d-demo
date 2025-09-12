@@ -1,44 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Craps Game</title>
+	<style>
+		body {
+			background: radial-gradient(ellipse at center, #2a3a2a 0%, #111 100%);
+			color: #fff;
+			text-align: center;
+			font-family: 'Segoe UI', Arial, sans-serif;
+		}
+		.balance-bar {
+			background: #222d;
+			color: #ffd700;
+			font-size: 1.3em;
+			padding: 0.7em 2em;
+			border-radius: 1.5em;
+			display: inline-block;
+			margin: 1em auto 1em auto;
+			box-shadow: 0 2px 8px #000a;
+		}
+		.craps-table-container {
+			position: relative;
+			display: inline-block;
+			max-width: 1000px;
+			width: 100%;
+			border-radius: 1.5em;
+			box-shadow: 0 8px 32px #000a;
+			overflow: hidden;
+		}
+		.craps-table-img {
+			width: 100%;
+			height: auto;
+			display: block;
+			border-radius: 1.5em;
+		}
+		.craps-table-svg {
+			position: absolute;
+			top: 0; left: 0;
+			width: 100%;
+			height: 100%;
+			pointer-events: none;
+		}
+		.bet-area {
+			cursor: pointer;
+			opacity: 0.18;
+			transition: opacity 0.2s, filter 0.2s;
+			pointer-events: all;
+		}
+		.bet-area.selected {
+			opacity: 0.5;
+			stroke: #ffd700;
+			stroke-width: 4;
+			filter: drop-shadow(0 0 8px #ffd700cc);
+		}
+		#dice-area {
+			position: absolute;
+			left: 50%;
+			top: 12%;
+			transform: translate(-50%,0);
+			z-index: 10;
+			display: flex;
+			gap: 30px;
+		}
+		.die-3d {
+			width: 70px;
+			height: 70px;
+			background: linear-gradient(145deg, #fff 60%, #ccc 100%);
+			border-radius: 18px;
+			box-shadow: 0 4px 16px #0008, 0 0 0 4px #222b;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-size: 2.5em;
+			color: #222;
+			position: relative;
+			transition: transform 0.2s cubic-bezier(.68,-0.55,.27,1.55);
+		}
+		.die-3d.rolling {
+			animation: roll-die 0.7s cubic-bezier(.68,-0.55,.27,1.55);
+		}
+		@keyframes roll-die {
+			0% { transform: rotateZ(0deg) scale(1); }
+			40% { transform: rotateZ(90deg) scale(1.2); }
+			70% { transform: rotateZ(180deg) scale(0.9); }
+			100% { transform: rotateZ(360deg) scale(1); }
+		}
+		#chips-tray {
+			position: absolute;
+			right: 60px;
+			bottom: 10px;
+			z-index: 20;
+			display: flex;
+			gap: 16px;
+		}
+		.chip-3d {
+			width: 32px;
+			height: 32px;
+			border-radius: 50%;
+			background: conic-gradient(from 210deg, #fff 0 20%, #eee 20% 40%, #ccc 40% 60%, #fff 60% 80%, #eee 80% 100%);
+			box-shadow: 0 2px 8px #000a, 0 6px 16px #0006 inset;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font-weight: bold;
+			font-size: 1.2em;
+			color: #fff;
+			cursor: grab;
+			border: 0.25em solid #c00;
+			position: relative;
+			transition: box-shadow 0.2s, border 0.2s, transform 0.2s;
+		}
+		.chip-3d[data-value] {
+			border-color: #c00 !important;
+			background: radial-gradient(circle at 60% 30%, #c00 60%, #800 100%) !important;
+			color: #fff !important;
+		}
+		.chip-3d:after { color: #fff !important; }
+		.chip-3d:after {
+			content: attr(data-value);
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			transform: translate(-50%,-50%);
+			font-size: 0.85em;
+			font-weight: bold;
+			color: #fff;
+			text-shadow: 0 2px 8px #000a, 0 0 2px #000;
+		}
+		.chip-3d[data-value="100"]:after { color: #222; }
+		.chip-3d:active {
+			box-shadow: 0 0 0 4px #ffd70099;
+			border-width: 7px;
+			transform: scale(1.1);
+		}
+		.chip-placed-anim {
+			animation: chip-drop 0.7s cubic-bezier(.22,1.2,.36,1) both;
+		}
+		@keyframes chip-drop {
+			0% {
+				transform: translate(-50%,-50%) scale(0.2) rotate(-30deg);
+				opacity: 0.2;
+			}
+			60% {
+				transform: translate(-50%,-50%) scale(1.1) rotate(8deg);
+				opacity: 1;
+			}
+			100% {
+				transform: translate(-50%,-50%) scale(0.8) rotate(0deg);
+				opacity: 1;
+			}
+		}
+		#placed-chips {
+			position: absolute;
+			left: 0; top: 0;
+			width: 100%; height: 100%;
+			pointer-events: none;
+			z-index: 15;
+		}
+		#game-controls {
+			margin-top: 2em;
+		}
+		#roll-btn {
+			background: linear-gradient(90deg, #ffd700 0%, #ffb300 100%);
+			color: #222;
+			font-size: 1.2em;
+			font-weight: bold;
+			border: none;
+			border-radius: 1em;
+			padding: 0.7em 2.5em;
+			box-shadow: 0 2px 8px #000a;
+			cursor: pointer;
+			transition: background 0.2s, color 0.2s;
+		}
+		#roll-btn:hover {
+			background: linear-gradient(90deg, #ffb300 0%, #ffd700 100%);
+			color: #000;
+		}
+		#dice-result {
+			margin-top: 1em;
+			font-size: 1.5em;
+			color: #ffd700;
+			text-shadow: 0 2px 8px #000a;
+		}
+		#bet-info {
+			margin-top: 1em;
+			font-size: 1.1em;
+			color: #fff;
+		}
+	</style>
+</head>
+<body>
+	<div class="balance-bar">Balance: $<span id="player-balance">5000</span></div>
+	<div class="craps-table-container">
+		<img src="Craps_table_diagram.svg.png" class="craps-table-img" alt="Craps Table">
+		<!-- SVG overlay for clickable betting areas -->
+		   <svg class="craps-table-svg" viewBox="0 0 1000 404" xmlns="http://www.w3.org/2000/svg" style="pointer-events:none;">
+			   <!-- Pass Line (left and right) -->
+			   <rect class="bet-area" data-bet="pass-line" x="67" y="276" width="307" height="28" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="pass-line-right" x="624" y="278" width="305" height="27" fill="transparent" style="pointer-events:all;" />
+			   <!-- Don't Pass Bar -->
+			   <rect class="bet-area" data-bet="dont-pass-bar" x="375" y="310" width="248" height="25" fill="transparent" style="pointer-events:all;" />
+			   <!-- Field -->
+			   <rect class="bet-area" data-bet="field" x="380" y="340" width="240" height="35" fill="transparent" style="pointer-events:all;" />
+			   <!-- Come / Don't Come -->
+			   <rect class="bet-area" data-bet="come" x="380" y="240" width="240" height="30" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="dont-come-bar" x="380" y="210" width="240" height="25" fill="transparent" style="pointer-events:all;" />
 
-<div id="casino-table">
-	<div id="table-felt">
-		<div id="chips-area">
-			<div class="chip-stack player">
-				<div class="chip-label">You</div>
-				<div class="chips" id="player-chips"></div>
-			</div>
-			<div class="chip-stack ai">
-				<div class="chip-label">AI</div>
-				<div class="chips" id="ai-chips"></div>
+			   <!-- Place Bets (4,5,6,8,9,10) -->
+			   <rect class="bet-area" data-bet="place-4" x="180" y="180" width="60" height="38" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="place-5" x="260" y="180" width="60" height="38" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="place-6" x="340" y="180" width="60" height="38" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="place-8" x="600" y="180" width="60" height="38" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="place-9" x="680" y="180" width="60" height="38" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="place-10" x="760" y="180" width="60" height="38" fill="transparent" style="pointer-events:all;" />
+
+			   <!-- Proposition Bets (center table, 15-for-1, 30-for-1, etc.) -->
+			   <polygon class="bet-area" data-bet="any-craps" points="485,120 515,120 515,140 485,140" fill="transparent" style="pointer-events:all;" />
+			   <polygon class="bet-area" data-bet="any-seven" points="520,120 550,120 550,140 520,140" fill="transparent" style="pointer-events:all;" />
+			   <!-- Replace single 30-for-1 with three adjacent boxes -->
+			   <rect class="bet-area" data-bet="thirty-for-1-a" x="555" y="120" width="13" height="20" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="thirty-for-1-b" x="569" y="120" width="13" height="20" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="thirty-for-1-c" x="583" y="120" width="13" height="20" fill="transparent" style="pointer-events:all;" />
+			   <polygon class="bet-area" data-bet="ace-deuce" points="425,120 445,120 445,140 425,140" fill="transparent" style="pointer-events:all;" />
+			   <polygon class="bet-area" data-bet="twelve" points="445,120 465,120 465,140 445,140" fill="transparent" style="pointer-events:all;" />
+			   <polygon class="bet-area" data-bet="yo-eleven" points="595,120 615,120 615,140 595,140" fill="transparent" style="pointer-events:all;" />
+			   <polygon class="bet-area" data-bet="horn" points="465,145 535,145 535,165 465,165" fill="transparent" style="pointer-events:all;" />
+			   <!-- Hardways (center, below prop bets) -->
+			   <rect class="bet-area" data-bet="hard-4" x="480" y="170" width="30" height="20" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="hard-6" x="520" y="170" width="30" height="20" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="hard-8" x="560" y="170" width="30" height="20" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="hard-10" x="600" y="170" width="30" height="20" fill="transparent" style="pointer-events:all;" />
+
+			   <!-- C&E (Craps & Eleven) -->
+			   <rect class="bet-area" data-bet="ce" x="540" y="150" width="30" height="18" fill="transparent" style="pointer-events:all;" />
+
+			   <!-- Big 6/8 (corners) -->
+			   <rect class="bet-area" data-bet="big-6" x="70" y="220" width="50" height="40" fill="transparent" style="pointer-events:all;" />
+			   <rect class="bet-area" data-bet="big-8" x="880" y="220" width="50" height="40" fill="transparent" style="pointer-events:all;" />
+		   </svg>
+		<!-- Dice display -->
+		<div id="dice-area" style="width:180px;height:90px;position:absolute;left:50%;top:12%;transform:translate(-50%,0);z-index:10;"></div>
+		<!-- Chips tray -->
+		<div id="chips-tray">
+			<div class="chip-3d" data-value="1"></div>
+			<div class="chip-3d" data-value="5"></div>
+			<div class="chip-3d" data-value="25"></div>
+			<div class="chip-3d" data-value="100"></div>
+			<div class="chip-3d" data-value="500"></div>
+			<div class="chip-stack" style="position:relative;width:32px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;">
+				<div class="chip-3d" data-value="1000" style="position:absolute;bottom:0;left:0;z-index:3;"></div>
+				<div class="chip-3d" data-value="1000" style="position:absolute;bottom:6px;left:0;z-index:2;opacity:0.7;filter:brightness(0.9);"></div>
+				<div class="chip-3d" data-value="1000" style="position:absolute;bottom:12px;left:0;z-index:1;opacity:0.5;filter:brightness(0.8);"></div>
 			</div>
 		</div>
-		<!-- Interactive bet areas -->
-		<div id="bet-areas">
-			<div class="bet-area clickable" id="pass-line-area">Pass Line</div>
-			<div class="bet-area clickable" id="dont-pass-area">Don't Pass</div>
-			<!-- You can add more areas for Field, Place, etc. -->
-			<div class="bet-area" id="player-bet-area"></div>
-			<div class="bet-area" id="ai-bet-area"></div>
-		</div>
-		<div id="craps-layout">
-			<div id="point-area">
-				<span>Point:</span>
-				<span id="point-value" class="point-glow">-</span>
-			</div>
-			<div id="dice-area">
-				<img id="dice1" class="dice-img" src="assets/dice1.svg" alt="Dice 1" />
-				<img id="dice2" class="dice-img" src="assets/dice1.svg" alt="Dice 2" />
-			</div>
-			<div id="status"></div>
-			<div id="betting">
-				<label for="player-bet">Your Bet: $</label>
-				<input type="number" id="player-bet" min="1" value="10">
-				<button id="roll-btn">🎲 Roll Dice</button>
-			</div>
-			<div id="ai-status"></div>
-			<div id="scores">
-				<p>Your Money: $<span id="player-money">100</span></p>
-				<p>AI Money: $<span id="ai-money">100</span></p>
-			</div>
-		</div>
+		<!-- Placed chips -->
+		<div id="placed-chips" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:15;"></div>
 	</div>
-</div>
+	<div id="game-controls" style="margin-top:2em;">
+		<button id="roll-btn">Roll Dice</button>
+		<div id="dice-result" style="margin-top:1em;font-size:1.5em;"></div>
+		<div id="bet-info" style="margin-top:1em;"></div>
+	</div>
+	   <script src="https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.min.js"></script>
+	   <script>
+	   // --- 3D Dice with Three.js (all code inline, no imports) ---
+	   let diceScene, diceCamera, diceRenderer, dice1, dice2, diceAnimationId;
+	   function initDice3D(container) {
+		   if (diceRenderer) return;
+		   diceScene = new THREE.Scene();
+		   diceCamera = new THREE.PerspectiveCamera(45, 2, 0.1, 1000);
+		   diceCamera.position.set(0, 8, 18);
+		   diceCamera.lookAt(0, 0, 0);
+		   diceRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+		   diceRenderer.setSize(180, 90);
+		   diceRenderer.setClearColor(0x000000, 0);
+		   container.appendChild(diceRenderer.domElement);
+		   const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+		   diceScene.add(ambient);
+		   const dir = new THREE.DirectionalLight(0xffffff, 0.7);
+		   dir.position.set(10, 20, 10);
+		   diceScene.add(dir);
+		   // No platform/table, dice will roll across transparent background
+		   dice1 = createDieMesh();
+		   dice2 = createDieMesh();
+		   // Start dice off the left edge, at random z
+		   dice1.position.set(-12, 0, Math.random()*2-1);
+		   dice2.position.set(-15, 0, Math.random()*2+1);
+		   diceScene.add(dice1);
+		   diceScene.add(dice2);
+		   renderDice3D();
+	   }
+	   function createDieMesh() {
+		   const geometry = new THREE.BoxGeometry(2, 2, 2);
+		   const materials = [];
+		   for (let i = 1; i <= 6; i++) {
+			   materials.push(new THREE.MeshPhongMaterial({ map: createDieFace(i) }));
+		   }
+		   const mesh = new THREE.Mesh(geometry, materials);
+		   mesh.castShadow = true;
+		   mesh.receiveShadow = true;
+		   return mesh;
+	   }
+	   function createDieFace(num) {
+		   const size = 128;
+		   const canvas = document.createElement('canvas');
+		   canvas.width = canvas.height = size;
+		   const ctx = canvas.getContext('2d');
+		   ctx.fillStyle = '#fff';
+		   ctx.fillRect(0, 0, size, size);
+		   ctx.fillStyle = '#111';
+		   ctx.strokeStyle = '#222';
+		   ctx.lineWidth = 8;
+		   ctx.strokeRect(0, 0, size, size);
+		   const dot = (x, y) => { ctx.beginPath(); ctx.arc(x, y, 16, 0, 2*Math.PI); ctx.fill(); };
+		   const c = size/2, o = size/4;
+		   if ([1,3,5].includes(num)) dot(c, c);
+		   if (num >= 2) { dot(o, o); dot(size-o, size-o); }
+		   if (num >= 4) { dot(o, size-o); dot(size-o, o); }
+		   if (num === 6) { dot(o, c); dot(size-o, c); }
+		   return new THREE.CanvasTexture(canvas);
+	   }
+	   function renderDice3D() {
+		   diceRenderer.render(diceScene, diceCamera);
+		   diceAnimationId = requestAnimationFrame(renderDice3D);
+	   }
+		   function rollDice3D(val1, val2, cb) {
+			   if (!dice1 || !dice2) return;
+			   let t = 0, duration = 1.6, start = null;
+			   let startRot1 = dice1.rotation.clone(), startRot2 = dice2.rotation.clone();
+			   let endRot1 = getTargetRotation(val1), endRot2 = getTargetRotation(val2);
+			   let startX1 = dice1.position.x, startX2 = dice2.position.x;
+			   let endX1 = 6, endX2 = 10;
+			   let startZ1 = dice1.position.z, startZ2 = dice2.position.z;
+			   let endZ1 = 0, endZ2 = 1.2;
+			   function animate(now) {
+				   if (!start) start = now;
+				   t = Math.min((now-start)/1000/duration, 1);
+				   dice1.rotation.x = lerp(startRot1.x, endRot1.x, t) + Math.sin(now/80)*0.5;
+				   dice1.rotation.y = lerp(startRot1.y, endRot1.y, t) + Math.cos(now/90)*0.5;
+				   dice1.rotation.z = lerp(startRot1.z, endRot1.z, t) + Math.sin(now/60)*0.5;
+				   dice2.rotation.x = lerp(startRot2.x, endRot2.x, t) + Math.cos(now/70)*0.5;
+				   dice2.rotation.y = lerp(startRot2.y, endRot2.y, t) + Math.sin(now/100)*0.5;
+				   dice2.rotation.z = lerp(startRot2.z, endRot2.z, t) + Math.cos(now/50)*0.5;
+				   dice1.position.x = lerp(startX1, endX1, t);
+				   dice2.position.x = lerp(startX2, endX2, t);
+				   dice1.position.z = lerp(startZ1, endZ1, t);
+				   dice2.position.z = lerp(startZ2, endZ2, t);
+				   if (t < 1) {
+					   requestAnimationFrame(animate);
+				   } else {
+					   dice1.rotation.copy(endRot1);
+					   dice2.rotation.copy(endRot2);
+					   if (cb) setTimeout(cb, 300);
+				   }
+			   }
+			   requestAnimationFrame(animate);
+		   }
+	   function getTargetRotation(val) {
+		   switch(val) {
+			   case 1: return new THREE.Euler(0, 0, 0);
+			   case 2: return new THREE.Euler(Math.PI/2, 0, 0);
+			   case 3: return new THREE.Euler(0, 0, -Math.PI/2);
+			   case 4: return new THREE.Euler(0, 0, Math.PI/2);
+			   case 5: return new THREE.Euler(-Math.PI/2, 0, 0);
+			   case 6: return new THREE.Euler(Math.PI, 0, 0);
+			   default: return new THREE.Euler(0, 0, 0);
+		   }
+	   }
+	   function lerp(a, b, t) { return a + (b-a)*t; }
+	   window.initDice3D = initDice3D;
+	   window.rollDice3D = rollDice3D;
+	   window.addEventListener('DOMContentLoaded', () => {
+		   const diceArea = document.getElementById('dice-area');
+		   if (diceArea) initDice3D(diceArea);
+	   });
+	   </script>
+	   <script src="script.js"></script>
+</body>
+</html>

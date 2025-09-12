@@ -1,7 +1,8 @@
 // --- Enable Testing Mode (auto) ---
-window.testingMode = true;
+// window.testingMode = true;
 // --- Minigame Loader: Blackjack for The Cosmopolitan ---
 async function loadBlackjackMinigame() {
+    /*
     // Hide player/token selection UI in testing mode (force, even if created later)
     if (window.testingMode) {
         function hideTestingModeUIs() {
@@ -17,6 +18,7 @@ async function loadBlackjackMinigame() {
         const observer = new MutationObserver(hideTestingModeUIs);
         observer.observe(document.body, {childList: true, subtree: true});
     }
+    */
     // Remove any existing minigame
     let oldContainer = document.getElementById('minigame-container');
     if (oldContainer) oldContainer.remove();
@@ -9591,7 +9593,7 @@ setInterval(showSuggestionNotification, 240000);
 // Optionally, show once shortly after page load
 setTimeout(showSuggestionNotification, 10000);
 
-
+/*
 // Function to create a UI for testing mode
 function createTestingModeUI() {
     const testingModeContainer = document.createElement('div');
@@ -9702,6 +9704,7 @@ function createTestingModeUI() {
 
 // Call this function to initialize the testing mode UI
 createTestingModeUI();
+*/
 
 
 // --- Add End Turn Button to DOM if not present ---

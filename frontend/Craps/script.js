@@ -1,294 +1,233 @@
+// --- 3D Dice Animation ---
+function animateDice3D(d1, d2, cb) {
+	if (window.rollDice3D) {
+		window.rollDice3D(d1, d2, cb);
+	} else if (cb) {
+		setTimeout(cb, 800);
+	}
+}
 
-// Craps: Singleplayer vs AI (Modular)
-window.initCrapsMinigame = function(container, playerMoney, updateMainGameBalance) {
-    // --- DOM helpers ---
-    function q(sel) { return container.querySelector(sel); }
 
-    // --- State ---
-    playerMoney = typeof playerMoney === 'number' ? playerMoney : 100;
-    let aiMoney = 100;
-    let point = null;
-    let gameActive = true;
-    let playerBetType = null; // 'pass' or 'dontpass'
 
-    // --- DOM Elements (scoped) ---
-    const statusDiv = q('#status');
-    const aiStatusDiv = q('#ai-status');
-    const playerMoneySpan = q('#player-money');
-    const aiMoneySpan = q('#ai-money');
-    const rollBtn = q('#roll-btn');
-    const playerBetInput = q('#player-bet');
-    const dice1Img = q('#dice1');
-    const dice2Img = q('#dice2');
-    const pointValue = q('#point-value');
-    const playerChipsDiv = q('#player-chips');
-    const aiChipsDiv = q('#ai-chips');
-    const playerBetArea = q('#player-bet-area');
-    const aiBetArea = q('#ai-bet-area');
-    const passLineArea = q('#pass-line-area');
-    const dontPassArea = q('#dont-pass-area');
+// --- Game State ---
+let playerBalance = 5000;
+let placedChips = [];
+let point = null;
+let phase = 'comeout'; // 'comeout' or 'point'
 
-    // --- UI helpers ---
-    function showDice(d1, d2, animate = true) {
-        dice1Img.src = `Craps/assets/dice${d1}.svg`;
-        dice2Img.src = `Craps/assets/dice${d2}.svg`;
-        if (animate) {
-            dice1Img.classList.add('dice-rolling');
-            dice2Img.classList.add('dice-rolling');
-            setTimeout(() => {
-                dice1Img.classList.remove('dice-rolling');
-                dice2Img.classList.remove('dice-rolling');
-            }, 500);
-        }
-    }
-    function aiBet() {
-        // Simple AI: bets 10% of its money, minimum $1
-        return Math.max(1, Math.floor(aiMoney * 0.1));
-    }
-    function updateChips(div, money) {
-        div.innerHTML = '';
-        let chips = [];
-        let remain = money;
-        while (remain >= 50) { chips.push('gold'); remain -= 50; }
-        while (remain >= 10) { chips.push('green'); remain -= 10; }
-        while (remain >= 1) { chips.push('blue'); remain -= 1; }
-        chips.slice(0, 12).forEach(color => {
-            const chip = document.createElement('div');
-            chip.className = `chip ${color}`;
-            div.appendChild(chip);
-        });
-        if (chips.length > 12) {
-            const more = document.createElement('span');
-            more.textContent = `+${chips.length-12}`;
-            more.style.fontSize = '0.9em';
-            more.style.color = '#ffd700';
-            more.style.marginLeft = '4px';
-            div.appendChild(more);
-        }
-    }
-    function updateUI(msg = '') {
-        playerMoneySpan.textContent = playerMoney;
-        aiMoneySpan.textContent = aiMoney;
-        updateChips(playerChipsDiv, playerMoney);
-        updateChips(aiChipsDiv, aiMoney);
-        if (msg) statusDiv.textContent = msg;
-        if (typeof updateMainGameBalance === 'function') {
-            updateMainGameBalance(playerMoney);
-        } else if (container && typeof CustomEvent === 'function') {
-            container.dispatchEvent(new CustomEvent('minigame-balance-update', {detail: {balance: playerMoney}}));
-        }
-    }
-    // --- Minigame close: export balance ---
-    const observer = new MutationObserver(() => {
-        if (!document.body.contains(container)) {
-            if (typeof updateMainGameBalance === 'function') {
-                updateMainGameBalance(playerMoney);
-            } else if (container && typeof CustomEvent === 'function') {
-                container.dispatchEvent(new CustomEvent('minigame-balance-update', {detail: {balance: playerMoney}}));
-            }
-            observer.disconnect();
-        }
-    });
-    observer.observe(document.body, {childList: true});
-    function clearAllBetHighlights() {
-        passLineArea.classList.remove('selected');
-        dontPassArea.classList.remove('selected');
-    }
-    function animateBetChips(areaDiv, amount) {
-        areaDiv.innerHTML = '';
-        let chips = [];
-        let remain = amount;
-        while (remain >= 50) { chips.push('gold'); remain -= 50; }
-        while (remain >= 10) { chips.push('green'); remain -= 10; }
-        while (remain >= 1) { chips.push('blue'); remain -= 1; }
-        chips.forEach((color, i) => {
-            const chip = document.createElement('div');
-            chip.className = `bet-chip ${color}`;
-            chip.style.bottom = '-40px';
-            chip.style.opacity = '0';
-            areaDiv.appendChild(chip);
-            setTimeout(() => {
-                chip.style.bottom = (i * 4) + 'px';
-                chip.style.opacity = '1';
-            }, 50 + i * 60);
-        });
-    }
-    function clearBetChips(areaDiv, outcome) {
-        const chips = areaDiv.querySelectorAll('.bet-chip');
-        chips.forEach((chip, i) => {
-            setTimeout(() => {
-                if (outcome === 'win') {
-                    chip.classList.add('return');
-                } else {
-                    chip.classList.add('hide');
-                }
-                setTimeout(() => chip.remove(), 700);
-            }, i * 40);
-        });
-    }
-    function endGame(msg) {
-        gameActive = false;
-        statusDiv.textContent = msg;
-        rollBtn.disabled = true;
-    }
+function updateBalance() {
+	document.getElementById('player-balance').textContent = playerBalance;
+}
 
-    // --- Event Listeners (scoped) ---
-    passLineArea.addEventListener('click', () => {
-        playerBetType = 'pass';
-        clearAllBetHighlights();
-        passLineArea.classList.add('selected');
-    });
-    dontPassArea.addEventListener('click', () => {
-        playerBetType = 'dontpass';
-        clearAllBetHighlights();
-        dontPassArea.classList.add('selected');
-    });
-    rollBtn.addEventListener('click', () => {
-        if (!gameActive) return;
-        let playerBet = parseInt(playerBetInput.value, 10);
-        if (isNaN(playerBet) || playerBet < 1 || playerBet > playerMoney) {
-            statusDiv.textContent = 'Invalid bet!';
-            return;
-        }
-        if (!playerBetType) {
-            statusDiv.textContent = 'Select Pass Line or Don\'t Pass to place your bet!';
-            return;
-        }
-        let aiBetAmount = aiBet();
-        if (aiBetAmount > aiMoney) aiBetAmount = aiMoney;
-        aiStatusDiv.textContent = `AI bets $${aiBetAmount}`;
+function clearPlacedChips() {
+	placedChips = [];
+	document.getElementById('placed-chips').innerHTML = '';
+}
 
-        // Animate chips to selected bet area
-        if (playerBetType === 'pass') {
-            animateBetChips(passLineArea, playerBet);
-        } else {
-            animateBetChips(dontPassArea, playerBet);
-        }
-        animateBetChips(aiBetArea, aiBetAmount);
+// --- Area selection removed: drag-and-drop only ---
+document.getElementById('bet-info').textContent = 'Drag chips onto any bet area.';
 
-        // Animate dice roll
-        let d1 = 1 + Math.floor(Math.random() * 6);
-        let d2 = 1 + Math.floor(Math.random() * 6);
-        showDice(d1, d2, true);
+// --- 3D Dice Animation (Three.js) ---
+window.addEventListener('DOMContentLoaded', () => {
+	if (window.initDice3D) window.initDice3D(document.getElementById('dice-area'));
+});
 
-        setTimeout(() => {
-            let sum = d1 + d2;
-            let playerOutcome = null;
-            // Remove highlights
-            passLineArea.classList.remove('win', 'lose');
-            dontPassArea.classList.remove('win', 'lose');
-            aiBetArea.classList.remove('win', 'lose');
-            let playerArea = playerBetType === 'pass' ? passLineArea : dontPassArea;
-            if (point === null) {
-                // Come-out roll
-                if (playerBetType === 'pass') {
-                    if (sum === 7 || sum === 11) {
-                        playerMoney += playerBet;
-                        updateUI('You win the round!');
-                        pointValue.textContent = '-';
-                        pointValue.classList.remove('point-glow-anim');
-                        playerOutcome = 'win';
-                    } else if (sum === 2 || sum === 3 || sum === 12) {
-                        playerMoney -= playerBet;
-                        updateUI('You lose the round!');
-                        pointValue.textContent = '-';
-                        pointValue.classList.remove('point-glow-anim');
-                        playerOutcome = 'lose';
-                    } else {
-                        point = sum;
-                        pointValue.textContent = point;
-                        pointValue.classList.add('point-glow-anim');
-                        updateUI(`Point is set to ${point}. Roll again!`);
-                        return;
-                    }
-                } else {
-                    // Don't Pass
-                    if (sum === 2 || sum === 3) {
-                        playerMoney += playerBet;
-                        updateUI('You win the round!');
-                        pointValue.textContent = '-';
-                        pointValue.classList.remove('point-glow-anim');
-                        playerOutcome = 'win';
-                    } else if (sum === 7 || sum === 11) {
-                        playerMoney -= playerBet;
-                        updateUI('You lose the round!');
-                        pointValue.textContent = '-';
-                        pointValue.classList.remove('point-glow-anim');
-                        playerOutcome = 'lose';
-                    } else if (sum === 12) {
-                        updateUI('Push! (No win/loss on 12)');
-                        pointValue.textContent = '-';
-                        pointValue.classList.remove('point-glow-anim');
-                        playerOutcome = null;
-                    } else {
-                        point = sum;
-                        pointValue.textContent = point;
-                        pointValue.classList.add('point-glow-anim');
-                        updateUI(`Point is set to ${point}. Roll again!`);
-                        return;
-                    }
-                }
-            } else {
-                // Point phase
-                if (playerBetType === 'pass') {
-                    if (sum === point) {
-                        playerMoney += playerBet;
-                        updateUI('You hit the point! You win!');
-                        point = null;
-                        pointValue.textContent = '-';
-                        pointValue.classList.remove('point-glow-anim');
-                        playerOutcome = 'win';
-                    } else if (sum === 7) {
-                        playerMoney -= playerBet;
-                        updateUI('Rolled a 7! You lose!');
-                        point = null;
-                        pointValue.textContent = '-';
-                        pointValue.classList.remove('point-glow-anim');
-                        playerOutcome = 'lose';
-                    } else {
-                        updateUI(`Rolled ${sum}. Keep rolling for point ${point}.`);
-                        return;
-                    }
-                } else {
-                    // Don't Pass
-                    if (sum === 7) {
-                        playerMoney += playerBet;
-                        updateUI('You win! 7 out!');
-                        point = null;
-                        pointValue.textContent = '-';
-                        pointValue.classList.remove('point-glow-anim');
-                        playerOutcome = 'win';
-                    } else if (sum === point) {
-                        playerMoney -= playerBet;
-                        updateUI('Point hit! You lose!');
-                        point = null;
-                        pointValue.textContent = '-';
-                        pointValue.classList.remove('point-glow-anim');
-                        playerOutcome = 'lose';
-                    } else {
-                        updateUI(`Rolled ${sum}. Keep rolling for point ${point}.`);
-                        return;
-                    }
-                }
-            }
-            // Highlight bet area
-            if (playerOutcome) playerArea.classList.add(playerOutcome);
-            // Animate chips leaving bet area
-            setTimeout(() => {
-                clearBetChips(playerArea, playerOutcome);
-                // Remove highlight after animation
-                setTimeout(() => {
-                    playerArea.classList.remove('win', 'lose');
-                }, 800);
-            }, 600);
-            if (playerMoney <= 0) {
-                endGame('You are out of money! AI wins!');
-            }
-        }, 700);
-    });
+function animateDice3D(d1, d2, cb) {
+	if (window.rollDice3D) {
+		window.rollDice3D(d1, d2, cb);
+	} else if (cb) {
+		setTimeout(cb, 800);
+	}
+}
 
-    // Initial UI
-    pointValue.textContent = '-';
-    showDice(1, 1, false); // Show both dice as 1 on load
-    updateUI('Place your bet and roll the dice!');
-};
+// --- Chip drag and drop ---
+let draggingChip = null;
+let offsetX = 0, offsetY = 0;
+
+document.querySelectorAll('.chip-3d').forEach(chip => {
+	chip.addEventListener('mousedown', function(e) {
+		if (playerBalance < parseInt(chip.getAttribute('data-value'))) return;
+	draggingChip = chip.cloneNode(true);
+	draggingChip.style.position = 'absolute';
+	draggingChip.style.zIndex = 1000;
+	draggingChip.style.pointerEvents = 'none';
+	draggingChip.style.background = 'radial-gradient(circle at 60% 30%, #c00 60%, #800 100%)';
+	draggingChip.style.borderColor = '#c00';
+	document.body.appendChild(draggingChip);
+		offsetX = e.offsetX;
+		offsetY = e.offsetY;
+	});
+});
+
+document.addEventListener('mousemove', function(e) {
+	if (draggingChip) {
+		draggingChip.style.left = (e.pageX - offsetX) + 'px';
+		draggingChip.style.top = (e.pageY - offsetY) + 'px';
+	}
+});
+
+document.addEventListener('mouseup', function(e) {
+	if (draggingChip) {
+		let svg = document.querySelector('.craps-table-svg');
+		let rect = svg.getBoundingClientRect();
+		let x = e.clientX - rect.left;
+		let y = e.clientY - rect.top;
+		let dropped = false;
+		svg.querySelectorAll('.bet-area').forEach(area => {
+			let ax = parseFloat(area.getAttribute('x'));
+			let ay = parseFloat(area.getAttribute('y'));
+			let aw = parseFloat(area.getAttribute('width'));
+			let ah = parseFloat(area.getAttribute('height'));
+			let scaleX = svg.viewBox.baseVal.width / rect.width;
+			let scaleY = svg.viewBox.baseVal.height / rect.height;
+			let sx = x * scaleX;
+			let sy = y * scaleY;
+			if (sx >= ax && sx <= ax+aw && sy >= ay && sy <= ay+ah) {
+				// Place chip visually
+				let placed = draggingChip.cloneNode(true);
+				placed.style.position = 'absolute';
+				placed.style.left = ((ax+aw/2)/svg.viewBox.baseVal.width*100) + '%';
+				placed.style.top = ((ay+ah/2)/svg.viewBox.baseVal.height*100) + '%';
+				placed.style.transform = 'translate(-50%,-50%) scale(1.1)';
+				placed.style.pointerEvents = 'none';
+				placed.style.background = 'radial-gradient(circle at 60% 30%, #c00 60%, #800 100%)';
+				placed.style.borderColor = '#c00';
+				document.getElementById('placed-chips').appendChild(placed);
+				placedChips.push({
+					bet: area.getAttribute('data-bet'),
+					value: parseInt(draggingChip.getAttribute('data-value'))
+				});
+				playerBalance -= parseInt(draggingChip.getAttribute('data-value'));
+				updateBalance();
+				dropped = true;
+				placed.animate([
+					{ transform: 'translate(-50%,-50%) scale(1.5)' },
+					{ transform: 'translate(-50%,-50%) scale(1.1)' }
+				], { duration: 200 });
+			}
+		});
+		document.body.removeChild(draggingChip);
+		draggingChip = null;
+		if (!dropped) {
+			// Optionally: shake chip or show error
+		}
+	}
+});
+
+// --- Craps Game Logic ---
+function getBetsOnArea(area) {
+	return placedChips.filter(c => c.bet === area);
+}
+
+function resolveBets(total) {
+	let win = 0;
+	let lose = 0;
+	// Only Pass Line for now
+	if (phase === 'comeout') {
+		getBetsOnArea('pass-line').forEach(chip => {
+			if (total === 7 || total === 11) {
+				win += chip.value * 2;
+			} else if ([2,3,12].includes(total)) {
+				// lose
+			} else {
+				// point is set
+			}
+		});
+		getBetsOnArea('pass-line-right').forEach(chip => {
+			if (total === 7 || total === 11) {
+				win += chip.value * 2;
+			} else if ([2,3,12].includes(total)) {
+				// lose
+			} else {
+				// point is set
+			}
+		});
+	} else if (phase === 'point') {
+		getBetsOnArea('pass-line').forEach(chip => {
+			if (total === point) {
+				win += chip.value * 2;
+			} else if (total === 7) {
+				// lose
+			} else {
+				// nothing
+			}
+		});
+		getBetsOnArea('pass-line-right').forEach(chip => {
+			if (total === point) {
+				win += chip.value * 2;
+			} else if (total === 7) {
+				// lose
+			} else {
+				// nothing
+			}
+		});
+	}
+	playerBalance += win;
+	updateBalance();
+	// Animate chips to player if win
+	if (win > 0) {
+		document.getElementById('placed-chips').childNodes.forEach(chip => {
+			chip.animate([
+				{ filter: 'drop-shadow(0 0 0px #ffd700)' },
+				{ filter: 'drop-shadow(0 0 16px #ffd700)' }
+			], { duration: 400 });
+		});
+	}
+}
+
+function nextPhase(total) {
+	if (phase === 'comeout') {
+		if ([7,11].includes(total)) {
+			document.getElementById('bet-info').textContent = 'Natural! Pass Line wins.';
+			resolveBets(total);
+			setTimeout(clearPlacedChips, 1200);
+		} else if ([2,3,12].includes(total)) {
+			document.getElementById('bet-info').textContent = 'Craps! Pass Line loses.';
+			setTimeout(clearPlacedChips, 1200);
+		} else {
+			point = total;
+			phase = 'point';
+			document.getElementById('bet-info').textContent = 'Point is set: ' + point + '. Roll again!';
+		}
+	} else if (phase === 'point') {
+		if (total === point) {
+			document.getElementById('bet-info').textContent = 'You made your point! Pass Line wins.';
+			resolveBets(total);
+			setTimeout(() => {
+				clearPlacedChips();
+				phase = 'comeout';
+				point = null;
+			}, 1200);
+		} else if (total === 7) {
+			document.getElementById('bet-info').textContent = 'Seven out! Pass Line loses.';
+			setTimeout(() => {
+				clearPlacedChips();
+				phase = 'comeout';
+				point = null;
+			}, 1200);
+		} else {
+			document.getElementById('bet-info').textContent = 'Rolling for point: ' + point;
+		}
+	}
+}
+
+// --- Roll Dice Button ---
+document.getElementById('roll-btn').addEventListener('click', function() {
+	if (placedChips.length === 0) {
+		alert('Place at least one bet!');
+		return;
+	}
+	const die1 = Math.floor(Math.random() * 6) + 1;
+	const die2 = Math.floor(Math.random() * 6) + 1;
+	const total = die1 + die2;
+	animateDice3D(die1, die2, function() {
+		document.getElementById('dice-result').textContent = `You rolled a ${total}`;
+		nextPhase(total);
+	});
+});
+
+// --- Init ---
+updateBalance();
+document.getElementById('die1').textContent = 1;
+document.getElementById('die2').textContent = 1;
+document.getElementById('bet-info').textContent = 'Place your bets and roll!';
