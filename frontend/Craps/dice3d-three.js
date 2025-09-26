@@ -48,7 +48,7 @@ function createThreeDice(container) {
     // Add subtle bevel
     diceMesh.castShadow = true;
     diceMesh.receiveShadow = true;
-    scene.add(diceMesh);
+    scene.add(diceMesh); 
 
     // Lighting
     const ambient = new THREE.AmbientLight(0xffffff, 0.7);

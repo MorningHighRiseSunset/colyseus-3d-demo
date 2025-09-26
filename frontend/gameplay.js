@@ -586,6 +586,20 @@ function loadTokenModelByName(name, scene, onLoaded) {
     loader.setDRACOLoader(dracoLoader);
     loader.load(model.path, (gltf) => {
         gltf.scene.scale.set(...model.scale);
+        // Ensure all materials are fully opaque
+        gltf.scene.traverse((child) => {
+            if (child.isMesh && child.material) {
+                if (Array.isArray(child.material)) {
+                    child.material.forEach(mat => {
+                        mat.opacity = 1;
+                        mat.transparent = false;
+                    });
+                } else {
+                    child.material.opacity = 1;
+                    child.material.transparent = false;
+                }
+            }
+        });
         scene.add(gltf.scene);
         // --- Patch: Setup animation mixer and play all animations for any animated token ---
         if (gltf.animations && gltf.animations.length > 0) {
