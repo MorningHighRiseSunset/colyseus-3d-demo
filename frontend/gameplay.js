@@ -3756,13 +3756,17 @@ function showPropertyUI(position) {
     pauseHelicopterAudio();
 
     // Show minigame if this property is mapped to one
+    let minigameActive = false;
     if (property && property.name) {
         onPropertyUILoaded(property.name);
+        // Check if minigame container is present after loading
+        const minigame = document.getElementById('minigame-container');
+        minigameActive = !!minigame;
     }
-    // Remove overlay background to allow interaction with minigame
+    // Remove overlay background to allow interaction with minigame if present
     if (overlay && overlay.style) {
         overlay.style.background = 'transparent';
-        overlay.style.pointerEvents = 'none';
+        overlay.style.pointerEvents = minigameActive ? 'none' : 'auto';
     }
 
     const popup = document.createElement('div');
