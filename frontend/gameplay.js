@@ -8407,6 +8407,10 @@ function moveTokenAlongPath(path, token, callback, followCameraDuringMove) {
         const nextIndex = path[currentPathIndex + 1];
         const startPos = positions[currentIndex];
         const endPos = positions[nextIndex];
+        // Update camera every step
+        if (typeof followCameraDuringMove === 'function') {
+            followCameraDuringMove(token);
+        }
         // Check if the next position is occupied
         if (isSpaceOccupied(nextIndex)) {
             const alternatives = getAlternativePositions(nextIndex);
