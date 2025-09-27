@@ -1295,85 +1295,42 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                     }
                 } else {
                     // --- Ghost token for other players ---
-                    // Remove real token if it exists
-                    if (token && scene.children.includes(token)) {
-                        scene.remove(token);
+                    // Use the exact same movement system as the first player
+                    if (typeof player.currentPosition !== 'number' || isNaN(player.currentPosition)) {
+                        player.currentPosition = 0;
                     }
-                    // Find correct token key
-                    let tokenKey = null;
-                    if (player.token && window.loadedTokenModels) {
-                        const loadedKeys = Object.keys(window.loadedTokenModels);
-                        tokenKey = loadedKeys.find(k => k.toLowerCase().replace(/\s+/g, '') === String(player.token).toLowerCase().replace(/\s+/g, ''));
-                        if (!tokenKey && window.loadedTokenModels[player.token]) {
-                            tokenKey = player.token;
-                        }
-                        if (!tokenKey) {
-                            tokenKey = loadedKeys.find(k => k.toLowerCase().includes(String(player.token).toLowerCase()));
-                        }
+                    const oldIndex = player.currentPosition;
+                    const startPos = getBoardSquarePosition(oldIndex);
+                    const endPos = getBoardSquarePosition(newPos);
+                    if (player.ghostToken && scene.children.includes(player.ghostToken)) {
+                        scene.remove(player.ghostToken);
                     }
-                    // Spawn or update ghost token
-                    if (!player.ghostToken && tokenKey && window.loadedTokenModels[tokenKey]) {
-                        player.ghostToken = window.loadedTokenModels[tokenKey].clone();
-                        // Recursively set opacity for all mesh materials in ghost token
-                        player.ghostToken.traverse(obj => {
-                            if (obj.isMesh && obj.material) {
-                                if (Array.isArray(obj.material)) {
-                                    obj.material.forEach(mat => {
-                                        if (mat) {
-                                            mat.opacity = 0.5;
-                                            mat.transparent = true;
-                                        }
-                                    });
-                                } else {
-                                    obj.material.opacity = 0.5;
-                                    obj.material.transparent = true;
-                                }
-                            }
-                        });
-                        // Setup animation mixer for ghost token
-                        if (player.ghostToken.animations && player.ghostToken.animations.length > 0) {
-                            player.ghostToken.userData.mixer = new THREE.AnimationMixer(player.ghostToken);
-                            player.ghostToken.userData.actions = [];
-                            player.ghostToken.animations.forEach(anim => {
-                                const action = player.ghostToken.userData.mixer.clipAction(anim);
-                                action.play();
-                                player.ghostToken.userData.actions.push(action);
-                            });
-                        }
+                    if ((!player.ghostToken || !player.ghostToken.position) && player.token && window.loadedTokenModels) {
+                        assignSelectedTokenForPlayer(player); // Use the same assignment logic
+                        player.ghostToken = player.selectedToken; // Use selectedToken for ghost
+                    }
+                    if (!player.ghostToken) return;
+                    if (!scene.children.includes(player.ghostToken)) {
                         scene.add(player.ghostToken);
                     }
-                    // Animate ghost token movement
-                    if (player.ghostToken) {
-                        // Always use the real token's current position for ghost token start
-                        let realTokenStartIndex = 0;
-                        if (player.selectedToken && typeof player.selectedToken.currentPosition === 'number') {
-                            realTokenStartIndex = player.selectedToken.currentPosition;
-                        } else if (typeof player.currentPosition === 'number') {
-                            realTokenStartIndex = player.currentPosition;
-                        }
-                        const ghostStartPos = getBoardSquarePosition(realTokenStartIndex);
-                        player.ghostToken.position.set(ghostStartPos.x, ghostStartPos.y, ghostStartPos.z);
-
-                        // Use the same path logic as real tokens
-                        const oldGhostPos = player.ghostToken.position.clone();
-                        const ghostPos = getBoardSquarePosition(newPos);
-                        moveTokenWithCollisionAvoidance(
-                            oldGhostPos,
-                            ghostPos,
-                            player.ghostToken,
-                            () => {
-                                if (player.ghostToken.userData && player.ghostToken.userData.actions) {
-                                    player.ghostToken.userData.actions.forEach(action => {
-                                        action.reset();
-                                        action.play();
-                                    });
-                                }
-                                // Always follow the current turn token after ghost token moves
-                                followCurrentTurnToken();
-                            },
-                            followCameraDuringMove
-                        );
+                    if (startPos) {
+                        player.ghostToken.position.set(startPos.x, getTokenHeight(player.token, startPos.y), startPos.z);
                         player.ghostToken.visible = true;
+                        if (player.token && player.token.toLowerCase().includes('rolls')) {
+                            player.ghostToken.position.y = 1.5;
+                        }
+                    }
+                    if (startPos && endPos) {
+                        moveTokenWithCollisionAvoidance(startPos, endPos, player.ghostToken, () => {
+                            player.currentPosition = newPos;
+                            if (player.ghostToken.userData && player.ghostToken.userData.actions) {
+                                player.ghostToken.userData.actions.forEach(action => {
+                                    action.reset();
+                                    action.play();
+                                });
+                            }
+                            handlePropertyLanding(player, newPos);
+                        });
                     }
                 }
             }
