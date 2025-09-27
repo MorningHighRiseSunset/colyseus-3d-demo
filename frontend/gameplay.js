@@ -1353,6 +1353,8 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                                         action.play();
                                     });
                                 }
+                                // Always follow the current turn token after ghost token moves
+                                followCurrentTurnToken();
                             },
                             followCameraDuringMove
                         );
@@ -1387,10 +1389,8 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                 assignSelectedTokenForPlayer(turnPlayer);
             }
             // Always follow the current turn's token for all clients
-            // Add a small delay to allow token assignment to complete
-            setTimeout(() => {
-                followCurrentTurnToken();
-            }, 100);
+            // Immediately follow the current turn's token for all clients
+            followCurrentTurnToken();
             // Only call startTurn for the local player whose turn it is
             if (turnPlayer && turnPlayer.id === currentPlayerId && typeof startTurn === 'function') {
                 console.log('[MP DEBUG] Calling startTurn() for local player:', turnPlayer.name, turnPlayer);
