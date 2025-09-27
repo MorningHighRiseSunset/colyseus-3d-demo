@@ -663,23 +663,27 @@ function allPlayersHaveTokens() {
 
 function followCurrentTurnToken(retryCount = 0) {
     const player = players[currentPlayerIndex];
-    // Only follow the camera for the current player on their own client
-    if (player && player.id === currentPlayerId && player.selectedToken && typeof camera !== 'undefined' && typeof controls !== 'undefined' && scene.children.includes(player.selectedToken)) {
-        const pos = player.selectedToken.position;
+    // Always follow the current turn's token, including ghost token if present
+    let tokenToFollow = player ? player.selectedToken : null;
+    if (player && player.ghostToken && player.ghostToken.visible) {
+        tokenToFollow = player.ghostToken;
+    }
+    if (tokenToFollow && typeof camera !== 'undefined' && typeof controls !== 'undefined' && scene.children.includes(tokenToFollow)) {
+        const pos = tokenToFollow.position;
         camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
         camera.lookAt(pos.x, pos.y, pos.z);
         if (typeof controls.target !== 'undefined') {
             controls.target.set(pos.x, pos.y, pos.z);
         }
-        console.log('[PATCH] Camera now follows token for:', player.name, pos);
+        console.log('[PATCH] Camera now follows token for:', player ? player.name : 'unknown', pos);
     } else if (retryCount < 20) {
         // Try to assign the token if it's missing
-        if (player && player.id === currentPlayerId && player.token && !player.selectedToken && window.loadedTokenModels) {
+        if (player && player.token && !player.selectedToken && window.loadedTokenModels) {
             assignSelectedTokenForPlayer(player);
         }
         setTimeout(() => followCurrentTurnToken(retryCount + 1), 300);
     } else {
-        console.warn('[PATCH] Could not follow token for current player after retries:', player);
+        console.warn('[PATCH] Could not follow token for current turn after retries:', player);
     }
 }
 
