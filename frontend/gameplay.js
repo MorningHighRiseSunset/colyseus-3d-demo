@@ -5953,7 +5953,7 @@ function moveToken(startPos, endPos, token, callback, followCameraDuringMove, du
         ).normalize();
         token.rotation.set(0, Math.atan2(directionVector.x, directionVector.z), 0);
         // Camera follow logic for ghost tokens and real tokens
-        if (typeof followCameraDuringMove === 'function' && cameraFollowMode) {
+        if (typeof followCameraDuringMove === 'function') {
             followCameraDuringMove(token);
         }
         if (progress < 1) {
