@@ -1354,7 +1354,7 @@ function setupSocketIOMultiplayer(roomId, playerId, playerName) {
                                     });
                                 }
                             },
-                            cameraFollowMode ? followCameraDuringMove : null
+                            followCameraDuringMove
                         );
                         player.ghostToken.visible = true;
                     }
