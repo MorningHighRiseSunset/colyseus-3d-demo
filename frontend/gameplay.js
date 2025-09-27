@@ -643,6 +643,17 @@ function animate() {
         }
     });
     updateAllTokenMixers(delta);
+
+    // --- Camera follow for current turn's token ---
+    const turnPlayer = players[currentPlayerIndex];
+    if (turnPlayer) {
+        if (turnPlayer.id === currentPlayerId && turnPlayer.selectedToken) {
+            followCameraDuringMove(turnPlayer.selectedToken);
+        } else if (turnPlayer.ghostToken) {
+            followCameraDuringMove(turnPlayer.ghostToken);
+        }
+    }
+
     if (_origAnimate) _origAnimate();
     else if (typeof renderer !== 'undefined' && typeof scene !== 'undefined' && typeof camera !== 'undefined') {
         renderer.render(scene, camera);
