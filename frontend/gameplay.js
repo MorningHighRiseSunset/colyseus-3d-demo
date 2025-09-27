@@ -723,6 +723,10 @@ function assignSelectedTokenForPlayer(player) {
         // Already assigned, do not re-clone
         return;
     }
+    // Extra debug
+    if (!window.loadedTokenModels) {
+        console.error('[BUG] assignSelectedTokenForPlayer: window.loadedTokenModels is undefined!');
+    }
     const loadedKeys = Object.keys(window.loadedTokenModels || {});
     console.log(`[DEBUG] assignSelectedTokenForPlayer: Looking for token '${player.token}' for playerId: ${player.id} in loadedKeys:`, loadedKeys);
     let tokenKey = loadedKeys.find(k => k.toLowerCase().replace(/\s+/g, '') === String(player.token).toLowerCase().replace(/\s+/g, ''));
@@ -734,6 +738,11 @@ function assignSelectedTokenForPlayer(player) {
         // Try partial match (for cases like 'Shoe' vs 'Nike')
         tokenKey = loadedKeys.find(k => k.toLowerCase().includes(String(player.token).toLowerCase()));
         if (tokenKey) console.log(`[DEBUG] assignSelectedTokenForPlayer: Fallback partial match for '${player.token}' -> '${tokenKey}'`);
+    }
+    if (!tokenKey) {
+        // Try case-insensitive match
+        tokenKey = loadedKeys.find(k => k.toLowerCase() === String(player.token).toLowerCase());
+        if (tokenKey) console.log(`[DEBUG] assignSelectedTokenForPlayer: Fallback case-insensitive match for '${player.token}' -> '${tokenKey}'`);
     }
     console.log(`[DEBUG] assignSelectedTokenForPlayer: Final tokenKey: '${tokenKey}' for player '${player.name}' (playerId: ${player.id}) with token '${player.token}'`);
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
@@ -8547,8 +8556,13 @@ function moveTokenToNewPositionWithCollisionAvoidanceForPlayer(player, from, to,
     if (player.selectedToken) {
         console.log('[DEBUG] Token position before move:', player.selectedToken.position);
     }
-    const token = player.selectedToken;
+    let token = player.selectedToken;
     const tokenName = player.token;
+    if (!token) {
+        console.warn('[PATCH] No selectedToken for player', player, 'before move. Attempting to assign...');
+        assignSelectedTokenForPlayer(player);
+        token = player.selectedToken;
+    }
     console.log('[DEBUG] Player token:', tokenName, 'selectedToken exists:', !!token);
     if (!token) {
         console.error('[PATCH] No selectedToken for player', player, 'during move processing. Token movement skipped.');
@@ -10186,6 +10200,14 @@ function startBurgerIdle(token) {
     token.userData.burgerIdleAnim = () => { running = false; };
 }
 function stopBurgerIdle(token) {
+    if (!token) {
+        console.error('[BUG] stopBurgerIdle called with undefined token!');
+        return;
+    }
+    if (!token.userData) {
+        console.error('[BUG] stopBurgerIdle: token.userData is undefined!', token);
+        return;
+    }
     if (token.userData.burgerIdleAnim) token.userData.burgerIdleAnim();
 }
 
