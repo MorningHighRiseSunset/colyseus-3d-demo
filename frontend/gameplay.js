@@ -8411,10 +8411,18 @@ function moveTokenAlongPath(path, token, callback, followCameraDuringMove) {
                 return;
             }
         }
-        moveToken(startPos, endPos, token, () => {
-            currentPathIndex++;
-            moveToNextPosition();
-        }, followCameraDuringMove, stepDuration);
+        // Special hop/jump for Burger token
+        if (token.userData && token.userData.tokenName === "burger") {
+            jumpWithBigMacEffect(startPos, endPos, token, () => {
+                currentPathIndex++;
+                moveToNextPosition();
+            });
+        } else {
+            moveToken(startPos, endPos, token, () => {
+                currentPathIndex++;
+                moveToNextPosition();
+            }, followCameraDuringMove, stepDuration);
+        }
     }
     moveToNextPosition();
 }
