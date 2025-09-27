@@ -463,10 +463,18 @@ function debugLogPlayerState(context) {
 function followCameraDuringMove(token) {
     if (!token || !camera) return;
     const pos = token.position;
-    camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
-    camera.lookAt(pos.x, pos.y, pos.z);
+    // Smoothly interpolate camera position
+    const camPos = camera.position;
+    const targetPos = new THREE.Vector3(pos.x + 10, pos.y + 15, pos.z + 10);
+    camPos.lerp(targetPos, 0.18); // 0.18 = smoothing factor, adjust for speed
+    camera.position.set(camPos.x, camPos.y, camPos.z);
+    // Smoothly interpolate camera lookAt/target
+    const lookTarget = new THREE.Vector3(pos.x, pos.y, pos.z);
+    if (!camera._lastLookTarget) camera._lastLookTarget = lookTarget.clone();
+    camera._lastLookTarget.lerp(lookTarget, 0.25); // 0.25 = smoothing factor
+    camera.lookAt(camera._lastLookTarget);
     if (typeof controls !== 'undefined' && typeof controls.target !== 'undefined') {
-        controls.target.set(pos.x, pos.y, pos.z);
+        controls.target.lerp(lookTarget, 0.25);
     }
 }
 
