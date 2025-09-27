@@ -6803,11 +6803,7 @@ function handlePropertyLanding(player, position) {
     }
 
     // Handle Income Tax - use the image-based property UI instead of special handling
-    if (property.name === "Income Tax") {
-        // Let the normal property UI handle this with the image
-        // Don't mark as handled so showPropertyUI will be called
-        return;
-    }
+    // (No early return! Let the default property UI logic run below)
 
     // Handle Luxury Tax
     if (property.name === "Luxury Tax") {
