@@ -463,7 +463,11 @@ function debugLogPlayerState(context) {
 function followCameraDuringMove(token) {
     if (!token || !camera) return;
     const pos = token.position;
-    camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
+    // Use the same offset and zoom for all tokens
+    const offsetX = 6; // More zoomed in than 10
+    const offsetY = 8; // More zoomed in than 15
+    const offsetZ = 6; // More zoomed in than 10
+    camera.position.set(pos.x + offsetX, pos.y + offsetY, pos.z + offsetZ);
     camera.lookAt(pos.x, pos.y, pos.z);
     if (typeof controls !== 'undefined' && typeof controls.target !== 'undefined') {
         controls.target.set(pos.x, pos.y, pos.z);
