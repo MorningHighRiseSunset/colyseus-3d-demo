@@ -7364,9 +7364,9 @@ function init() {
         btn.style.zIndex = '2002';
         btn.style.background = '#222';
         btn.style.color = '#fff';
-        btn.style.padding = '10px 18px';
-        btn.style.borderRadius = '8px';
-        btn.style.fontSize = '15px';
+    btn.style.padding = '6px 12px'; // Regular button size
+    btn.style.borderRadius = '4px';
+    btn.style.fontSize = '13px';
         btn.style.opacity = '0.85';
         btn.style.border = 'none';
         btn.style.cursor = 'pointer';
