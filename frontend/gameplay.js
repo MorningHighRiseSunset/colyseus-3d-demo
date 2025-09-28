@@ -698,14 +698,25 @@ function followCurrentTurnToken(retryCount = 0) {
             controls.target.set(pos.x, pos.y, pos.z);
         }
         console.log('[PATCH] Camera now follows ghost token for:', player.name, pos);
-    } else if (retryCount < 20) {
-        // Try to assign the token if it's missing
+    } else {
+        // Try to assign the token if it's missing, then instantly follow if possible
         if (player && player.id === currentPlayerId && player.token && !player.selectedToken && window.loadedTokenModels) {
             assignSelectedTokenForPlayer(player);
+            // After assigning, immediately follow
+            if (player.selectedToken) {
+                const pos = player.selectedToken.position;
+                camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
+                camera.lookAt(pos.x, pos.y, pos.z);
+                if (typeof controls.target !== 'undefined') {
+                    controls.target.set(pos.x, pos.y, pos.z);
+                }
+                console.log('[PATCH] Camera now instantly follows token for:', player.name, pos);
+            } else {
+                console.warn('[PATCH] Could not follow token for current player, token not assigned:', player);
+            }
+        } else {
+            console.warn('[PATCH] Could not follow token for current player, token missing:', player);
         }
-        setTimeout(() => followCurrentTurnToken(retryCount + 1), 300);
-    } else {
-        console.warn('[PATCH] Could not follow token for current player after retries:', player);
     }
 }
 
