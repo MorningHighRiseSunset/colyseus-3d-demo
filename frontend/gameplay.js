@@ -2024,7 +2024,6 @@ const properties = [{
     {
         name: "Speed Vegas Off Roading",
         price: 140,
-        rent: 14,
         owner: null,
         address: "14200 S Las Vegas Blvd, Las Vegas, NV 89054 (SPEEDVEGAS)",
         color: "lightblue",
