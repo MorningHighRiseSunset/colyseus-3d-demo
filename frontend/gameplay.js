@@ -7357,7 +7357,7 @@ function init() {
         btn.id = 'camera-follow-toggle';
         btn.innerText = 'Follow Token (F)';
         btn.style.position = 'fixed';
-        btn.style.bottom = '160px';
+    btn.style.bottom = '260px'; // Move camera icon button up
         btn.style.textAlign = 'center';
         btn.style.right = '16px';
         btn.style.zIndex = '2002';
