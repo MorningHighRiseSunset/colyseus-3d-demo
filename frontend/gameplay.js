@@ -7356,10 +7356,11 @@ function init() {
         const btn = document.createElement('button');
         btn.id = 'camera-follow-toggle';
         btn.innerText = 'Follow Token (F)';
-        btn.style.position = 'fixed';
-    btn.style.bottom = '260px'; // Move camera icon button up
-        btn.style.textAlign = 'center';
-        btn.style.right = '16px';
+    btn.style.position = 'fixed';
+    btn.style.top = '16px'; // Move to top right corner
+    btn.style.right = '16px';
+    btn.style.bottom = '';
+    btn.style.textAlign = 'center';
         btn.style.zIndex = '2002';
         btn.style.background = '#222';
         btn.style.color = '#fff';
