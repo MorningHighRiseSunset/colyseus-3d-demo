@@ -2875,7 +2875,8 @@ function closePropertyUI() {
         // Also remove minigame if present
         const minigame = document.getElementById('minigame-container');
         if (minigame) minigame.remove();
-        // Always end turn after closing property UI
+        // Always reset turn flag and end turn after closing property UI
+        isTurnInProgress = false;
         if (typeof endTurn === 'function') {
             endTurn();
         }
