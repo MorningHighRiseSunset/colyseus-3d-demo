@@ -7373,24 +7373,6 @@ function init() {
         btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
         btn.onclick = toggleCameraFollowMode;
         document.body.appendChild(btn);
-
-        const indicator = document.createElement('div');
-        indicator.id = 'camera-follow-indicator';
-        indicator.innerText = 'FOLLOWING TOKEN';
-        indicator.style.position = 'fixed';
-        indicator.style.bottom = '120px';
-        indicator.style.right = '16px';
-        indicator.style.zIndex = '2002';
-        indicator.style.background = '#4caf50';
-        indicator.style.color = '#fff';
-        indicator.style.padding = '6px 18px';
-        indicator.style.borderRadius = '8px';
-        indicator.style.fontSize = '14px';
-        indicator.style.fontWeight = 'bold';
-        indicator.style.opacity = '0.92';
-        indicator.style.display = 'none';
-        indicator.style.boxShadow = '0 2px 8px rgba(0,0,0,0.18)';
-        document.body.appendChild(indicator);
     }
 
     // Initialize the advanced pathfinding system
