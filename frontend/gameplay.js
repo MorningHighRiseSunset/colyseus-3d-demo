@@ -1,3 +1,5 @@
+// Turn counter for enhanced console logs
+const ordinal = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"];
 // --- Enable Testing Mode (auto) ---
 // window.testingMode = true;
 // --- Minigame Loader: Blackjack for The Cosmopolitan ---
@@ -1657,7 +1659,13 @@ function updateCameraFollowUI() {
     const indicator = document.getElementById('camera-follow-indicator');
     if (btn) btn.innerText = cameraFollowMode ? 'Unfollow Token (F)' : 'Follow Token (F)';
     if (btn) btn.style.background = cameraFollowMode ? '#4caf50' : '#222';
-    if (indicator) indicator.style.display = cameraFollowMode ? 'block' : 'none';
+    if (indicator) {
+        indicator.style.display = cameraFollowMode ? 'block' : 'none';
+        indicator.style.position = 'absolute';
+        indicator.style.top = '60px'; // Move up (adjust as needed)
+        indicator.style.right = '40px';
+        indicator.style.zIndex = '3100';
+    }
 }
 
 function toggleCameraFollowMode() {
@@ -1697,19 +1705,19 @@ const images = [
     "https://upload.wikimedia.org/wikipedia/commons/c/c1/Wynn_2_%282%29.jpg", // Wynn Las Vegas
     "Images/unnamed (1).png",
     "https://shrinerschildrensopen.com/wp-content/uploads/2022/10/ShrinersChildrens-18-hole-2022.jpg", // Shriners Children's Open
-    "Images/bachelor-party.jpg", // Bachelor & Bachelorette Parties
+    // "Images/bachelor-party.jpg", // Bachelor & Bachelorette Parties (missing)
     "Images/Las+Vegas+Elopement+Wedding+Champagne+Pop.webp", // Las Vegas Little White Wedding Chapel
     "Images/thesphere.jpg", // Sphere
     "Images/Las_Vegas_Strip_Map_Blog.jpg", // Las Vegas Strip Map (position 37)
     "Images/welcome-to-caesars-palace.jpg", // Caesars Palace
-    "Images/house-of-blues.jpg", // House of Blues
+    // "Images/house-of-blues.jpg", // House of Blues (missing)
     "Images/LVACES.jpg", // Las Vegas Aces
     "Images/PIX-1-Exosphere-Architecture.jpg", // Sphere
     "Images/cosmopolitan.jpg", // Cosmopolitan
-    "Images/monorail.jpg", // Las Vegas Monorail (position 38)
-    "Images/speed-vegas.jpg", // Speed Vegas Off Roading (position 39)
-    "Images/chance-card.jpg", // Chance (position 40)
-    "Images/golden-knights.jpg" // Las Vegas Golden Knights (position 41)
+    // "Images/monorail.jpg", // Las Vegas Monorail (missing)
+    // "Images/speed-vegas.jpg", // Speed Vegas Off Roading (missing)
+    // "Images/chance-card.jpg", // Chance (missing)
+    // "Images/golden-knights.jpg" // Las Vegas Golden Knights (missing)
 ];
 
 
@@ -2621,6 +2629,9 @@ function startTurn() {
         alert('No players with tokens to take a turn.');
         return;
     }
+    // Enhanced turn started log
+    const ord = ordinal[currentPlayerIndex] || `${currentPlayerIndex + 1}th`;
+    console.log(`${ord} player turn started`);
     console.log(`Starting turn for Player ${currentPlayerIndex + 1} (${currentPlayer.name})`);
 
     // Show turn indicator only for the local player
@@ -5112,7 +5123,11 @@ function endTurn() {
         isTurnInProgress = false;
     }
 
+    // Enhanced turn ended log
+    const ord = ordinal[currentPlayerIndex] || `${currentPlayerIndex + 1}th`;
+    console.log(`${ord} player turn ended`);
     console.log(`Ending turn for Player ${currentPlayerIndex + 1} (${players[currentPlayerIndex].name})`);
+    turnCounter++;
 
     try {
         // Reset all turn-related flags
