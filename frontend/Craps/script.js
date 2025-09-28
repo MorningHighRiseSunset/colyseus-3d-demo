@@ -1,7 +1,19 @@
 // Auto-create Three.js 3D dice roller on page load
-window.addEventListener('DOMContentLoaded', function() {
-	const wrapper = document.querySelector('.craps-table-image-wrapper');
-	if (wrapper && typeof createThreeDice === 'function') {
+window.initCrapsMinigame = function(container, bankroll = 5000, updateMainGameBalance) {
+	// Clear container
+	container.innerHTML = '';
+	// Create craps table wrapper
+	const wrapper = document.createElement('div');
+	wrapper.className = 'craps-table-image-wrapper';
+	container.appendChild(wrapper);
+	// Add table image
+	const img = document.createElement('img');
+	img.src = 'Craps_table_diagram.svg.png';
+	img.alt = 'Craps Table';
+	img.className = 'craps-table-img';
+	wrapper.appendChild(img);
+	// Create dice roller if available
+	if (typeof createThreeDice === 'function') {
 		const diceDiv = createThreeDice(wrapper);
 		diceDiv.style.pointerEvents = 'none';
 		diceDiv.style.opacity = '0.5';
@@ -12,22 +24,18 @@ window.addEventListener('DOMContentLoaded', function() {
 		// ====== CRAPS GAME STATE ======
 		let gamePhase = 'comeout'; // 'comeout' or 'point'
 		let point = null;
-
-		// Helper: Find Pass Line and Don't Pass bets
 		function getPassLineBet() {
 			return playerBets.find(b => {
 				const area = BETTING_AREAS.find(a => a.id === b.areaId);
 				return area && area.label.toLowerCase() === 'pass line';
 			});
-		}
+		// End of window.initCrapsMinigame
 		function getDontPassBet() {
 			return playerBets.find(b => {
 				const area = BETTING_AREAS.find(a => a.id === b.areaId);
 				return area && area.label.toLowerCase() === "don't pass";
 			});
 		}
-
-		// Show dice result (simple popup for now)
 		function showDiceResult(roll) {
 			let resultDiv = document.getElementById('dice-result-popup');
 			if (!resultDiv) {
@@ -53,8 +61,6 @@ window.addEventListener('DOMContentLoaded', function() {
 				resultDiv.style.display = 'none';
 			}, 1800);
 		}
-
-		// Show status message (centered, below dice)
 		function showStatus(msg) {
 			let statusDiv = document.getElementById('craps-status');
 			if (!statusDiv) {
@@ -80,21 +86,20 @@ window.addEventListener('DOMContentLoaded', function() {
 				statusDiv.style.display = 'none';
 			}, 1800);
 		}
-
-		// Pay, lose, or push bets
 		function payBet(bet, payout, msg) {
 			playerBankroll += bet.amount * (payout - 1);
 			showStatus(msg + ` +$${bet.amount * (payout - 1)}`);
+			if (typeof updateMainGameBalance === 'function') updateMainGameBalance(playerBankroll);
 		}
 		function loseBet(bet, msg) {
 			showStatus(msg + ` -$${bet.amount}`);
+			if (typeof updateMainGameBalance === 'function') updateMainGameBalance(playerBankroll);
 		}
 		function pushBet(bet, msg) {
 			playerBankroll += bet.amount;
 			showStatus(msg + ` (push)`);
+			if (typeof updateMainGameBalance === 'function') updateMainGameBalance(playerBankroll);
 		}
-
-		// End round: reset bets, chips, phase, and allow new bets
 		function endRound() {
 			setTimeout(() => {
 				playerBets = [];
@@ -105,20 +110,15 @@ window.addEventListener('DOMContentLoaded', function() {
 				showStatus('Place your bets for a new round!');
 			}, 1800);
 		}
-
-		// Main craps round logic
 		function handleCrapsRoll(roll) {
 			const passBet = getPassLineBet();
 			const dontPassBet = getDontPassBet();
-
 			if (gamePhase === 'comeout') {
 				if (roll === 7 || roll === 11) {
-					// Pass Line wins, Don't Pass loses
 					if (passBet) payBet(passBet, 2, 'Pass Line wins!');
 					if (dontPassBet) loseBet(dontPassBet, "Don't Pass loses.");
 					endRound();
 				} else if ([2, 3, 12].includes(roll)) {
-					// Pass Line loses, Don't Pass: 2/3 win, 12 pushes
 					if (passBet) loseBet(passBet, 'Pass Line loses.');
 					if (dontPassBet) {
 						if (roll === 2 || roll === 3) payBet(dontPassBet, 2, "Don't Pass wins!");
@@ -126,39 +126,34 @@ window.addEventListener('DOMContentLoaded', function() {
 					}
 					endRound();
 				} else {
-					// Point is set
 					point = roll;
 					gamePhase = 'point';
 					showStatus(`Point is set to ${point}. Keep rolling!`);
 				}
 			} else if (gamePhase === 'point') {
 				if (roll === point) {
-					// Pass Line wins, Don't Pass loses
 					if (passBet) payBet(passBet, 2, `Pass Line wins! Made the point (${point})`);
 					if (dontPassBet) loseBet(dontPassBet, "Don't Pass loses.");
 					endRound();
 				} else if (roll === 7) {
-					// Pass Line loses, Don't Pass wins
 					if (passBet) loseBet(passBet, 'Pass Line loses (seven out).');
 					if (dontPassBet) payBet(dontPassBet, 2, "Don't Pass wins (seven out)!");
 					endRound();
 				} else {
-					// Keep rolling
 					showStatus(`Point is ${point}. Roll again!`);
 				}
 			}
 		}
-
-		// Listen for dice roll events
 		window.onDiceRoll = function(roll) {
 			showDiceResult(roll);
 			handleCrapsRoll(roll);
 		};
 	}
-});
-// ===================== TESTING MODE: BETTING AREA BOXES =====================
-// To disable, comment out this entire block.
-// This code overlays up to 20 draggable, resizable, rotatable transparent boxes on the craps table for mapping betting areas.
+	playerBankroll = bankroll;
+	playerChips = getChipBreakdown(bankroll);
+	renderPlayerChips();
+	renderBettingAreas();
+};
 // Each box is numbered (black), and their coordinates/rotation are shown in a side box for easy copy-paste.
 // You can change the label for each area in the labels array below.
 
@@ -823,14 +818,14 @@ function renderChipStack(area, amount) {
 			<text x="24" y="29" text-anchor="middle" font-size="20" font-weight="bold" fill="#fff" style="font-family:Arial,Helvetica,sans-serif; text-shadow: 0 2px 6px #000;">${denom}</text>
 		</svg>
 	`;
-	stack.appendChild(chipEl);
-wrapper.appendChild(stack);
-}
+		stack.appendChild(chipEl);
+		wrapper.appendChild(stack);
+	}
 
-window.addEventListener('DOMContentLoaded', () => {
-	promptBankroll();
-	renderBettingAreas();
-});
+	// TODO: Add bet validation, continuous play logic, and chip return
+	// ===================== END INTERACTIVE CRAPS GAME =====================
+	// End of window.initCrapsMinigame
+	}
 
 // TODO: Add bet validation, continuous play logic, and chip return
 // ===================== END INTERACTIVE CRAPS GAME =====================
