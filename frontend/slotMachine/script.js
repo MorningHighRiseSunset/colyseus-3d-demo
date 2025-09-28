@@ -1,5 +1,5 @@
 // Refactored for dynamic loading
-window.initSlotMachine = function(container, playerMoney) {
+window.initSlotMachine = function(container, playerMoney, updateMainGameBalance) {
 	const symbols = ['🍒', '7️⃣', '💎'];
 	const spinBtn = container.querySelector('#spinBtn');
 	const message = container.querySelector('#message');
@@ -12,6 +12,11 @@ window.initSlotMachine = function(container, playerMoney) {
 	let balance = typeof playerMoney === 'number' ? playerMoney : 5000;
 	function updateBalanceDisplay() {
 		balanceSpan.textContent = balance;
+		if (typeof updateMainGameBalance === 'function') {
+			updateMainGameBalance(balance);
+		} else if (container && typeof CustomEvent === 'function') {
+			container.dispatchEvent(new CustomEvent('minigame-balance-update', {detail: {balance}}));
+		}
 	}
 
 	function getRandomSymbol() {
@@ -128,6 +133,7 @@ window.initSlotMachine = function(container, playerMoney) {
 		} else {
 			message.textContent = 'Try again!';
 			message.style.color = '#fff';
+			updateBalanceDisplay();
 		}
 	}
 

@@ -2864,6 +2864,10 @@ function closePropertyUI() {
         // Also remove minigame if present
         const minigame = document.getElementById('minigame-container');
         if (minigame) minigame.remove();
+        // Always end turn after closing property UI
+        if (typeof endTurn === 'function') {
+            endTurn();
+        }
     }, 300);
 }
 

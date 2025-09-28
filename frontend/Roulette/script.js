@@ -1,6 +1,6 @@
 // --- Roulette Game Logic & Animation ---
 // Supports both standalone and dynamic loader usage
-window.initRouletteMinigame = function(root) {
+window.initRouletteMinigame = function(root, playerMoney, updateMainGameBalance) {
 	// Attach Spin button event handler (works for both standalone and dynamic)
 	const spinBtn = q('#spin-btn');
 	// Add spin sound
@@ -413,7 +413,7 @@ function showResult() {
 
 
 // --- Player Info Logic ---
-window.playerBalance = 5000;
+window.playerBalance = typeof playerMoney === 'number' ? playerMoney : 5000;
 window.betAmount = 100;
 
 function updatePlayerInfo() {
@@ -426,6 +426,11 @@ function updatePlayerInfo() {
 	if (balElem) balElem.textContent = `$${window.playerBalance}`;
 	if (betsElem) betsElem.textContent = betsList;
 	if (remElem) remElem.textContent = `$${remaining}`;
+	if (typeof updateMainGameBalance === 'function') {
+		updateMainGameBalance(window.playerBalance);
+	} else if (root && typeof CustomEvent === 'function') {
+		root.dispatchEvent(new CustomEvent('minigame-balance-update', {detail: {balance: window.playerBalance}}));
+	}
 }
 window.updatePlayerInfo = updatePlayerInfo;
 
