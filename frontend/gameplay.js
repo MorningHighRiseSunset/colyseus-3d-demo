@@ -1973,6 +1973,7 @@ const properties = [{
             "Videos/LVRaiders 4 (1).mp4",
             "Videos/LVRaiders 5 (1).mp4",
         ],
+        customBuyLabel: "Buy a ticket",
     },
     {
         name: "Community Cards",
@@ -2192,12 +2193,13 @@ const properties = [{
         special: true
     },
     {
-        name: "Hard Rock Hotel",
-        price: 2500,
-        rent: 200,
-        owner: null,
-        address: "3400 S Las Vegas Blvd, Las Vegas, NV 89109",
-        color: "red",
+    name: "Hard Rock Hotel",
+    price: 2500,
+    rent: 200,
+    owner: null,
+    address: "3400 S Las Vegas Blvd, Las Vegas, NV 89109",
+    color: "red",
+    customBuyLabel: "Book a room",
         mortgageValue: 200,
         housePrice: 200,
         hotelPrice: 250,
@@ -2341,6 +2343,7 @@ const properties = [{
             "Videos/WNBAHL3 (1).mp4",
             "Videos/WNBAHL4 (1).mp4",
         ],
+        customBuyLabel: "Buy a ticket",
     },
     {
         name: "Resorts World Theatre",
