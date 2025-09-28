@@ -722,23 +722,23 @@ function followCurrentTurnToken(retryCount = 0) {
 
 function updateTurnUI() {
     const rollButton = document.querySelector('.dice-button');
-    const currentPlayer = players[currentPlayerIndex];
+    const turnPlayer = players[currentPlayerIndex];
+    const localPlayer = players.find(p => p.id === currentPlayerId);
     if (rollButton) {
         // Only show dice button if it's the local player's turn and not AI
-        if (currentPlayer && currentPlayer.id === currentPlayerId && !(currentPlayer.isAI)) {
+        if (turnPlayer && turnPlayer.id === currentPlayerId && !(turnPlayer.isAI)) {
             rollButton.style.display = 'block';
         } else {
             rollButton.style.display = 'none';
         }
     }
-    // Update 'It's Your Turn' indicator if you have one
+    // Update turn indicator to show correct turn and local player's money
     const turnIndicator = document.getElementById('turn-indicator');
     if (turnIndicator) {
-        if (currentPlayer && currentPlayer.id === currentPlayerId) {
-            // Preserve the original HTML structure with dice emojis
-            turnIndicator.innerHTML = '<h2>🎲 It\'s Your Turn! 🎲</h2><p>Roll the dice to continue</p>';
+        if (turnPlayer && turnPlayer.id === currentPlayerId) {
+            turnIndicator.innerHTML = `<h2>🎲 It's Your Turn! 🎲</h2><p>Money: $${localPlayer ? localPlayer.money : 'N/A'}</p>`;
         } else {
-            turnIndicator.innerHTML = `<h2>⏳ Waiting...</h2><p>Waiting for ${currentPlayer ? currentPlayer.name : 'other player'}</p>`;
+            turnIndicator.innerHTML = `<h2>${turnPlayer ? turnPlayer.name : 'Other Player'}'s Turn - Money: $${localPlayer ? localPlayer.money : 'N/A'}</h2>`;
         }
     }
 }
@@ -4287,6 +4287,7 @@ function showJailUI(player) {
                 player.jailTurns = 0;
                 showFeedback(`${player.name} paid $50 and got out of Jail.`);
                 closePopup(overlay);
+                isTurnInProgress = false;
                 endTurn();
             } else {
                 showFeedback("Not enough money to pay the fine!");
@@ -4301,6 +4302,7 @@ function showJailUI(player) {
         rollDiceButton.onclick = () => {
             const dice1 = Math.ceil(Math.random() * 6);
             const dice2 = Math.ceil(Math.random() * 6);
+            isTurnInProgress = false;
             if (dice1 === dice2) {
                 player.inJail = false;
                 player.jailTurns = 0;
@@ -4326,6 +4328,7 @@ function showJailUI(player) {
         closeButton.textContent = 'Close';
         closeButton.onclick = () => {
             closePopup(overlay);
+            isTurnInProgress = false;
             endTurn();
         };
         buttonContainer.appendChild(closeButton);
@@ -4400,6 +4403,7 @@ function createButtonContainer(property) {
                 currentPlayer.money -= 300;
                 showFeedback(`${currentPlayer.name} rented a room at the Brothel for $300`);
                 updateMoneyDisplay();
+                isTurnInProgress = false;
                 closePropertyUI();
                 // Do NOT auto end turn for human players
             } else {
