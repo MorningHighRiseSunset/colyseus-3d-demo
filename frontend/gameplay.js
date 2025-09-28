@@ -5117,10 +5117,10 @@ function validateTurnOrder() {
 
 function endTurn() {
     console.log(`[DEBUG] endTurn called. isTurnInProgress: ${isTurnInProgress}`);
+    // Only proceed if turn is NOT in progress
     if (isTurnInProgress) {
-        console.log("Turn is still in progress. Forcing turn end...");
-        // Force reset the flag to allow turn to end
-        isTurnInProgress = false;
+        console.log("Turn is still in progress. Ignoring endTurn call.");
+        return;
     }
 
     // Enhanced turn ended log
@@ -5162,6 +5162,7 @@ function endTurn() {
         if (!nextPlayerFound) {
             console.error("No valid players found for next turn!");
             checkGameEnd();
+            isTurnInProgress = false;
             return;
         }
 
@@ -5224,20 +5225,20 @@ function endTurn() {
     }
 
     // Camera follow logic for turn changes
-        if (cameraFollowMode) {
-            setTimeout(() => {
-                const currentPlayer = players[currentPlayerIndex];
-                if (currentPlayer && currentPlayer.selectedToken) {
-                    controls.target.copy(currentPlayer.selectedToken.position);
-                    camera.position.lerp(new THREE.Vector3(
-                        currentPlayer.selectedToken.position.x + 4,
-                        currentPlayer.selectedToken.position.y + 7,
-                        currentPlayer.selectedToken.position.z + 4
-                    ), 1.0);
-                    controls.update();
-                }
-            }, 400);
-        }
+    if (cameraFollowMode) {
+        setTimeout(() => {
+            const currentPlayer = players[currentPlayerIndex];
+            if (currentPlayer && currentPlayer.selectedToken) {
+                controls.target.copy(currentPlayer.selectedToken.position);
+                camera.position.lerp(new THREE.Vector3(
+                    currentPlayer.selectedToken.position.x + 4,
+                    currentPlayer.selectedToken.position.y + 7,
+                    currentPlayer.selectedToken.position.z + 4
+                ), 1.0);
+                controls.update();
+            }
+        }, 400);
+    }
 }
 
 function startPlayerTurn(player) {
