@@ -9593,21 +9593,37 @@ function setupPropertiesToggleButton() {
     // Only add if not already present (prevents duplicates)
     if (document.getElementById('properties-toggle-btn')) return;
 
+    // Create unfollow token button
+    const unfollowBtn = document.createElement('button');
+    unfollowBtn.id = 'unfollow-token-btn';
+    unfollowBtn.innerText = 'Unfollow Token';
+    unfollowBtn.style.fontSize = '14px';
+    unfollowBtn.style.padding = '10px 14px';
+    unfollowBtn.style.borderRadius = '8px';
+    unfollowBtn.style.minWidth = '90px';
+    unfollowBtn.style.maxWidth = '130px';
+    unfollowBtn.style.width = 'auto';
+    unfollowBtn.style.position = 'fixed';
+    unfollowBtn.style.bottom = '60px'; // Place above My Properties button
+    unfollowBtn.style.right = '16px';
+    unfollowBtn.style.zIndex = '2002';
+    unfollowBtn.addEventListener('click', function() {
+        if (typeof unfollowCurrentToken === 'function') {
+            unfollowCurrentToken();
+        }
+    });
+    document.body.appendChild(unfollowBtn);
+
+    // Create My Properties button
     const btn = document.createElement('button');
     btn.id = 'properties-toggle-btn';
     btn.innerText = 'My Properties'; // Remove emoji, make text short
-
-    // Make button smaller for mobile (handled by CSS, but also set here for initial render)
     btn.style.fontSize = '14px';
     btn.style.padding = '10px 14px';
     btn.style.borderRadius = '8px';
     btn.style.minWidth = '90px';
     btn.style.maxWidth = '130px';
     btn.style.width = 'auto';
-
-    document.body.appendChild(btn);
-
-// position properties toggle button at bottom right
     btn.style.position = 'fixed';
     btn.style.bottom = '16px';
     btn.style.right = '16px';
@@ -9627,6 +9643,7 @@ function setupPropertiesToggleButton() {
             btn.innerText = 'Hide Properties';
         }
     });
+    document.body.appendChild(btn);
 }
 
 // Show every 4 minutes (240000 ms)
