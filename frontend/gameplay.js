@@ -1544,12 +1544,20 @@ window.addEventListener('DOMContentLoaded', () => {
         }
     }, 1000);
 
-    // Start loading all token models as soon as the game loads
+    // Only load token models when selected by player
     if (!window.loadedTokenModels) window.loadedTokenModels = {};
-    let loadedCount = 0;
-    const totalModels = tokenModels.length;
-    const tempScene = new THREE.Scene(); // Use a temp scene for loading
-    tokenModels.forEach(model => {
+    window.loadTokenModel = function(tokenName, callback) {
+        // Find model info by name
+        const model = tokenModels.find(m => m.name === tokenName);
+        if (!model) {
+            console.error('Token model not found:', tokenName);
+            return;
+        }
+        if (window.loadedTokenModels[tokenName]) {
+            // Already loaded
+            if (callback) callback(window.loadedTokenModels[tokenName]);
+            return;
+        }
         const loader = new GLTFLoader();
         const dracoLoader = new DRACOLoader();
         dracoLoader.setDecoderPath('./libs/draco/');
@@ -1558,16 +1566,11 @@ window.addEventListener('DOMContentLoaded', () => {
             gltf.scene.scale.set(...model.scale);
             gltf.scene.userData.tokenName = model.name.toLowerCase();
             window.loadedTokenModels[model.name] = gltf.scene;
-            tempScene.add(gltf.scene); // Not added to main scene yet
-            loadedCount++;
-            if (loadedCount === totalModels) {
-                window.tokenModelsReady = true;
-                window.dispatchEvent(new Event('tokenModelsReady'));
-            }
+            if (callback) callback(gltf.scene);
         }, undefined, (err) => {
             console.error('Error loading model', model.name, err);
         });
-    });
+    };
 
     // Hide spinner and enable token selection when models are ready
     window.addEventListener('tokenModelsReady', () => {
@@ -5439,7 +5442,10 @@ function createPlayerTokenSelectionUI(playerIndex) {
 
         // Handle token selection
         tokenButton.addEventListener("click", () => {
-            selectToken(token.name);
+            // Load the 3D model only when selected
+            window.loadTokenModel(token.name, (model) => {
+                selectToken(token.name);
+            });
         });
 
         // Add hover effect
