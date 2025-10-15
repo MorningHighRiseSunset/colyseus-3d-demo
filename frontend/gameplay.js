@@ -805,7 +805,12 @@ function assignSelectedTokenForPlayer(player) {
         }
 // Example usage: call playWalkAnimation(player.selectedToken) when Woman token starts moving
 // Example usage: call playIdleAnimation(player.selectedToken) when Woman token stops moving
-        if (typeof hideTokenButtonSpinners === 'function') hideTokenButtonSpinners();
+        // Hide only the spinner for this token (do not hide spinners for other buttons)
+        try {
+            if (typeof hideTokenSpinner === 'function' && player.token) hideTokenSpinner(player.token);
+        } catch (e) {
+            // fallback: if per-button spinner helper isn't available, do nothing
+        }
         console.log(`[Patch] Assigned selectedToken for player '${player.name}' with token '${player.token}'`);
         if (typeof processPendingMoves === 'function') processPendingMoves();
     } else {
@@ -1462,6 +1467,19 @@ if (!document.getElementById('token-spinner-style')) {
     document.head.appendChild(style);
 }
 
+// Basic token-button layout CSS (safe, minimal overrides)
+if (!document.getElementById('token-button-base-style')) {
+    const css = document.createElement('style');
+    css.id = 'token-button-base-style';
+    css.textContent = `
+    .token-button { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; background: rgba(0,0,0,0.35); color: #fff; border: none; cursor: pointer; box-sizing: border-box; }
+    .token-button img { pointer-events: none; }
+    .token-button.picked { opacity: 0.8; }
+    .token-overlay-spinner { backdrop-filter: blur(2px); }
+    `;
+    document.head.appendChild(css);
+}
+
 function addTokenTooltips() {
     const tokenButtons = document.querySelectorAll('.token-button');
     tokenButtons.forEach(btn => {
@@ -1553,8 +1571,10 @@ setTimeout(overrideRollDiceForMultiplayer, 1000);
 // Initialize multiplayer on load
 
 window.addEventListener('DOMContentLoaded', () => {
-    // Show spinner and disable token selection immediately
-    showTokenButtonSpinners();
+    // NOTE: Do NOT globally show and disable all token buttons here for lazy-loading.
+    // Previously this caused all buttons to show a spinner and be disabled until a global
+    // readiness event fired (which could never happen on slow clients). We create buttons
+    // immediately and show per-button spinners only while each model loads.
 
     // --- PATCH: Always attach event to .dice-button and force visible ---
     setTimeout(() => {
@@ -3336,11 +3356,22 @@ function onMouseUp() {
 }
 
 function showTokenSpinner(tokenName) {
-    // Prevent duplicate spinners
+    // If a token button exists for this token, show its per-button spinner instead of a modal overlay
+    const normalized = String(tokenName || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+    const btn = Array.from(document.querySelectorAll('.token-button')).find(b => {
+        const data = (b.getAttribute('data-token-name') || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+        return data === normalized;
+    });
+    if (btn) {
+        showButtonSpinner(btn);
+        return;
+    }
+
+    // Prevent duplicate overlays
     if (document.getElementById(`spinner-${tokenName}`)) return;
 
     const spinner = document.createElement('div');
-    spinner.className = 'token-spinner';
+    spinner.className = 'token-overlay-spinner';
     spinner.id = `spinner-${tokenName}`;
     spinner.innerHTML = `
         <div class="spinner"></div>
@@ -3352,39 +3383,38 @@ function showTokenSpinner(tokenName) {
     spinner.style.transform = 'translate(-50%, -50%)';
     spinner.style.zIndex = 9999;
     spinner.style.background = 'rgba(30,30,30,0.92)';
-    spinner.style.padding = '22px 36px';
-    spinner.style.borderRadius = '12px';
+    spinner.style.padding = '16px 24px';
+    spinner.style.maxWidth = '240px';
+    spinner.style.borderRadius = '10px';
     spinner.style.color = '#fff';
     spinner.style.textAlign = 'center';
     spinner.style.boxShadow = '0 4px 16px rgba(0,0,0,0.25)';
     document.body.appendChild(spinner);
 
     // Add spinner CSS if not present
-    if (!document.getElementById('token-spinner-style')) {
+    if (!document.getElementById('token-overlay-spinner-style')) {
         const style = document.createElement('style');
-        style.id = 'token-spinner-style';
+        style.id = 'token-overlay-spinner-style';
         style.textContent = `
-        .spinner {
-            border: 5px solid #eee;
-            border-top: 5px solid #4caf50;
-            border-radius: 50%;
-            width: 38px;
-            height: 38px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 8px auto;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg);}
-            100% { transform: rotate(360deg);}
-        }
+        .spinner { border: 5px solid #eee; border-top: 5px solid #4caf50; border-radius: 50%; width: 32px; height: 32px; animation: spin 1s linear infinite; margin: 0 auto 8px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }
         `;
         document.head.appendChild(style);
     }
 }
 
 function hideTokenSpinner(tokenName) {
-    const spinner = document.getElementById(`spinner-${tokenName}`);
-    if (spinner) spinner.remove();
+    // If there's a token button, hide its per-button spinner
+    const normalized = String(tokenName || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+    const btn = Array.from(document.querySelectorAll('.token-button')).find(b => {
+        const data = (b.getAttribute('data-token-name') || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+        return data === normalized;
+    });
+    if (btn) {
+        hideButtonSpinner(btn);
+    }
+    const overlay = document.getElementById(`spinner-${tokenName}`);
+    if (overlay) overlay.remove();
 }
 
 function hopWithNikeEffect(startPos, endPos, token, callback) {
@@ -11096,6 +11126,13 @@ function createTokens(callback) {
         if (callback) callback();
         return;
     }
+    // Ensure token grid lays out buttons in rows with wrapping and consistent gaps
+    grid.style.display = grid.style.display || 'flex';
+    grid.style.flexWrap = grid.style.flexWrap || 'wrap';
+    grid.style.gap = grid.style.gap || '10px';
+    grid.style.alignContent = grid.style.alignContent || 'flex-start';
+    grid.style.overflowY = grid.style.overflowY || 'auto';
+    grid.style.padding = grid.style.padding || '8px';
     grid.innerHTML = '';
     // Hide ready until token picked
     const readyStatus = document.getElementById('tokenReadyStatus');
