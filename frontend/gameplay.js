@@ -1418,6 +1418,37 @@ function hideTokenButtonSpinners() {
         btn.disabled = false;
     });
 }
+// Per-button spinner utilities
+function ensureButtonSpinner(btn) {
+    if (!btn) return;
+    let spinner = btn.querySelector('.token-spinner');
+    if (!spinner) {
+        spinner = document.createElement('span');
+        spinner.className = 'token-spinner';
+        spinner.style.display = 'none';
+        spinner.style.width = '18px';
+        spinner.style.height = '18px';
+        spinner.style.border = '3px solid #ddd';
+        spinner.style.borderTop = '3px solid #333';
+        spinner.style.borderRadius = '50%';
+        spinner.style.animation = 'spin 1s linear infinite';
+        spinner.style.marginLeft = '8px';
+        btn.appendChild(spinner);
+    }
+}
+function showButtonSpinner(btn) {
+    if (!btn) return;
+    ensureButtonSpinner(btn);
+    const spinner = btn.querySelector('.token-spinner');
+    if (spinner) spinner.style.display = '';
+    btn.disabled = true;
+}
+function hideButtonSpinner(btn) {
+    if (!btn) return;
+    const spinner = btn.querySelector('.token-spinner');
+    if (spinner) spinner.style.display = 'none';
+    btn.disabled = false;
+}
 // Add spinner CSS (do this once, at startup)
 if (!document.getElementById('token-spinner-style')) {
     const style = document.createElement('style');
@@ -1546,29 +1577,97 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Only load token models when selected by player
     if (!window.loadedTokenModels) window.loadedTokenModels = {};
-    window.loadTokenModel = function(tokenName, callback) {
-        // Find model info by name
-        const model = tokenModels.find(m => m.name === tokenName);
-        if (!model) {
-            console.error('Token model not found:', tokenName);
-            return;
-        }
-        if (window.loadedTokenModels[tokenName]) {
-            // Already loaded
-            if (callback) callback(window.loadedTokenModels[tokenName]);
-            return;
-        }
-        const loader = new GLTFLoader();
-        const dracoLoader = new DRACOLoader();
-        dracoLoader.setDecoderPath('./libs/draco/');
-        loader.setDRACOLoader(dracoLoader);
-        loader.load(model.path, (gltf) => {
-            gltf.scene.scale.set(...model.scale);
-            gltf.scene.userData.tokenName = model.name.toLowerCase();
-            window.loadedTokenModels[model.name] = gltf.scene;
-            if (callback) callback(gltf.scene);
-        }, undefined, (err) => {
-            console.error('Error loading model', model.name, err);
+
+    // Normalizes model keys for stable lookup
+    window.normalizeModelKey = function(name) {
+        return String(name || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
+    };
+
+    // Promise-based loader with timeout and retries. Returns a cloned scene ready to be added to the scene.
+    window.loadTokenModel = function(tokenName, options = {}) {
+        const { timeout = 10000, retries = 2 } = options;
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (!tokenName) return reject(new Error('tokenName required'));
+                const modelInfo = tokenModels.find(m => window.normalizeModelKey(m.name) === window.normalizeModelKey(tokenName) || m.name.toLowerCase() === String(tokenName).toLowerCase());
+                if (!modelInfo) return reject(new Error('Model info not found for ' + tokenName));
+
+                const key = window.normalizeModelKey(modelInfo.name);
+
+                // Return a clone if already loaded and stored
+                if (window.loadedTokenModels && window.loadedTokenModels[key]) {
+                    try {
+                        const clone = window.loadedTokenModels[key].clone(true);
+                        return resolve(clone);
+                    } catch (err) {
+                        // fallback to reloading if clone fails
+                        console.warn('Cloning stored model failed, will attempt reload:', err && err.message);
+                    }
+                }
+
+                // show spinner helper if present
+                if (typeof showTokenSpinner === 'function') showTokenSpinner(tokenName);
+
+                let attempt = 0;
+                while (attempt <= retries) {
+                    attempt++;
+                    try {
+                        const gltf = await new Promise((res, rej) => {
+                            const loader = new GLTFLoader();
+                            // Attach DRACO if available
+                            try {
+                                const dracoLoader = new DRACOLoader();
+                                dracoLoader.setDecoderPath('./libs/draco/');
+                                loader.setDRACOLoader(dracoLoader);
+                            } catch (e) {
+                                // DRACO may be unavailable - ignore
+                            }
+
+                            let timedOut = false;
+                            const timer = setTimeout(() => {
+                                timedOut = true;
+                                rej(new Error('GLTF load timeout'));
+                            }, timeout);
+
+                            loader.load(modelInfo.path, (gltf) => {
+                                if (timedOut) return;
+                                clearTimeout(timer);
+                                res(gltf);
+                            }, undefined, (err) => {
+                                if (timedOut) return;
+                                clearTimeout(timer);
+                                rej(err || new Error('Unknown GLTFLoader error'));
+                            });
+                        });
+
+                        // prepare stored copy
+                        const stored = gltf.scene.clone(true);
+                        stored.userData = stored.userData || {};
+                        stored.userData.tokenName = modelInfo.name.toLowerCase();
+                        if (Array.isArray(modelInfo.scale)) stored.scale.set(...modelInfo.scale);
+                        // keep stored by normalized key
+                        window.loadedTokenModels[key] = stored;
+
+                        // return a fresh clone for immediate use
+                        const outClone = stored.clone(true);
+                        if (typeof hideTokenSpinner === 'function') hideTokenSpinner(tokenName);
+                        // dispatch event that one model loaded
+                        try { window.dispatchEvent(new CustomEvent('tokenModelLoaded', { detail: { name: modelInfo.name, key } })); } catch (e) {}
+                        return resolve(outClone);
+                    } catch (err) {
+                        console.warn(`loadTokenModel attempt ${attempt} for ${tokenName} failed:`, err && err.message);
+                        if (attempt > retries) {
+                            if (typeof hideTokenSpinner === 'function') hideTokenSpinner(tokenName);
+                            return reject(err);
+                        }
+                        // backoff
+                        await new Promise(r => setTimeout(r, 250 * attempt));
+                    }
+                }
+            } catch (err) {
+                if (typeof hideTokenSpinner === 'function') hideTokenSpinner(tokenName);
+                reject(err);
+            }
         });
     };
 
@@ -10938,7 +11037,7 @@ window.finishMove = finishMove;
 window.handlePropertyLanding = handlePropertyLanding;
 
 function createTokens(callback) {
-    console.log('[MP DEBUG] createTokens called');
+    console.log('[MP DEBUG] createTokens called (lazy)');
     // Use display names and lowercase for image lookup
     const tokenNames = [
         'Rolls Royce',
@@ -10952,31 +11051,22 @@ function createTokens(callback) {
     const grid = document.getElementById('tokenGrid');
     if (!grid) {
         console.error('[MP DEBUG] tokenGrid element not found');
+        if (callback) callback();
         return;
     }
-    console.log('[MP DEBUG] Found tokenGrid, clearing and creating buttons');
     grid.innerHTML = '';
     // Hide ready until token picked
     const readyStatus = document.getElementById('tokenReadyStatus');
     if (readyStatus) readyStatus.textContent = '';
     const readyBtn = document.getElementById('readyUpBtn');
     if (readyBtn) readyBtn.style.display = 'none';
-    
-    // Wait for all token models to be loaded before showing buttons
-    if (!window.loadedTokenModels || Object.keys(window.loadedTokenModels).length < tokenNames.length) {
-        grid.innerHTML = '<div class="token-spinner">Loading tokens...</div>';
-        const waitForModels = setInterval(() => {
-            if (window.loadedTokenModels && Object.keys(window.loadedTokenModels).length >= tokenNames.length) {
-                clearInterval(waitForModels);
-                createTokens(callback); // Retry now that models are loaded
-            }
-        }, 200);
-        return;
-    }
+
     tokenNames.forEach(name => {
         const btn = document.createElement('button');
         btn.className = 'token-button';
         btn.setAttribute('data-token-name', name);
+        btn.style.display = 'flex';
+        btn.style.alignItems = 'center';
         // Add token image using lowercase for lookup
         const img = document.createElement('img');
         img.src = getTokenImageUrl ? getTokenImageUrl(name.toLowerCase()) : '';
@@ -10989,28 +11079,59 @@ function createTokens(callback) {
         const label = document.createElement('span');
         label.innerText = name;
         btn.appendChild(label);
+
         // Disable button if token is already picked by any player
         const pickedBy = playerList.find(p => p.token === name);
         btn.disabled = !!pickedBy;
         if (pickedBy) btn.classList.add('picked');
-        btn.addEventListener('click', () => {
-            console.log('[MP DEBUG] Token button clicked:', name);
-            if (socket && currentRoomId && currentPlayerId) {
-                console.log('[MP DEBUG] Emitting selectToken:', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
-                socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
+
+        // Ensure per-button spinner exists (hidden by default)
+        ensureButtonSpinner(btn);
+
+        // Lazy load model on click: this keeps UI responsive on slow machines
+        btn.addEventListener('click', async () => {
+            console.log('[MP DEBUG] Token button clicked (lazy-load):', name);
+            if (btn.disabled) return;
+            // show per-button spinner and disable
+            showButtonSpinner(btn);
+            try {
+                // load the model (with timeout/retries configured in loadTokenModel)
+                const model = await window.loadTokenModel(name).catch(err => { throw err; });
+                // Assign selected token to current player (follow existing flow)
+                if (socket && currentRoomId && currentPlayerId) {
+                    socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
+                }
+                // Place model in scene and assign to player locally
+                try {
+                    const clone = model.clone(true);
+                    clone.userData = clone.userData || {};
+                    clone.userData.tokenName = name.toLowerCase();
+                    // position/scale handled by assignSelectedTokenForPlayer when cloning from stored models
+                    // store selection locally so UI can show ready
+                    const localPlayer = playerList.find(p => p.id === currentPlayerId) || players[currentPlayerIndex];
+                    if (localPlayer) {
+                        localPlayer.token = name;
+                        localPlayer.selectedToken = clone;
+                        // ensure model is in scene
+                        if (typeof scene !== 'undefined') scene.add(clone);
+                    }
+                    if (readyStatus) readyStatus.textContent = `Token ${name} selected`;
+                    if (readyBtn) readyBtn.style.display = '';
+                } catch (e) {
+                    console.warn('Failed to clone/assign loaded model locally:', e && e.message);
+                }
+                hideButtonSpinner(btn);
                 btn.classList.add('picked');
-                btn.disabled = true;
-                const playerName = playerList.find(p => p.id === currentPlayerId)?.name || 'Player';
-                if (readyStatus) readyStatus.textContent = `Token ${name} selected for ${playerName}`;
-                if (readyBtn) readyBtn.style.display = '';
-            } else {
-                console.warn('[MP DEBUG] Socket not ready for token selection - socket:', !!socket, 'roomId:', currentRoomId, 'playerId:', currentPlayerId);
+            } catch (err) {
+                console.error('Failed to load token model for', name, err);
+                hideButtonSpinner(btn);
+                if (readyStatus) readyStatus.textContent = `Failed to load ${name}`;
             }
         });
+
         grid.appendChild(btn);
-        console.log('[MP DEBUG] Created token button:', name);
     });
-    console.log('[MP DEBUG] createTokens completed, total buttons:', grid.children.length);
+    console.log('[MP DEBUG] createTokens completed (lazy), total buttons:', grid.children.length);
     if (callback) callback();
 }
 
