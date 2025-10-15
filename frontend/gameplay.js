@@ -1423,17 +1423,22 @@ function ensureButtonSpinner(btn) {
     if (!btn) return;
     let spinner = btn.querySelector('.token-spinner');
     if (!spinner) {
-        spinner = document.createElement('span');
-        spinner.className = 'token-spinner';
-        spinner.style.display = 'none';
-        spinner.style.width = '18px';
-        spinner.style.height = '18px';
-        spinner.style.border = '3px solid #ddd';
-        spinner.style.borderTop = '3px solid #333';
-        spinner.style.borderRadius = '50%';
-        spinner.style.animation = 'spin 1s linear infinite';
-        spinner.style.marginLeft = '8px';
-        btn.appendChild(spinner);
+    spinner = document.createElement('span');
+    spinner.className = 'token-spinner';
+    spinner.style.display = 'none';
+    spinner.style.width = '18px';
+    spinner.style.height = '18px';
+    spinner.style.border = '3px solid #ddd';
+    spinner.style.borderTop = '3px solid #333';
+    spinner.style.borderRadius = '50%';
+    spinner.style.animation = 'spin 1s linear infinite';
+    spinner.style.marginLeft = '8px';
+    spinner.style.display = 'inline-flex';
+    spinner.style.alignItems = 'center';
+    spinner.style.justifyContent = 'center';
+    spinner.style.flex = '0 0 18px';
+    spinner.style.boxSizing = 'content-box';
+    btn.appendChild(spinner);
     }
 }
 function showButtonSpinner(btn) {
@@ -1670,6 +1675,43 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     };
+
+    // Background prefetcher: non-blocking attempt to load models in the background
+    window.prefetchTokenModels = async function({ concurrency = 2, timeout = 6000, retries = 1 } = {}) {
+        if (!Array.isArray(tokenModels) || tokenModels.length === 0) return;
+        console.log('[PREFETCH] Starting background prefetch for token models');
+        const queue = tokenModels.map(m => m.name);
+        let active = 0;
+
+        return new Promise((resolve) => {
+            const next = () => {
+                if (queue.length === 0 && active === 0) {
+                    console.log('[PREFETCH] Completed background prefetch');
+                    return resolve();
+                }
+                while (active < concurrency && queue.length > 0) {
+                    const name = queue.shift();
+                    active++;
+                    // attempt load but ignore errors
+                    window.loadTokenModel(name, { timeout, retries }).catch(err => {
+                        console.warn('[PREFETCH] Failed to prefetch', name, err && err.message);
+                    }).finally(() => {
+                        active--;
+                        // small delay to avoid burst
+                        setTimeout(next, 120);
+                    });
+                }
+            };
+            next();
+        });
+    };
+
+    // Start background prefetch without blocking UI (best-effort)
+    try {
+        window.prefetchTokenModels({ concurrency: 2, timeout: 6000, retries: 1 }).catch(() => {});
+    } catch (e) {
+        // ignore
+    }
 
     // Hide spinner and enable token selection when models are ready
     window.addEventListener('tokenModelsReady', () => {
@@ -11065,15 +11107,23 @@ function createTokens(callback) {
         const btn = document.createElement('button');
         btn.className = 'token-button';
         btn.setAttribute('data-token-name', name);
-        btn.style.display = 'flex';
-        btn.style.alignItems = 'center';
+    // Ensure token buttons use a fixed-height horizontal layout to avoid squished spinners/images
+    btn.style.display = 'flex';
+    btn.style.flexDirection = 'row';
+    btn.style.alignItems = 'center';
+    btn.style.justifyContent = 'flex-start';
+    btn.style.height = '56px';
+    btn.style.minWidth = '160px';
+    btn.style.boxSizing = 'border-box';
         // Add token image using lowercase for lookup
         const img = document.createElement('img');
         img.src = getTokenImageUrl ? getTokenImageUrl(name.toLowerCase()) : '';
         img.alt = name;
-        img.style.width = '48px';
-        img.style.height = '48px';
-        img.style.marginRight = '8px';
+    img.style.width = '48px';
+    img.style.height = '48px';
+    img.style.marginRight = '8px';
+    img.style.objectFit = 'contain';
+    img.style.flex = '0 0 48px';
         btn.appendChild(img);
         // Add token name
         const label = document.createElement('span');
