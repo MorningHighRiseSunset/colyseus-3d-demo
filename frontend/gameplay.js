@@ -1443,7 +1443,15 @@ function ensureButtonSpinner(btn) {
     spinner.style.justifyContent = 'center';
     spinner.style.flex = '0 0 18px';
     spinner.style.boxSizing = 'content-box';
-    btn.appendChild(spinner);
+        // add a small percent label inside spinner
+        const pct = document.createElement('span');
+        pct.className = 'token-spinner-pct';
+        pct.style.fontSize = '10px';
+        pct.style.color = '#333';
+        pct.style.marginLeft = '6px';
+        pct.textContent = '';
+        spinner.appendChild(pct);
+        btn.appendChild(spinner);
     }
 }
 function showButtonSpinner(btn) {
@@ -1637,33 +1645,54 @@ window.addEventListener('DOMContentLoaded', () => {
                 while (attempt <= retries) {
                     attempt++;
                     try {
-                        const gltf = await new Promise((res, rej) => {
-                            const loader = new GLTFLoader();
-                            // Attach DRACO if available
-                            try {
-                                const dracoLoader = new DRACOLoader();
-                                dracoLoader.setDecoderPath('./libs/draco/');
-                                loader.setDRACOLoader(dracoLoader);
-                            } catch (e) {
-                                // DRACO may be unavailable - ignore
-                            }
+                                const gltf = await new Promise((res, rej) => {
+                                    // Use shared loader if available (global 'loader'), otherwise create one
+                                    const _loader = (typeof loader !== 'undefined' && loader) ? loader : new GLTFLoader();
+                                    // If using separate loader, attach DRACO
+                                    if (_loader === loader) {
+                                        // shared loader already configured
+                                    } else {
+                                        try {
+                                            const dr = new DRACOLoader();
+                                            dr.setDecoderPath('./libs/draco/');
+                                            _loader.setDRACOLoader(dr);
+                                        } catch (e) {}
+                                    }
 
-                            let timedOut = false;
-                            const timer = setTimeout(() => {
-                                timedOut = true;
-                                rej(new Error('GLTF load timeout'));
-                            }, timeout);
+                                    const startTime = Date.now();
+                                    let timedOut = false;
+                                    const timer = setTimeout(() => {
+                                        timedOut = true;
+                                        rej(new Error('GLTF load timeout'));
+                                    }, timeout);
 
-                            loader.load(modelInfo.path, (gltf) => {
-                                if (timedOut) return;
-                                clearTimeout(timer);
-                                res(gltf);
-                            }, undefined, (err) => {
-                                if (timedOut) return;
-                                clearTimeout(timer);
-                                rej(err || new Error('Unknown GLTFLoader error'));
-                            });
-                        });
+                                    const onProgress = (xhr) => {
+                                        try {
+                                            if (options && typeof options.onProgress === 'function') {
+                                                const pct = xhr && xhr.total ? Math.round((xhr.loaded / xhr.total) * 100) : 0;
+                                                options.onProgress({ percent: pct, loaded: xhr.loaded, total: xhr.total });
+                                                // update per-button percentage if available
+                                                const btn = Array.from(document.querySelectorAll('.token-button')).find(b => (b.getAttribute('data-token-name') || '').toLowerCase().replace(/\s+/g,'') === window.normalizeModelKey(modelInfo.name));
+                                                if (btn) {
+                                                    const pctEl = btn.querySelector('.token-spinner-pct');
+                                                    if (pctEl) pctEl.textContent = pct ? `${pct}%` : '';
+                                                }
+                                            }
+                                        } catch (e) {}
+                                    };
+
+                                    _loader.load(modelInfo.path, (gltf) => {
+                                        if (timedOut) return;
+                                        clearTimeout(timer);
+                                        const elapsed = Date.now() - startTime;
+                                        if (elapsed > 8000) console.warn(`[PREFETCH] Model ${modelInfo.name} took ${elapsed}ms to load`);
+                                        res(gltf);
+                                    }, onProgress, (err) => {
+                                        if (timedOut) return;
+                                        clearTimeout(timer);
+                                        rej(err || new Error('Unknown GLTFLoader error'));
+                                    });
+                                });
 
                         // prepare stored copy
                         const stored = gltf.scene.clone(true);
@@ -11131,7 +11160,10 @@ function createTokens(callback) {
     grid.style.flexWrap = grid.style.flexWrap || 'wrap';
     grid.style.gap = grid.style.gap || '10px';
     grid.style.alignContent = grid.style.alignContent || 'flex-start';
+    grid.style.justifyContent = grid.style.justifyContent || 'center';
     grid.style.overflowY = grid.style.overflowY || 'auto';
+    grid.style.overflowX = 'hidden';
+    grid.style.maxWidth = grid.style.maxWidth || '420px';
     grid.style.padding = grid.style.padding || '8px';
     grid.innerHTML = '';
     // Hide ready until token picked
