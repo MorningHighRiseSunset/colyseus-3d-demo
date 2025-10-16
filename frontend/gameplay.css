@@ -400,7 +400,8 @@ body {
     max-width: 98vw;
     width: 420px;
     max-height: 80vh;
-    overflow-y: auto;
+  overflow-y: auto;
+  overflow-x: hidden; /* prevent horizontal scrollbar inside modal */
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -418,6 +419,8 @@ body {
     gap: 12px;
     width: 100%;
     margin-bottom: 10px;
+    overflow-x: hidden; /* ensure grid doesn't force horizontal scroll */
+    justify-items: center; /* center items inside each grid cell */
   }
   .token-button {
     width: 110px;

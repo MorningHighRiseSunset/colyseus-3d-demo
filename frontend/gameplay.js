@@ -1467,6 +1467,59 @@ function hideButtonSpinner(btn) {
     if (spinner) spinner.style.display = 'none';
     btn.disabled = false;
 }
+
+// Create a very small low-detail placeholder mesh for immediate visual feedback.
+function createLowDetailPlaceholder(tokenName) {
+    try {
+        const geom = new THREE.BoxGeometry(1, 1, 1);
+        const mat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 0.9, metalness: 0.1 });
+        const mesh = new THREE.Mesh(geom, mat);
+        mesh.name = `placeholder-${tokenName}`;
+        // set a friendly scale if tokenModels has a scale
+        const modelInfo = tokenModels.find(m => window.normalizeModelKey(m.name) === window.normalizeModelKey(tokenName) || m.name.toLowerCase() === String(tokenName).toLowerCase());
+        if (modelInfo && Array.isArray(modelInfo.scale)) {
+            // scale down placeholder to small size for UI
+            mesh.scale.set(0.2 * (modelInfo.scale[0] || 1), 0.2 * (modelInfo.scale[1] || 1), 0.2 * (modelInfo.scale[2] || 1));
+        } else {
+            mesh.scale.set(0.5, 0.5, 0.5);
+        }
+        mesh.userData.isPlaceholder = true;
+        // position at origin; caller will position as needed
+        mesh.position.set(0, 1.5, 0);
+        return mesh;
+    } catch (e) {
+        console.warn('createLowDetailPlaceholder failed', e && e.message);
+        return null;
+    }
+}
+
+// Best-effort runtime auto-fix for token model paths. Does not write files; only adjusts in-memory tokenModels.
+async function autoFixTokenModelPaths() {
+    if (!Array.isArray(tokenModels) || tokenModels.length === 0) return;
+    console.log('[AUTO-FIX] Checking token model paths...');
+    for (const m of tokenModels) {
+        try {
+            const res = await fetch(m.path, { method: 'HEAD' });
+            if (res.ok) continue; // path exists
+            console.warn(`[AUTO-FIX] Model path not found: ${m.path} (status ${res.status}). Searching alternatives...`);
+            // search Models folder for a file with similar name
+            const baseName = m.path.split('/').pop().toLowerCase();
+            // best-effort: try common folders
+            const folders = ['Models', 'Models/TopHat', 'Models/RollsRoyce', 'Models/Helicopter', 'Models/Shoe', 'Models/Cheeseburger', 'Models/Football', 'Models/WhiteGirlIdle'];
+            let found = false;
+            for (const f of folders) {
+                try {
+                    const dirRes = await fetch(f + '/');
+                    // cannot reliably list directories via fetch in static servers; skip
+                } catch (e) {}
+            }
+            // As we cannot list directories portably, just log suggestion
+            console.warn(`[AUTO-FIX] Could not auto-fix path for ${m.name}. Check that file exists at ${m.path}`);
+        } catch (e) {
+            console.warn('[AUTO-FIX] Error while checking path for', m.name, e && e.message);
+        }
+    }
+}
 // Add spinner CSS (do this once, at startup)
 if (!document.getElementById('token-spinner-style')) {
     const style = document.createElement('style');
@@ -1712,7 +1765,19 @@ window.addEventListener('DOMContentLoaded', () => {
                         console.warn(`loadTokenModel attempt ${attempt} for ${tokenName} failed:`, err && err.message);
                         if (attempt > retries) {
                             if (typeof hideTokenSpinner === 'function') hideTokenSpinner(tokenName);
-                            return reject(err);
+                            // Attempt a HEAD fetch for diagnostics (CORS/404/presence)
+                            try {
+                                const headRes = await fetch(modelInfo.path, { method: 'HEAD' });
+                                const info = `HEAD ${modelInfo.path} -> ${headRes.status} ${headRes.statusText}`;
+                                const diagnosticError = new Error(`${err && err.message} | ${info}`);
+                                diagnosticError.headStatus = headRes.status;
+                                diagnosticError.headOk = headRes.ok;
+                                return reject(diagnosticError);
+                            } catch (headErr) {
+                                // If HEAD fails (CORS or network), still reject original error but attach note
+                                const diagnosticError = new Error(`${err && err.message} | HEAD request failed: ${headErr && headErr.message}`);
+                                return reject(diagnosticError);
+                            }
                         }
                         // backoff
                         await new Promise(r => setTimeout(r, 250 * attempt));
@@ -1761,6 +1826,11 @@ window.addEventListener('DOMContentLoaded', () => {
     } catch (e) {
         // ignore
     }
+
+    // Attempt to auto-fix token model paths by checking existence (best-effort; logs changes)
+    try {
+        if (typeof autoFixTokenModelPaths === 'function') autoFixTokenModelPaths();
+    } catch (e) {}
 
     // Hide spinner and enable token selection when models are ready
     window.addEventListener('tokenModelsReady', () => {
@@ -11176,13 +11246,11 @@ function createTokens(callback) {
         const btn = document.createElement('button');
         btn.className = 'token-button';
         btn.setAttribute('data-token-name', name);
-    // Ensure token buttons use a fixed-height horizontal layout to avoid squished spinners/images
+    // Use CSS for sizing so grid can layout correctly (avoid forcing large min widths which cause horizontal scroll)
     btn.style.display = 'flex';
     btn.style.flexDirection = 'row';
     btn.style.alignItems = 'center';
     btn.style.justifyContent = 'flex-start';
-    btn.style.height = '56px';
-    btn.style.minWidth = '160px';
     btn.style.boxSizing = 'border-box';
         // Add token image using lowercase for lookup
         const img = document.createElement('img');
@@ -11214,8 +11282,20 @@ function createTokens(callback) {
             // show per-button spinner and disable
             showButtonSpinner(btn);
             try {
-                // load the model (with timeout/retries configured in loadTokenModel)
-                const model = await window.loadTokenModel(name).catch(err => { throw err; });
+                // Immediately show a small low-detail placeholder so the player sees feedback
+                const placeholder = createLowDetailPlaceholder(name);
+                const localPlayer = playerList.find(p => p.id === currentPlayerId) || players[currentPlayerIndex];
+                if (localPlayer) {
+                    // remove any previous selectedToken from scene
+                    if (localPlayer.selectedToken && typeof scene !== 'undefined') {
+                        try { scene.remove(localPlayer.selectedToken); } catch (e) {}
+                    }
+                    localPlayer.selectedToken = placeholder;
+                    if (typeof scene !== 'undefined') scene.add(placeholder);
+                }
+
+                // load the model with a bit more patience for manual clicks
+                const model = await window.loadTokenModel(name, { timeout: 15000, retries: 2 }).catch(err => { throw err; });
                 // Assign selected token to current player (follow existing flow)
                 if (socket && currentRoomId && currentPlayerId) {
                     socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
@@ -11230,6 +11310,10 @@ function createTokens(callback) {
                     const localPlayer = playerList.find(p => p.id === currentPlayerId) || players[currentPlayerIndex];
                     if (localPlayer) {
                         localPlayer.token = name;
+                        // remove placeholder if still present
+                        if (localPlayer.selectedToken && localPlayer.selectedToken !== clone && typeof scene !== 'undefined') {
+                            try { scene.remove(localPlayer.selectedToken); } catch (e) {}
+                        }
                         localPlayer.selectedToken = clone;
                         // ensure model is in scene
                         if (typeof scene !== 'undefined') scene.add(clone);
