@@ -970,43 +970,55 @@ class GLTFMaterialsPbrSpecularGlossinessExtension {
     constructor(parser) {
         this.parser = parser;
     }
-    
+    constructor(parser) {
+        this.parser = parser;
+    // Name must match the glTF extension so GLTFLoader recognizes this plugin
+    this.name = 'KHR_materials_pbrSpecularGlossiness';
+    }
+
     afterRoot(result) {
+        // Be defensive: some glTFs may not include a materials array
+        if (!result || !Array.isArray(result.materials) || result.materials.length === 0) return Promise.resolve();
         return Promise.all(result.materials.map((materialDef, index) => {
-            if (materialDef.extensions && materialDef.extensions.KHR_materials_pbrSpecularGlossiness) {
-                return this.assignMaterial(materialDef, index);
+            try {
+                if (materialDef && materialDef.extensions && materialDef.extensions.KHR_materials_pbrSpecularGlossiness) {
+                    return this.assignMaterial(materialDef, index);
+                }
+            } catch (e) {
+                console.warn('[GLTF EXT] Error processing material extension', e && e.message);
             }
             return Promise.resolve();
         }));
     }
-    
+
     assignMaterial(materialDef, index) {
-        const material = this.parser.materials[index];
+        const material = (this.parser && this.parser.materials) ? this.parser.materials[index] : null;
         if (!material) return Promise.resolve();
-        
-        const pbrSpecularGlossiness = materialDef.extensions.KHR_materials_pbrSpecularGlossiness;
-        
-        // Convert specular-glossiness to metallic-roughness
-        if (pbrSpecularGlossiness.diffuseFactor) {
-            material.color.fromArray(pbrSpecularGlossiness.diffuseFactor);
+
+        const pbrSpecularGlossiness = (materialDef && materialDef.extensions && materialDef.extensions.KHR_materials_pbrSpecularGlossiness) || {};
+        try {
+            // Convert specular-glossiness to metallic-roughness where possible
+            if (pbrSpecularGlossiness.diffuseFactor && material.color && typeof material.color.fromArray === 'function') {
+                material.color.fromArray(pbrSpecularGlossiness.diffuseFactor);
+            }
+            if (pbrSpecularGlossiness.specularFactor && Array.isArray(pbrSpecularGlossiness.specularFactor)) {
+                const specular = pbrSpecularGlossiness.specularFactor;
+                material.metalness = 1 - Math.max(specular[0] || 0, specular[1] || 0, specular[2] || 0);
+            }
+            if (typeof pbrSpecularGlossiness.glossinessFactor !== 'undefined' && typeof material.roughness !== 'undefined') {
+                material.roughness = 1 - pbrSpecularGlossiness.glossinessFactor;
+            }
+        } catch (e) {
+            console.warn('[GLTF EXT] assignMaterial error', e && e.message);
         }
-        
-        if (pbrSpecularGlossiness.specularFactor) {
-            const specular = pbrSpecularGlossiness.specularFactor;
-            material.metalness = 1 - Math.max(specular[0], specular[1], specular[2]);
-        }
-        
-        if (pbrSpecularGlossiness.glossinessFactor !== undefined) {
-            material.roughness = 1 - pbrSpecularGlossiness.glossinessFactor;
-        }
-        
+
         return Promise.resolve();
     }
 }
 
 loader.register((parser) => new GLTFMaterialsPbrSpecularGlossinessExtension(parser));
 
-let camera, scene, renderer, controls;
+let camera, scene, renderer, controls;  
 const clock = new THREE.Clock();
 
 let currentPlayerIndex = 0;
@@ -1671,7 +1683,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Promise-based loader with timeout and retries. Returns a cloned scene ready to be added to the scene.
     window.loadTokenModel = function(tokenName, options = {}) {
-        const { timeout = 10000, retries = 2 } = options;
+        const { timeout = 20000, retries = 2 } = options; // increased timeout for slower clients
         return new Promise(async (resolve, reject) => {
             try {
                 if (!tokenName) return reject(new Error('tokenName required'));
@@ -1747,6 +1759,11 @@ window.addEventListener('DOMContentLoaded', () => {
                                     });
                                 });
 
+                        // defensive checks: some GLTFs may not have a scene
+                        if (!gltf || !gltf.scene) {
+                            throw new Error('GLTF parse error: missing scene');
+                        }
+
                         // prepare stored copy
                         const stored = gltf.scene.clone(true);
                         stored.userData = stored.userData || {};
@@ -1791,7 +1808,7 @@ window.addEventListener('DOMContentLoaded', () => {
     };
 
     // Background prefetcher: non-blocking attempt to load models in the background
-    window.prefetchTokenModels = async function({ concurrency = 2, timeout = 6000, retries = 1 } = {}) {
+    window.prefetchTokenModels = async function({ concurrency = 2, timeout = 20000, retries = 1 } = {}) {
         if (!Array.isArray(tokenModels) || tokenModels.length === 0) return;
         console.log('[PREFETCH] Starting background prefetch for token models');
         const queue = tokenModels.map(m => m.name);
@@ -1808,7 +1825,9 @@ window.addEventListener('DOMContentLoaded', () => {
                     active++;
                     // attempt load but ignore errors
                     window.loadTokenModel(name, { timeout, retries }).catch(err => {
-                        console.warn('[PREFETCH] Failed to prefetch', name, err && err.message);
+                        // include any diagnostic head status if present
+                        const extra = err && err.headStatus ? ` | HEAD ${err.headStatus}` : '';
+                        console.warn('[PREFETCH] Failed to prefetch', name, (err && err.message) || '', extra);
                     }).finally(() => {
                         active--;
                         // small delay to avoid burst
