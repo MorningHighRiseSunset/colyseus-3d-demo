@@ -969,11 +969,8 @@ loader.setDRACOLoader(dracoLoader);
 class GLTFMaterialsPbrSpecularGlossinessExtension {
     constructor(parser) {
         this.parser = parser;
-    }
-    constructor(parser) {
-        this.parser = parser;
-    // Name must match the glTF extension so GLTFLoader recognizes this plugin
-    this.name = 'KHR_materials_pbrSpecularGlossiness';
+        // Name must match the glTF extension so GLTFLoader recognizes this plugin
+        this.name = 'KHR_materials_pbrSpecularGlossiness';
     }
 
     afterRoot(result) {
