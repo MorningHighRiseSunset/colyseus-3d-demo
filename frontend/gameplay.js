@@ -7737,7 +7737,15 @@ function init() {
             render: () => {}
         };
         document.body.appendChild(renderer.domElement);
-        controls = { update: () => {} };
+        // Provide a more complete controls stub so other code can safely call methods/properties
+        controls = {
+            target: new THREE.Vector3(0, 0, 0),
+            enabled: false,
+            update: () => {},
+            addEventListener: () => {},
+            removeEventListener: () => {},
+            dispose: () => {},
+        };
     }
 
     function setupCameraFollowToggle() {
