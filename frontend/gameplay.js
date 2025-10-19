@@ -6255,7 +6255,7 @@ function moveToken(startPos, endPos, token, callback, followCameraDuringMove, du
         typeof token !== 'object' || !token.userData || !token.userData.tokenName
     ) {
         console.error("Invalid parameters passed to moveToken", { startPos, endPos, token, callback });
-        console.trace();
+        if (callback) callback();
         return;
     }
 
@@ -8763,6 +8763,11 @@ function moveTokenWithCollisionAvoidance(startPos, endPos, token, callback, foll
 
 // Move token along a calculated path
 function moveTokenAlongPath(path, token, callback, followCameraDuringMove) {
+    if (!token || !token.userData) {
+        console.error("moveTokenAlongPath: token or userData missing", { token });
+        if (callback) callback();
+        return;
+    }
     if (path.length <= 1) {
         if (callback) callback();
         return;
@@ -10207,8 +10212,9 @@ function startHelicopterHover(token) {
     }
 }
 function stopHelicopterHover(token) {
+    if (!token || !token.userData) return;
     const animatedModel = token.userData.animatedModel;
-    if (animatedModel && animatedModel.userData.mixer) {
+    if (animatedModel && animatedModel.userData && animatedModel.userData.mixer) {
         animatedModel.userData.mixer.stopAllAction();
         animatedModel.userData.updateIdle = null;
     }
@@ -10219,17 +10225,19 @@ function flyWithHelicopterEffectPath(path, token, callback) {
     currentlyMovingToken = token;
     isTokenMoving = true;
     
-    stopHelicopterHover(); // Stop idle before moving
+    stopHelicopterHover(token); // Stop idle before moving
     // Start helicopter sound for movement only if this is a helicopter token
-    if (token.userData.tokenName === "helicopter") {
-        helicopterSound.currentTime = 0;
-        helicopterSound.play().catch(() => {});
+    if (token && token.userData && token.userData.tokenName === "helicopter") {
+        if (typeof helicopterSound !== 'undefined' && helicopterSound) {
+            helicopterSound.currentTime = 0;
+            helicopterSound.play().catch(() => {});
+        }
     }
     // Always use animated model for helicopter if available
-    const animatedModel = token.userData.animatedModel || token;
+    const animatedModel = (token && token.userData) ? (token.userData.animatedModel || token) : token;
     let mixer, actions;
-    if (animatedModel.userData.mixer) mixer = animatedModel.userData.mixer;
-    if (animatedModel.userData.actions) actions = animatedModel.userData.actions;
+    if (animatedModel && animatedModel.userData && animatedModel.userData.mixer) mixer = animatedModel.userData.mixer;
+    if (animatedModel && animatedModel.userData && animatedModel.userData.actions) actions = animatedModel.userData.actions;
 
     // --- Dynamic arc height based on path length ---
     const minFlightHeight = 7;
