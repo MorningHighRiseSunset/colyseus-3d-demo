@@ -944,6 +944,7 @@ import * as THREE from './libs/three.module.js';
 import {
     GLTFLoader
 } from './libs/GLTFLoader.js';
+import { SkeletonUtils } from './libs/SkeletonUtils.js';
 import {
     OrbitControls
 } from './libs/OrbitControls.js';
@@ -1689,10 +1690,19 @@ window.addEventListener('DOMContentLoaded', () => {
 
                 const key = window.normalizeModelKey(modelInfo.name);
 
-                // Return a clone if already loaded and stored
+                // Return a clone if already loaded and stored (use SkeletonUtils for skinned meshes)
                 if (window.loadedTokenModels && window.loadedTokenModels[key]) {
                     try {
-                        const clone = window.loadedTokenModels[key].clone(true);
+                        const stored = window.loadedTokenModels[key];
+                        let clone;
+                        // If model contains skinned meshes, use SkeletonUtils.clone
+                        let hasSkinned = false;
+                        stored.traverse(obj => { if (obj.isSkinnedMesh) hasSkinned = true; });
+                        if (hasSkinned && typeof SkeletonUtils !== 'undefined') {
+                            clone = SkeletonUtils.clone(stored);
+                        } else {
+                            clone = stored.clone(true);
+                        }
                         return resolve(clone);
                     } catch (err) {
                         // fallback to reloading if clone fails
@@ -1700,8 +1710,8 @@ window.addEventListener('DOMContentLoaded', () => {
                     }
                 }
 
-                // show spinner helper if present
-                if (typeof showTokenSpinner === 'function') showTokenSpinner(tokenName);
+                // show spinner helper if present (but avoid overlay spinner for background prefetch)
+                if (typeof showTokenSpinner === 'function' && !options._isPrefetch) showTokenSpinner(tokenName);
 
                 let attempt = 0;
                 while (attempt <= retries) {
@@ -1761,8 +1771,9 @@ window.addEventListener('DOMContentLoaded', () => {
                             throw new Error('GLTF parse error: missing scene');
                         }
 
-                        // prepare stored copy
-                        const stored = gltf.scene.clone(true);
+                        // prepare stored copy (use SkeletonUtils for skinned meshes)
+                        const hasSkinned = (gltf.scene && (() => { let s=false; gltf.scene.traverse(o=>{ if (o.isSkinnedMesh) s=true; }); return s; })());
+                        const stored = (hasSkinned && typeof SkeletonUtils !== 'undefined') ? SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true);
                         stored.userData = stored.userData || {};
                         stored.userData.tokenName = modelInfo.name.toLowerCase();
                         if (Array.isArray(modelInfo.scale)) stored.scale.set(...modelInfo.scale);
@@ -1770,7 +1781,7 @@ window.addEventListener('DOMContentLoaded', () => {
                         window.loadedTokenModels[key] = stored;
 
                         // return a fresh clone for immediate use
-                        const outClone = stored.clone(true);
+                        const outClone = (hasSkinned && typeof SkeletonUtils !== 'undefined') ? SkeletonUtils.clone(stored) : stored.clone(true);
                         if (typeof hideTokenSpinner === 'function') hideTokenSpinner(tokenName);
                         // dispatch event that one model loaded
                         try { window.dispatchEvent(new CustomEvent('tokenModelLoaded', { detail: { name: modelInfo.name, key } })); } catch (e) {}
@@ -1821,10 +1832,10 @@ window.addEventListener('DOMContentLoaded', () => {
                     const name = queue.shift();
                     active++;
                     // attempt load but ignore errors
-                    window.loadTokenModel(name, { timeout, retries }).catch(err => {
+                    window.loadTokenModel(name, { timeout, retries, _isPrefetch: true }).catch(err => {
                         // include any diagnostic head status if present
                         const extra = err && err.headStatus ? ` | HEAD ${err.headStatus}` : '';
-                        console.warn('[PREFETCH] Failed to prefetch', name, (err && err.message) || '', extra);
+                        console.debug('[PREFETCH] Failed to prefetch', name, (err && err.message) || '', extra);
                     }).finally(() => {
                         active--;
                         // small delay to avoid burst
