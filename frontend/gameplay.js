@@ -1543,9 +1543,13 @@ if (!document.getElementById('token-button-base-style')) {
     const css = document.createElement('style');
     css.id = 'token-button-base-style';
     css.textContent = `
-    .token-button { display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 6px; background: rgba(0,0,0,0.35); color: #fff; border: none; cursor: pointer; box-sizing: border-box; }
-    .token-button img { pointer-events: none; }
-    .token-button.picked { opacity: 0.8; }
+    .token-grid { display: grid; grid-template-columns: repeat(3, 120px); grid-auto-rows: 92px; gap: 12px; justify-content: center; }
+    .token-button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; width: 120px; height: 92px; border-radius: 8px; background: rgba(0,0,0,0.45); color: #fff; border: none; cursor: pointer; box-sizing: border-box; position: relative; overflow: hidden; }
+    .token-button img { pointer-events: none; width: 48px; height: 48px; object-fit: contain; }
+    .token-button .token-label { font-size: 13px; text-align: center; }
+    .token-button.picked { opacity: 0.9; filter: saturate(0.95); }
+    /* Per-button spinner is absolutely positioned so it cannot bleed into neighbors */
+    .token-button .token-spinner { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); }
     .token-overlay-spinner { backdrop-filter: blur(2px); }
     `;
     document.head.appendChild(css);
@@ -1670,6 +1674,12 @@ window.addEventListener('DOMContentLoaded', () => {
             console.warn('[PATCH] .dice-button NOT found in DOM');
         }
     }, 1000);
+
+    // Cleanup: remove any lingering overlay spinner for 'Hat' that might persist from earlier failures
+    try {
+        const hatOverlay = document.getElementById('spinner-Hat');
+        if (hatOverlay) hatOverlay.remove();
+    } catch (e) {}
 
     // Only load token models when selected by player
     if (!window.loadedTokenModels) window.loadedTokenModels = {};
@@ -11252,6 +11262,8 @@ function createTokens(callback) {
         if (callback) callback();
         return;
     }
+    // Apply token-grid class for layout rules
+    grid.classList.add('token-grid');
     // Ensure token grid lays out buttons in rows with wrapping and consistent gaps
     grid.style.display = grid.style.display || 'flex';
     grid.style.flexWrap = grid.style.flexWrap || 'wrap';
@@ -11289,18 +11301,19 @@ function createTokens(callback) {
     img.style.objectFit = 'contain';
     img.style.flex = '0 0 48px';
         btn.appendChild(img);
-        // Add token name
-        const label = document.createElement('span');
-        label.innerText = name;
-        btn.appendChild(label);
+    // Add token name (dedicated label for styling)
+    const label = document.createElement('div');
+    label.className = 'token-label';
+    label.innerText = name;
+    btn.appendChild(label);
 
         // Disable button if token is already picked by any player
         const pickedBy = playerList.find(p => p.token === name);
         btn.disabled = !!pickedBy;
         if (pickedBy) btn.classList.add('picked');
 
-        // Ensure per-button spinner exists (hidden by default)
-        ensureButtonSpinner(btn);
+    // Ensure per-button spinner exists (hidden by default)
+    ensureButtonSpinner(btn);
 
         // Lazy load model on click: this keeps UI responsive on slow machines
         btn.addEventListener('click', async () => {
