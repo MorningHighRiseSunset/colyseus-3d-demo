@@ -395,6 +395,38 @@ function onPropertyUILoaded(hotelName) {
     }
     // Add more mappings as needed
 }
+// Show a friendly overlay when WebGL cannot be created, with remediation steps
+function showRendererErrorOverlay(reason) {
+    try {
+        const id = 'webgl-error-overlay';
+        if (document.getElementById(id)) return;
+        const overlay = document.createElement('div');
+        overlay.id = id;
+        overlay.style.position = 'fixed';
+        overlay.style.top = '12px';
+        overlay.style.right = '12px';
+        overlay.style.zIndex = 99999;
+        overlay.style.maxWidth = '420px';
+        overlay.style.padding = '16px 18px';
+        overlay.style.background = 'rgba(0,0,0,0.88)';
+        overlay.style.color = '#fff';
+        overlay.style.borderRadius = '8px';
+        overlay.style.boxShadow = '0 6px 24px rgba(0,0,0,0.5)';
+        overlay.innerHTML = `
+            <strong>WebGL unavailable</strong>
+            <div style="margin-top:8px;font-size:13px;line-height:1.3">Your browser/graphics driver refused to create a WebGL context. This prevents 3D rendering. Reason: <em>${String(reason || 'unknown')}</em></div>
+            <ul style="margin-top:8px;font-size:13px;line-height:1.3">
+                <li>Try updating your GPU drivers (Intel/AMD/NVIDIA).</li>
+                <li>Enable hardware acceleration in browser settings.</li>
+                <li>Try the latest Chrome or Edge (ANGLE issues are sometimes driver-specific).</li>
+                <li>If running inside a VM or restricted environment, try on a machine with a GPU.</li>
+            </ul>
+            <div style="margin-top:8px;text-align:right"><button id="webgl-error-dismiss" style="background:#fff;color:#000;border:0;padding:6px 10px;border-radius:4px;cursor:pointer">Dismiss</button></div>
+        `;
+        document.body.appendChild(overlay);
+        document.getElementById('webgl-error-dismiss').onclick = () => overlay.remove();
+    } catch (e) { console.warn('Failed to show WebGL overlay', e && e.message); }
+}
 // --- Woman Animation Helpers ---
 function playWalkAnimation(token) {
     if (!token || !token.userData || !token.userData.tokenName) return;
@@ -1599,7 +1631,6 @@ function setupReadyUpButton() {
     }
 }
 
-
 function overrideRollDiceForMultiplayer() {
     if (typeof window.rollDice === 'function') {
         const originalRollDice = window.rollDice;
@@ -1723,6 +1754,9 @@ window.addEventListener('DOMContentLoaded', () => {
                 // show spinner helper if present (but avoid overlay spinner for background prefetch)
                 if (typeof showTokenSpinner === 'function' && !options._isPrefetch) showTokenSpinner(tokenName);
 
+                // start network/timing info
+                const networkStart = Date.now();
+
                 let attempt = 0;
                 while (attempt <= retries) {
                     attempt++;
@@ -1767,6 +1801,10 @@ window.addEventListener('DOMContentLoaded', () => {
                                         if (timedOut) return;
                                         clearTimeout(timer);
                                         const elapsed = Date.now() - startTime;
+                                        const networkElapsed = Date.now() - networkStart;
+                                        // try to capture content-length from the browser if available (xhr.total)
+                                        const contentLength = (typeof xhr !== 'undefined' && xhr && xhr.total) ? xhr.total : null;
+                                        console.log(`[GLTF] Loaded ${modelInfo.name} (${modelInfo.path}) in ${networkElapsed}ms (parse ${elapsed}ms) ${contentLength ? `| size:${contentLength}` : ''}`);
                                         if (elapsed > 8000) console.warn(`[PREFETCH] Model ${modelInfo.name} took ${elapsed}ms to load`);
                                         res(gltf);
                                     }, onProgress, (err) => {
@@ -1824,6 +1862,13 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     };
+
+    // Auto-hide stale per-button spinners after 60s to avoid persistent spinning UI
+    window.addEventListener('tokenModelLoaded', (e) => {
+        // when any model finishes, ensure its spinner is hidden
+        const name = e && e.detail && e.detail.name;
+        if (name && typeof hideTokenSpinner === 'function') hideTokenSpinner(name);
+    });
 
     // Background prefetcher: non-blocking attempt to load models in the background
     window.prefetchTokenModels = async function({ concurrency = 2, timeout = 20000, retries = 1 } = {}) {
@@ -7672,16 +7717,28 @@ function init() {
     // Follow camera
     followCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
 
-    renderer = new THREE.WebGLRenderer({
-        antialias: true
-    });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    document.body.appendChild(renderer.domElement);
+    // Create renderer with graceful fallback if WebGL context cannot be created
+    try {
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
 
-    // Use OrbitControls for the main camera
-    controls = new OrbitControls(camera, renderer.domElement);
+        // Use OrbitControls for the main camera
+        controls = new OrbitControls(camera, renderer.domElement);
+    } catch (webglErr) {
+        console.error('WebGLRenderer creation failed:', webglErr && webglErr.message);
+        showRendererErrorOverlay(webglErr && webglErr.message);
+        // Provide a minimal no-render fallback to avoid further exceptions
+        renderer = {
+            domElement: document.createElement('div'),
+            setSize: () => {},
+            render: () => {}
+        };
+        document.body.appendChild(renderer.domElement);
+        controls = { update: () => {} };
+    }
 
     function setupCameraFollowToggle() {
         if (document.getElementById('camera-follow-toggle')) return;
@@ -11318,9 +11375,15 @@ function createTokens(callback) {
         // Lazy load model on click: this keeps UI responsive on slow machines
         btn.addEventListener('click', async () => {
             console.log('[MP DEBUG] Token button clicked (lazy-load):', name);
-            if (btn.disabled) return;
+            // Debounce: ignore clicks while this button is loading
+            if (btn.disabled || btn._loading) return;
+            btn._loading = true;
             // show per-button spinner and disable
             showButtonSpinner(btn);
+            // auto-hide safety timer (in case of stuck spinner)
+            const autoHideTimer = setTimeout(() => {
+                try { hideButtonSpinner(btn); btn._loading = false; if (readyStatus) readyStatus.textContent = `Failed to load ${name} (timeout)`; } catch (e) {}
+            }, 60000);
             try {
                 // Immediately show a small low-detail placeholder so the player sees feedback
                 const placeholder = createLowDetailPlaceholder(name);
@@ -11333,6 +11396,12 @@ function createTokens(callback) {
                     localPlayer.selectedToken = placeholder;
                     if (typeof scene !== 'undefined') scene.add(placeholder);
                 }
+
+                // record optimistic selection timestamp for local player (avoid later overwrites)
+                try { 
+                    const lp = playerList.find(p => p.id === currentPlayerId) || players[currentPlayerIndex];
+                    if (lp) lp.lastLocalSelectionTs = Date.now();
+                } catch (e) {}
 
                 // load the model with a bit more patience for manual clicks
                 const model = await window.loadTokenModel(name, { timeout: 15000, retries: 2 }).catch(err => { throw err; });
@@ -11363,11 +11432,15 @@ function createTokens(callback) {
                 } catch (e) {
                     console.warn('Failed to clone/assign loaded model locally:', e && e.message);
                 }
+                clearTimeout(autoHideTimer);
                 hideButtonSpinner(btn);
+                btn._loading = false;
                 btn.classList.add('picked');
             } catch (err) {
                 console.error('Failed to load token model for', name, err);
+                clearTimeout(autoHideTimer);
                 hideButtonSpinner(btn);
+                btn._loading = false;
                 if (readyStatus) readyStatus.textContent = `Failed to load ${name}`;
             }
         });
