@@ -1,3 +1,6 @@
+import { DRACOLoader } from './libs/DRACOLoader.js';
+import { GLTFLoader } from './libs/GLTFLoader.js';
+
 // Turn counter for enhanced console logs
 const ordinal = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"];
 // --- Enable Testing Mode (auto) ---
@@ -628,8 +631,6 @@ Object.defineProperty(window, 'loadedTokenModels', {
     }
 });
 
-import { DRACOLoader } from './libs/DRACOLoader.js';
-
 // --- Robust Token Model Loader (ported from oldscript.js) ---
 const tokenModels = [
     { name: 'RollsRoyce', path: 'Models/RollsRoyce/rollsRoyceCarAnim.glb', scale: [0.9, 0.9, 0.9] },
@@ -647,27 +648,47 @@ function loadTokenModelByName(name, scene, onLoaded) {
         console.error('Model not found:', name);
         return;
     }
-    // Example using GLTFLoader
-    const loader = new GLTFLoader();
-    const dracoLoader = new DRACOLoader();
-    dracoLoader.setDecoderPath('./libs/draco/');
-    loader.setDRACOLoader(dracoLoader);
-    loader.load(model.path, (gltf) => {
-        gltf.scene.scale.set(...model.scale);
-        // Ensure all materials are fully opaque
-        gltf.scene.traverse((child) => {
-            if (child.isMesh && child.material) {
-                if (Array.isArray(child.material)) {
-                    child.material.forEach(mat => {
-                        mat.opacity = 1;
-                        mat.transparent = false;
-                    });
-                } else {
-                    child.material.opacity = 1;
-                    child.material.transparent = false;
-                }
-            }
-        });
+    
+    // Find the token's button to update loading progress
+    const btn = findTokenButton(name);
+    const maxRetries = model.retries || 3;
+    const timeout = model.timeout || 15000;
+    let currentTry = 0;
+    
+    function attemptLoad() {
+        currentTry++;
+        console.log(`[Token Load] Attempting to load ${name} (try ${currentTry}/${maxRetries})`);
+        
+        const loader = new GLTFLoader();
+        const dracoLoader = new DRACOLoader();
+        dracoLoader.setDecoderPath('./libs/draco/');
+        loader.setDRACOLoader(dracoLoader);
+        
+        // Track loading progress
+        loader.load(
+            model.path,
+            (gltf) => {
+                console.log(`[Token Load] ${name} loaded successfully`);
+                gltf.scene.scale.set(...model.scale);
+                
+                // Enhanced material setup with proper defaults
+                gltf.scene.traverse((child) => {
+                    if (child.isMesh && child.material) {
+                        const materials = Array.isArray(child.material) ? child.material : [child.material];
+                        materials.forEach(mat => {
+                            // Ensure material is fully opaque
+                            mat.opacity = 1;
+                            mat.transparent = false;
+                            // Set proper material properties for better appearance
+                            mat.roughness = mat.roughness || 0.5;
+                            mat.metalness = mat.metalness || 0.5;
+                            mat.side = THREE.DoubleSide; // Render both sides
+                            // Enable shadow casting/receiving
+                            child.castShadow = true;
+                            child.receiveShadow = true;
+                        });
+                    }
+                });
         scene.add(gltf.scene);
         // --- Patch: Setup animation mixer and play all animations for any animated token ---
         if (gltf.animations && gltf.animations.length > 0) {
@@ -701,8 +722,47 @@ function loadTokenModelByName(name, scene, onLoaded) {
             gltf.scene.userData.actions = actions;
             gltf.scene.userData.tokenName = name.toLowerCase();
         }
-        if (onLoaded) onLoaded(gltf.scene);
-    });
+                // Add to scene and notify
+                scene.add(gltf.scene);
+                if (onLoaded) onLoaded(gltf.scene);
+                
+                // Update UI
+                if (btn) hideButtonSpinner(btn);
+            },
+            // Progress callback
+            (progress) => {
+                if (btn) {
+                    const percent = Math.round((progress.loaded / progress.total) * 100);
+                    btn.querySelector('.spinner-text').textContent = `${percent}%`;
+                }
+            },
+            // Error callback
+            (error) => {
+                console.error(`[Token Load] Error loading ${name}:`, error);
+                if (currentTry < maxRetries) {
+                    console.log(`[Token Load] Retrying ${name} in 1s...`);
+                    setTimeout(attemptLoad, 1000);
+                } else {
+                    console.error(`[Token Load] Failed to load ${name} after ${maxRetries} tries`);
+                    if (btn) hideButtonSpinner(btn);
+                }
+            }
+        );
+        
+        // Set timeout to prevent infinite loading
+        setTimeout(() => {
+            if (btn && btn.querySelector('.spinner-container')) {
+                console.error(`[Token Load] ${name} load timed out after ${timeout}ms`);
+                hideButtonSpinner(btn);
+            }
+        }, timeout);
+    }
+    
+    // Start loading process
+    if (btn) showButtonSpinner(btn);
+    attemptLoad();
+}
+
 // --- Patch: Animation mixer update for all tokens (including helicopter rotor) ---
 function updateAllTokenMixers(delta) {
     if (!window.loadedTokenModels) return;
@@ -743,9 +803,9 @@ function animate() {
     }
     requestAnimationFrame(animate);
 }
+
 if (!_origAnimate) {
     requestAnimationFrame(animate);
-}
 }
 
 function removeCircularReferences() {
@@ -1057,10 +1117,14 @@ import {
 
 // Initialize the GLTFLoader
 // Enable DRACO compression for faster .glb loading
+// Initialize GLTF and DRACO loaders if not already done
+if (!window._dracoLoader) {
+    window._dracoLoader = new DRACOLoader();
+    window._dracoLoader.setDecoderPath('./libs/draco/');
+}
+
 const loader = new GLTFLoader();
-const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath('./libs/draco/');
-loader.setDRACOLoader(dracoLoader);
+loader.setDRACOLoader(window._dracoLoader);
     // console.log('[DRACO] DRACOLoader enabled for GLTFLoader'); // Suppressed
 
 // Register the KHR_materials_pbrSpecularGlossiness extension
