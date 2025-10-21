@@ -639,7 +639,7 @@ const tokenModels = [
     { name: 'Football', path: 'Models/Football/football.glb', scale: [0.1, 0.1, 0.1] },
     { name: 'Burger', path: 'Models/Cheeseburger/cheeseburger.glb', scale: [3.5, 3.5, 3.5] },
     { name: 'Nike', path: 'Models/Shoe/shoe.glb', scale: [1.5, 1.5, 1.5] },
-    { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.008, 0.008, 0.008], height: 1.5, needsAnimSetup: true }
+    { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.002, 0.002, 0.002], height: 0.8, needsAnimSetup: true, rotation: [0, Math.PI, 0] }
 ];
 
 function loadTokenModelByName(name, scene, onLoaded) {
@@ -654,6 +654,10 @@ function loadTokenModelByName(name, scene, onLoaded) {
     const maxRetries = model.retries || 3;
     const timeout = model.timeout || 15000;
     let currentTry = 0;
+    
+    // Pre-configure animation settings
+    const isWomanModel = name.toLowerCase() === 'woman';
+    let idleAction = null, walkAction = null;
     
     function attemptLoad() {
         currentTry++;
@@ -3407,9 +3411,11 @@ function closePropertyUI() {
         // Also remove minigame if present
         const minigame = document.getElementById('minigame-container');
         if (minigame) minigame.remove();
-        // Always reset turn flag and end turn after closing property UI
+        // Always reset turn flag and complete the current turn after closing property UI
         isTurnInProgress = false;
-        if (typeof endTurn === 'function') {
+        if (typeof completeCurrentTurn === 'function') {
+            completeCurrentTurn();
+        } else if (typeof endTurn === 'function') {
             endTurn();
         }
     }, 300);
@@ -3953,7 +3959,7 @@ function drawCard(cardType) {
     if (isCurrentPlayerAI()) {
         console.log(`AI landed on ${cardType} and drew the card: "${selectedCard}".`);
         handleCardEffect(selectedCard, currentPlayer, () => {
-            endTurn(); // Ensure the AI's turn ends after handling the card
+            completeCurrentTurn(); // Ensure the AI's turn ends after handling the card
         });
         return;
     }
@@ -3987,7 +3993,8 @@ function drawCard(cardType) {
         setTimeout(() => {
             document.body.removeChild(overlay);
             handleCardEffect(selectedCard, currentPlayer, () => {
-                endTurn(); // Ensure the human player's turn ends after handling the card
+                // Use completeCurrentTurn to ensure flags are cleared and movement finished
+                completeCurrentTurn();
             });
         }, 300);
     };
@@ -3999,7 +4006,8 @@ function drawCard(cardType) {
         overlay.classList.add('fade-out');
         setTimeout(() => {
             document.body.removeChild(overlay);
-            endTurn(); // End the turn when close button is clicked
+            // Ensure consistent clearing of flags
+            completeCurrentTurn();
         }, 300);
     };
 
@@ -4719,7 +4727,7 @@ function showJailUI(player) {
     if (isCurrentPlayerAI()) {
         console.log("AI landed on Jail. Skipping Jail UI for the player.");
         setTimeout(() => {
-            endTurn(); // Automatically end the turn for AI
+            completeCurrentTurn(); // Automatically end the turn for AI
         }, 1500);
         return;
     }
@@ -5663,13 +5671,21 @@ function validateTurnOrder() {
 }
 
 function endTurn() {
-    console.log(`[DEBUG] endTurn called. isTurnInProgress: ${isTurnInProgress}`);
-    // Only proceed if turn is NOT in progress
-    if (isTurnInProgress) {
-        console.log("Turn is still in progress. Ignoring endTurn call.");
+    console.log(`[DEBUG] endTurn called. isTurnInProgress: ${isTurnInProgress}, isTokenMoving: ${isTokenMoving}`);
+    // If a token is actively moving, delay ending the turn until movement completes
+    if (typeof isTokenMoving !== 'undefined' && isTokenMoving) {
+        console.log('[DEBUG] endTurn called while token is moving. Retrying in 500ms.');
+        setTimeout(() => {
+            try {
+                endTurn();
+            } catch (e) {
+                console.error('Error retrying endTurn:', e);
+            }
+        }, 500);
         return;
     }
 
+    // Proceed with ending the turn even if isTurnInProgress is still true
     // Enhanced turn ended log
     const ord = ordinal[currentPlayerIndex] || `${currentPlayerIndex + 1}th`;
     console.log(`${ord} player turn ended`);
@@ -5785,6 +5801,32 @@ function endTurn() {
                 controls.update();
             }
         }, 400);
+    }
+}
+
+// Helper to finish the current turn and prepare for the next one
+function completeCurrentTurn() {
+    // Ensure movement completed
+    if (typeof isTokenMoving !== 'undefined' && isTokenMoving) {
+        console.log('[completeCurrentTurn] Movement in progress; will retry in 500ms');
+        setTimeout(completeCurrentTurn, 500);
+        return;
+    }
+
+    // Reset turn flags
+    isTurnInProgress = false;
+    hasTakenAction = false;
+    hasRolledDice = false;
+    hasMovedToken = false;
+    hasHandledProperty = false;
+    hasDrawnCard = false;
+    isAIProcessing = false;
+
+    // Trigger endTurn to advance to next player
+    try {
+        endTurn();
+    } catch (e) {
+        console.error('[completeCurrentTurn] Error calling endTurn:', e);
     }
 }
 
@@ -7251,7 +7293,8 @@ function showGoToJailUI(player) {
     continueButton.onclick = () => {
         goToJail(player);
         closePopup(overlay);
-        endTurn(); // End the turn after sending the player to jail
+        if (typeof completeCurrentTurn === 'function') completeCurrentTurn();
+        else endTurn(); // End the turn after sending the player to jail
     };
 
     buttonContainer.appendChild(continueButton);
@@ -7477,7 +7520,8 @@ function handleSpecialSpace(player, property) {
             break;
         case "FREE PARKING":
             showFeedback("Free Parking - Take a break!");
-            endTurn(); // End the turn immediately
+            if (typeof completeCurrentTurn === 'function') completeCurrentTurn();
+            else endTurn(); // End the turn immediately
             break;
         default:
             console.error(`Unhandled special space: ${property.name}`);
@@ -8252,7 +8296,8 @@ function goToJail(player) {
     }
 
     showFeedback(`${player.name} is sent to Jail!`);
-    endTurn(); // End the turn immediately
+    if (typeof completeCurrentTurn === 'function') completeCurrentTurn();
+    else endTurn(); // End the turn immediately
 }
 
 function useGetOutOfJailFreeCard(player) {
