@@ -1496,6 +1496,27 @@ function ensureButtonSpinner(btn) {
         btn.appendChild(spinner);
     }
 }
+// Helper to find token button with case-insensitive matching
+function findTokenButton(tokenName) {
+    if (!tokenName) return null;
+    // Try various case variations and partial matches
+    const selectors = [
+        `button[data-token="${tokenName}"]`,
+        `button[data-token="${tokenName.toLowerCase()}"]`,
+        `button[data-token="${tokenName.toUpperCase()}"]`,
+        `button[data-token="TopHat"]`, // Special case for "Hat"
+        ...Array.from(document.querySelectorAll('button[data-token]'))
+            .filter(btn => btn.getAttribute('data-token').toLowerCase().includes(tokenName.toLowerCase()))
+            .map(btn => `button[data-token="${btn.getAttribute('data-token')}"]`)
+    ];
+    
+    for (const selector of selectors) {
+        const btn = document.querySelector(selector);
+        if (btn) return btn;
+    }
+    return null;
+}
+
 function showButtonSpinner(btn) {
     if (!btn) return;
     ensureButtonSpinner(btn);
@@ -1726,8 +1747,25 @@ window.addEventListener('DOMContentLoaded', () => {
         return new Promise(async (resolve, reject) => {
             try {
                 if (!tokenName) return reject(new Error('tokenName required'));
-                const modelInfo = tokenModels.find(m => window.normalizeModelKey(m.name) === window.normalizeModelKey(tokenName) || m.name.toLowerCase() === String(tokenName).toLowerCase());
-                if (!modelInfo) return reject(new Error('Model info not found for ' + tokenName));
+                
+                // Robust token name matching - try several variations
+                const normalizedInput = window.normalizeModelKey(tokenName);
+                const modelInfo = tokenModels.find(m => {
+                    // Try exact match first
+                    if (m.name === tokenName) return true;
+                    // Try normalized key match
+                    if (window.normalizeModelKey(m.name) === normalizedInput) return true;
+                    // Try case-insensitive match
+                    if (m.name.toLowerCase() === String(tokenName).toLowerCase()) return true;
+                    // Try partial match (e.g., "Hat" should match "TopHat")
+                    if (m.name.toLowerCase().includes(String(tokenName).toLowerCase())) return true;
+                    return false;
+                });
+
+                if (!modelInfo) {
+                    console.error('Failed to find model. Input:', tokenName, 'Normalized:', normalizedInput, 'Available:', tokenModels.map(m => m.name));
+                    return reject(new Error('Model info not found for ' + tokenName));
+                }
 
                 const key = window.normalizeModelKey(modelInfo.name);
 
@@ -11390,6 +11428,10 @@ function createTokens(callback) {
 
         // Lazy load model on click: this keeps UI responsive on slow machines
         btn.addEventListener('click', async () => {
+            const normalizedName = tokenModels.find(m => 
+                window.normalizeModelKey(m.name) === window.normalizeModelKey(name) ||
+                m.name.toLowerCase().includes(name.toLowerCase())
+            )?.name || name;
             console.log('[MP DEBUG] Token button clicked (lazy-load):', name);
             // Debounce: ignore clicks while this button is loading
             if (btn.disabled || btn._loading) return;
@@ -11402,7 +11444,7 @@ function createTokens(callback) {
             }, 60000);
             try {
                 // Immediately show a small low-detail placeholder so the player sees feedback
-                const placeholder = createLowDetailPlaceholder(name);
+                const placeholder = createLowDetailPlaceholder(normalizedName);
                 const localPlayer = playerList.find(p => p.id === currentPlayerId) || players[currentPlayerIndex];
                 if (localPlayer) {
                     // remove any previous selectedToken from scene
