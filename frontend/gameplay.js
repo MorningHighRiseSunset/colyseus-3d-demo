@@ -463,6 +463,36 @@ function playWalkAnimation(token) {
 
 function playIdleAnimation(token) {
     if (!token || !token.userData) return;
+    
+    // Special handling for Woman model
+    if (token.userData.tokenName === "woman") {
+        console.log('Setting up woman idle animation...');
+        
+        // Safety cleanup - stop all actions first
+        if (token.userData.mixer) {
+            token.userData.mixer.stopAllAction();
+        }
+        
+        // Play idle animation if available
+        if (token.userData.idleAction) {
+            token.userData.idleAction.reset();
+            token.userData.idleAction.setEffectiveTimeScale(1);
+            token.userData.idleAction.setEffectiveWeight(1);
+            token.userData.idleAction.fadeIn(0.5);
+            token.userData.idleAction.play();
+            
+            if (token.userData.mixer) {
+                token.userData.mixer.update(0);
+            }
+            console.log('Started woman idle animation');
+        }
+        
+        // Ensure proper rotation and scale
+        token.rotation.set(0, 0, 0);
+        return;
+    }
+    
+    // Handle other models
     if (token.userData.actions) {
         token.userData.actions.forEach(action => {
             if (action._clip && action._clip.name.toLowerCase().includes('idle')) {
@@ -604,11 +634,11 @@ import { DRACOLoader } from './libs/DRACOLoader.js';
 const tokenModels = [
     { name: 'RollsRoyce', path: 'Models/RollsRoyce/rollsRoyceCarAnim.glb', scale: [0.9, 0.9, 0.9] },
     { name: 'Helicopter', path: 'Models/Helicopter/helicopter.glb', scale: [0.01, 0.01, 0.01] },
-    { name: 'TopHat', path: 'Models/TopHat/tophat.glb', scale: [0.5, 0.5, 0.5] },
+    { name: 'TopHat', path: 'Models/TopHat/tophat.glb', scale: [0.5, 0.5, 0.5], retries: 3, timeout: 20000 },
     { name: 'Football', path: 'Models/Football/football.glb', scale: [0.1, 0.1, 0.1] },
     { name: 'Burger', path: 'Models/Cheeseburger/cheeseburger.glb', scale: [3.5, 3.5, 3.5] },
     { name: 'Nike', path: 'Models/Shoe/shoe.glb', scale: [1.5, 1.5, 1.5] },
-    { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.02, 0.02, 0.02], height: 3.0 }
+    { name: 'Woman', path: 'Models/WhiteGirlIdle/WhiteGirlIdle.glb', scale: [0.008, 0.008, 0.008], height: 1.5, needsAnimSetup: true }
 ];
 
 function loadTokenModelByName(name, scene, onLoaded) {
@@ -643,7 +673,30 @@ function loadTokenModelByName(name, scene, onLoaded) {
         if (gltf.animations && gltf.animations.length > 0) {
             const mixer = new THREE.AnimationMixer(gltf.scene);
             const actions = gltf.animations.map(clip => mixer.clipAction(clip));
-            actions.forEach(action => action.play());
+            
+            // Special handling for Woman model animations
+            if (name.toLowerCase() === 'woman') {
+                const idleClip = gltf.animations.find(clip => clip.name.toLowerCase().includes('idle')) || gltf.animations[0];
+                const walkClip = gltf.animations.find(clip => clip.name.toLowerCase().includes('walk'));
+                
+                if (idleClip) {
+                    const idleAction = mixer.clipAction(idleClip);
+                    gltf.scene.userData.idleAction = idleAction;
+                    idleAction.play(); // Start idle animation by default
+                }
+                
+                if (walkClip) {
+                    const walkAction = mixer.clipAction(walkClip);
+                    gltf.scene.userData.walkAction = walkAction;
+                    // Don't play walk animation yet
+                }
+                
+                gltf.scene.userData.walkMixer = mixer;
+            } else {
+                // For other models, play all animations
+                actions.forEach(action => action.play());
+            }
+            
             gltf.scene.userData.mixer = mixer;
             gltf.scene.userData.actions = actions;
             gltf.scene.userData.tokenName = name.toLowerCase();
@@ -829,8 +882,20 @@ function assignSelectedTokenForPlayer(player) {
         if (player.token && player.token.toLowerCase() === 'woman') {
             tokenModel.rotation.set(0, 0, 0);
             tokenModel.position.set(0, getTokenHeight(player.token), 0);
+            
+            // Ensure correct scale
+            const modelInfo = tokenModels.find(m => m.name.toLowerCase() === 'woman');
+            if (modelInfo && modelInfo.scale) {
+                tokenModel.scale.set(...modelInfo.scale);
+            }
+            
+            // Setup animations
+            if (tokenModel.userData.mixer) {
+                tokenModel.userData.mixer.stopAllAction();
+            }
+            
             player.selectedToken = tokenModel;
-            playIdleAnimation(tokenModel);
+            playIdleAnimation(tokenModel); // This will handle animation setup
         } else {
             tokenModel.position.set(0, getTokenHeight(player.token), 0);
             player.selectedToken = tokenModel;
@@ -1525,9 +1590,16 @@ function showButtonSpinner(btn) {
     btn.disabled = true;
 }
 function hideButtonSpinner(btn) {
-    if (!btn) return;
+    if (!btn) {
+        // Try to find button by token name if btn is a string
+        if (typeof btn === 'string') {
+            btn = findTokenButton(btn);
+        }
+        if (!btn) return;
+    }
     const spinner = btn.querySelector('.token-spinner');
     if (spinner) spinner.style.display = 'none';
+    btn._loading = false; // Reset loading state
     btn.disabled = false;
 }
 
@@ -11462,7 +11534,23 @@ function createTokens(callback) {
                 } catch (e) {}
 
                 // load the model with a bit more patience for manual clicks
-                const model = await window.loadTokenModel(name, { timeout: 15000, retries: 2 }).catch(err => { throw err; });
+                console.log(`[Token Load] Starting load for ${name}...`);
+                const model = await window.loadTokenModel(name, { 
+                    timeout: 15000, 
+                    retries: 2,
+                    onProgress: (event) => {
+                        if (event.lengthComputable) {
+                            const percent = Math.round((event.loaded / event.total) * 100);
+                            const pct = btn.querySelector('.token-spinner-percent');
+                            if (pct) pct.textContent = `${percent}%`;
+                        }
+                    }
+                }).catch(err => { 
+                    console.error(`[Token Load] Failed to load ${name}:`, err);
+                    throw err; 
+                });
+                console.log(`[Token Load] Successfully loaded ${name}`);
+                
                 // Assign selected token to current player (follow existing flow)
                 if (socket && currentRoomId && currentPlayerId) {
                     socket.emit('selectToken', { roomId: currentRoomId, playerId: currentPlayerId, token: name });
@@ -11496,10 +11584,23 @@ function createTokens(callback) {
                 btn.classList.add('picked');
             } catch (err) {
                 console.error('Failed to load token model for', name, err);
+                // Clean up placeholder if it was added
+                if (localPlayer && localPlayer.selectedToken && typeof scene !== 'undefined') {
+                    try { 
+                        scene.remove(localPlayer.selectedToken);
+                        localPlayer.selectedToken = null;
+                    } catch (e) {}
+                }
                 clearTimeout(autoHideTimer);
-                hideButtonSpinner(btn);
-                btn._loading = false;
-                if (readyStatus) readyStatus.textContent = `Failed to load ${name}`;
+                // Force cleanup spinner and button state
+                if (btn) {
+                    hideButtonSpinner(btn);
+                    btn._loading = false;
+                    btn.classList.remove('picked');
+                    const pct = btn.querySelector('.token-spinner-percent');
+                    if (pct) pct.textContent = '';
+                }
+                if (readyStatus) readyStatus.textContent = `Failed to load ${name}: ${err.message || 'Unknown error'}`;
             }
         });
 
