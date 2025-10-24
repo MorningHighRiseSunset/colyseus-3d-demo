@@ -777,40 +777,7 @@ function updateAllTokenMixers(delta) {
     });
 }
 
-// Patch main render loop to call updateAllTokenMixers
-const _origAnimate = typeof animate === 'function' ? animate : null;
-function animate() {
-    const delta = clock.getDelta();
-    players.forEach(player => {
-        if (player.selectedToken && player.selectedToken.userData.mixer) {
-            player.selectedToken.userData.mixer.update(delta);
-        }
-        if (player.ghostToken && player.ghostToken.userData.mixer) {
-            player.ghostToken.userData.mixer.update(delta);
-        }
-    });
-    updateAllTokenMixers(delta);
-
-    // --- Camera follow for current turn's token ---
-    const turnPlayer = players[currentPlayerIndex];
-    if (turnPlayer) {
-        if (turnPlayer.id === currentPlayerId && turnPlayer.selectedToken) {
-            followCameraDuringMove(turnPlayer.selectedToken);
-        } else if (turnPlayer.ghostToken) {
-            followCameraDuringMove(turnPlayer.ghostToken);
-        }
-    }
-
-    if (_origAnimate) _origAnimate();
-    else if (typeof renderer !== 'undefined' && typeof scene !== 'undefined' && typeof camera !== 'undefined') {
-        renderer.render(scene, camera);
-    }
-    requestAnimationFrame(animate);
-}
-
-if (!_origAnimate) {
-    requestAnimationFrame(animate);
-}
+// Note: main animation loop is defined later in this file. Removed duplicate earlier definition to avoid redeclaration.
 
 function removeCircularReferences() {
   const seen = new WeakSet();
