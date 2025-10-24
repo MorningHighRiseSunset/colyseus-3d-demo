@@ -7899,9 +7899,42 @@ function init() {
     // Follow camera
     followCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
 
-    // Create renderer with graceful fallback if WebGL context cannot be created
+    // Create renderer with explicit WebGL2 -> WebGL1 fallback and graceful error UI
+    function createRendererWithFallback() {
+        const canvas = document.createElement('canvas');
+        const contextAttributes = {
+            antialias: true,
+            alpha: false,
+            preserveDrawingBuffer: false,
+            powerPreference: 'default',
+            failIfMajorPerformanceCaveat: false
+        };
+
+        // Try WebGL2 first, then WebGL1
+        let gl = null;
+        try {
+            gl = canvas.getContext('webgl2', contextAttributes);
+            if (gl) {
+                console.log('[Renderer] Created WebGL2 context');
+                return { canvas, gl, version: 'webgl2' };
+            }
+        } catch (e) { /* ignore */ }
+
+        try {
+            gl = canvas.getContext('webgl', contextAttributes) || canvas.getContext('experimental-webgl', contextAttributes);
+            if (gl) {
+                console.log('[Renderer] Created WebGL (1) context');
+                return { canvas, gl, version: 'webgl' };
+            }
+        } catch (e) { /* ignore */ }
+
+        throw new Error('Could not create a WebGL context (tried WebGL2 and WebGL).');
+    }
+
     try {
-        renderer = new THREE.WebGLRenderer({ antialias: true });
+        const ctx = createRendererWithFallback();
+        // Pass the created context and canvas into the renderer so Three uses the working context
+        renderer = new THREE.WebGLRenderer({ canvas: ctx.canvas, context: ctx.gl, antialias: true, powerPreference: 'default' });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
