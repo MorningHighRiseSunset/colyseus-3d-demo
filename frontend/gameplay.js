@@ -1972,8 +1972,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
                         // return a fresh clone for immediate use
                         const outClone = (hasSkinned && typeof SkeletonUtils !== 'undefined') ? SkeletonUtils.clone(stored) : stored.clone(true);
-                        if (typeof hideTokenSpinner === 'function') hideTokenSpinner(tokenName);
-                        // dispatch event that one model loaded
+                        if (typeof hideTokenSpinner === 'function') hideTokenSpinner(key);
+                        // dispatch event that one model loaded (include normalized key)
                         try { window.dispatchEvent(new CustomEvent('tokenModelLoaded', { detail: { name: modelInfo.name, key } })); } catch (e) {}
                         return resolve(outClone);
                     } catch (err) {
@@ -2008,8 +2008,10 @@ window.addEventListener('DOMContentLoaded', () => {
     // Auto-hide stale per-button spinners after 60s to avoid persistent spinning UI
     window.addEventListener('tokenModelLoaded', (e) => {
         // when any model finishes, ensure its spinner is hidden
+        const key = e && e.detail && e.detail.key;
         const name = e && e.detail && e.detail.name;
-        if (name && typeof hideTokenSpinner === 'function') hideTokenSpinner(name);
+        if (key && typeof hideTokenSpinner === 'function') hideTokenSpinner(key);
+        else if (name && typeof hideTokenSpinner === 'function') hideTokenSpinner(name);
     });
 
     // Background prefetcher: non-blocking attempt to load models in the background
@@ -3693,14 +3695,14 @@ function showTokenSpinner(tokenName) {
     }
 
     // Prevent duplicate overlays
-    if (document.getElementById(`spinner-${tokenName}`)) return;
+    if (document.getElementById(`spinner-${normalized}`)) return;
 
     const spinner = document.createElement('div');
     spinner.className = 'token-overlay-spinner';
-    spinner.id = `spinner-${tokenName}`;
+    spinner.id = `spinner-${normalized}`;
     spinner.innerHTML = `
         <div class="spinner"></div>
-        <div style="font-size:13px;margin-top:8px">${tokenName.replace(/^\w/, c => c.toUpperCase())} loading...</div>
+        <div style="font-size:13px;margin-top:8px">${String(tokenName).replace(/^\w/, c => c.toUpperCase())} loading...</div>
     `;
     spinner.style.position = 'fixed';
     spinner.style.top = '50%';
@@ -3738,7 +3740,7 @@ function hideTokenSpinner(tokenName) {
     if (btn) {
         hideButtonSpinner(btn);
     }
-    const overlay = document.getElementById(`spinner-${tokenName}`);
+    const overlay = document.getElementById(`spinner-${normalized}`);
     if (overlay) overlay.remove();
 }
 
