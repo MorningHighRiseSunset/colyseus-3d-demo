@@ -1722,6 +1722,21 @@ if (!document.getElementById('token-button-base-style')) {
     document.head.appendChild(css);
 }
 
+// Hide native scrollbars visually while preserving scroll functionality
+if (!document.getElementById('global-hide-scrollbars')) {
+    const s = document.createElement('style');
+    s.id = 'global-hide-scrollbars';
+    s.textContent = `
+    /* Firefox */
+    html, body { scrollbar-width: none; -ms-overflow-style: none; }
+    /* WebKit */
+    html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; }
+    /* Ensure no accidental horizontal overflow from 100vw elements */
+    body { overflow-x: hidden; }
+    `;
+    document.head.appendChild(s);
+}
+
 function addTokenTooltips() {
     const tokenButtons = document.querySelectorAll('.token-button');
     tokenButtons.forEach(btn => {
