@@ -410,7 +410,11 @@ function showRendererErrorOverlay(reason) {
         overlay.style.right = '12px';
         overlay.style.zIndex = 99999;
         overlay.style.maxWidth = '420px';
-        overlay.style.padding = '16px 18px';
+    overlay.style.padding = '16px 18px';
+    overlay.style.maxHeight = 'calc(100vh - 24px)';
+    overlay.style.overflow = 'auto';
+    overlay.style.whiteSpace = 'normal';
+    overlay.style.boxSizing = 'border-box';
         overlay.style.background = 'rgba(0,0,0,0.88)';
         overlay.style.color = '#fff';
         overlay.style.borderRadius = '8px';
@@ -427,7 +431,8 @@ function showRendererErrorOverlay(reason) {
             <div style="margin-top:8px;text-align:right"><button id="webgl-error-dismiss" style="background:#fff;color:#000;border:0;padding:6px 10px;border-radius:4px;cursor:pointer">Dismiss</button></div>
         `;
         document.body.appendChild(overlay);
-        document.getElementById('webgl-error-dismiss').onclick = () => overlay.remove();
+    const dismiss = document.getElementById('webgl-error-dismiss');
+    if (dismiss) dismiss.onclick = () => overlay.remove();
     } catch (e) { console.warn('Failed to show WebGL overlay', e && e.message); }
 }
 // --- Woman Animation Helpers ---
@@ -1732,7 +1737,7 @@ if (!document.getElementById('global-hide-scrollbars')) {
     /* WebKit */
     html::-webkit-scrollbar, body::-webkit-scrollbar { width: 0; height: 0; }
     /* Ensure no accidental horizontal overflow from 100vw elements */
-    body { overflow-x: hidden; }
+    body { overflow-x: hidden; background: #1a1a1a; color: #eee; }
     `;
     document.head.appendChild(s);
 }
