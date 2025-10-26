@@ -1919,13 +1919,25 @@ window.addEventListener('DOMContentLoaded', () => {
 
                                     const startTime = Date.now();
                                     let timedOut = false;
-                                    const timer = setTimeout(() => {
-                                        timedOut = true;
-                                        rej(new Error('GLTF load timeout'));
-                                    }, timeout);
+                                    let timer;
+                                    
+                                    // Set initial timeout
+                                    const resetTimeout = () => {
+                                        clearTimeout(timer);
+                                        timer = setTimeout(() => {
+                                            timedOut = true;
+                                            rej(new Error('GLTF load timeout'));
+                                        }, Math.max(30000, timeout)); // Minimum 30s timeout
+                                    };
+                                    resetTimeout();
 
                                     const onProgress = (xhr) => {
                                         try {
+                                            // Reset timeout when we see progress
+                                            if (xhr && xhr.loaded > 0) {
+                                                resetTimeout();
+                                            }
+                                            
                                             if (options && typeof options.onProgress === 'function') {
                                                 const pct = xhr && xhr.total ? Math.round((xhr.loaded / xhr.total) * 100) : 0;
                                                 options.onProgress({ percent: pct, loaded: xhr.loaded, total: xhr.total });
@@ -7901,42 +7913,45 @@ function init() {
     // Follow camera
     followCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
 
-    // Create renderer with explicit WebGL2 -> WebGL1 fallback and graceful error UI
-    function createRendererWithFallback() {
+    // Create renderer with WebGL2->WebGL1 fallback and graceful error handling
+    try {
+        // Try WebGL2 first
         const canvas = document.createElement('canvas');
-        const contextAttributes = {
+        let gl = canvas.getContext('webgl2', {
             antialias: true,
             alpha: false,
-            preserveDrawingBuffer: false,
-            powerPreference: 'default',
+            powerPreference: 'low-power', // Better for integrated GPUs
             failIfMajorPerformanceCaveat: false
-        };
-
-        // Try WebGL2 first, then WebGL1
-        let gl = null;
-        try {
-            gl = canvas.getContext('webgl2', contextAttributes);
+        });
+        
+        // If WebGL2 fails, try WebGL1 with a modified Three.js setup
+        if (!gl) {
+            console.log('[Renderer] WebGL2 not available, trying WebGL1');
+            gl = canvas.getContext('webgl', {
+                antialias: true,
+                alpha: false,
+                powerPreference: 'low-power',
+                failIfMajorPerformanceCaveat: false
+            }) || canvas.getContext('experimental-webgl');
+            
             if (gl) {
-                console.log('[Renderer] Created WebGL2 context');
-                return { canvas, gl, version: 'webgl2' };
+                // Force Three.js to use WebGL1 mode
+                THREE.REVISION = '162'; // Last version with WebGL1 support
+                console.log('[Renderer] Using WebGL1 fallback mode');
             }
-        } catch (e) { /* ignore */ }
-
-        try {
-            gl = canvas.getContext('webgl', contextAttributes) || canvas.getContext('experimental-webgl', contextAttributes);
-            if (gl) {
-                console.log('[Renderer] Created WebGL (1) context');
-                return { canvas, gl, version: 'webgl' };
-            }
-        } catch (e) { /* ignore */ }
-
-        throw new Error('Could not create a WebGL context (tried WebGL2 and WebGL).');
-    }
-
-    try {
-        const ctx = createRendererWithFallback();
-        // Pass the created context and canvas into the renderer so Three uses the working context
-        renderer = new THREE.WebGLRenderer({ canvas: ctx.canvas, context: ctx.gl, antialias: true, powerPreference: 'default' });
+        }
+        
+        if (!gl) {
+            throw new Error('Could not create WebGL context');
+        }
+        
+        // Create renderer using the established context
+        renderer = new THREE.WebGLRenderer({
+            canvas: canvas,
+            context: gl,
+            antialias: true,
+            powerPreference: 'low-power'
+        });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
