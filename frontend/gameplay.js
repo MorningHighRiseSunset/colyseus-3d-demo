@@ -953,11 +953,20 @@ function safeAssignSelectedTokensToPlayers(contextMsg = '') {
     // If models are not ready, set up a one-time event to assign again when ready
     if (!window.tokenModelsReady) {
         if (!window._tokenModelsReadyWarned) {
-            console.warn(`[Token Loader] safeAssignSelectedTokensToPlayers: Models NOT ready yet. Waiting. Triggered by: ${contextMsg}`);
+            // Only surface as a warning when DEBUG is explicitly enabled. Otherwise use debug-level logging.
+            if (typeof DEBUG !== 'undefined' && DEBUG) {
+                console.warn(`[Token Loader] safeAssignSelectedTokensToPlayers: Models NOT ready yet. Waiting. Triggered by: ${contextMsg}`);
+            } else if (console.debug) {
+                console.debug(`[Token Loader] (debug) safeAssignSelectedTokensToPlayers: Models not ready yet. Triggered by: ${contextMsg}`);
+            }
             window._tokenModelsReadyWarned = true;
         }
         window.addEventListener('tokenModelsReady', () => {
-            console.log(`[Token Loader] safeAssignSelectedTokensToPlayers: Models now ready (event). Triggered by: ${contextMsg}`);
+            if (typeof DEBUG !== 'undefined' && DEBUG) {
+                console.log(`[Token Loader] safeAssignSelectedTokensToPlayers: Models now ready (event). Triggered by: ${contextMsg}`);
+            } else if (console.info) {
+                console.info(`[Token Loader] Models ready (event).`);
+            }
             assignSelectedTokensToPlayers();
         }, { once: true });
     }
