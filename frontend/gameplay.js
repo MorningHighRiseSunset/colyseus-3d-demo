@@ -635,7 +635,8 @@ Object.defineProperty(window, 'loadedTokenModels', {
 const tokenModels = [
     { name: 'RollsRoyce', path: 'Models/RollsRoyce/rollsRoyceCarAnim.glb', scale: [0.9, 0.9, 0.9] },
     { name: 'Helicopter', path: 'Models/Helicopter/helicopter.glb', scale: [0.01, 0.01, 0.01] },
-    { name: 'TopHat', path: 'Models/TopHat/tophat.glb', scale: [0.5, 0.5, 0.5], retries: 3, timeout: 20000 },
+    // TopHat temporarily disabled in token selection UI (slow loading / causes UI issues on older hardware)
+    // { name: 'TopHat', path: 'Models/TopHat/tophat.glb', scale: [0.5, 0.5, 0.5], retries: 3, timeout: 20000 },
     { name: 'Football', path: 'Models/Football/football.glb', scale: [0.1, 0.1, 0.1] },
     { name: 'Burger', path: 'Models/Cheeseburger/cheeseburger.glb', scale: [3.5, 3.5, 3.5] },
     { name: 'Nike', path: 'Models/Shoe/shoe.glb', scale: [1.5, 1.5, 1.5] },
