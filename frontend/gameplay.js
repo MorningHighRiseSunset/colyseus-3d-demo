@@ -11569,7 +11569,7 @@ function createTokens(callback) {
         'Nike',
         'Football',
         'Burger',
-        'Hat',
+        // 'Hat' removed from selection UI temporarily
         'Woman'
     ];
     const grid = document.getElementById('tokenGrid');
