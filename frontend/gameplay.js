@@ -11605,13 +11605,9 @@ function createTokens(callback) {
     }
     // Apply token-grid class for layout rules
     grid.classList.add('token-grid');
-    // Ensure token grid lays out buttons in rows with wrapping and consistent gaps
-    grid.style.display = grid.style.display || 'flex';
-    grid.style.flexWrap = grid.style.flexWrap || 'wrap';
-    grid.style.gap = grid.style.gap || '10px';
-    grid.style.alignContent = grid.style.alignContent || 'flex-start';
-    grid.style.justifyContent = grid.style.justifyContent || 'center';
-    grid.style.overflowY = grid.style.overflowY || 'auto';
+    // Prefer CSS grid rules defined in `gameplay.css`. Only set minimal inline fallbacks
+    grid.style.display = grid.style.display || '';
+    grid.style.gap = grid.style.gap || '12px';
     grid.style.overflowX = 'hidden';
     grid.style.maxWidth = grid.style.maxWidth || '420px';
     grid.style.padding = grid.style.padding || '8px';
@@ -11626,21 +11622,21 @@ function createTokens(callback) {
         const btn = document.createElement('button');
         btn.className = 'token-button';
         btn.setAttribute('data-token-name', name);
-    // Use CSS for sizing so grid can layout correctly (avoid forcing large min widths which cause horizontal scroll)
+    // Use CSS for sizing so grid can layout correctly; ensure vertical stacking inside button
     btn.style.display = 'flex';
-    btn.style.flexDirection = 'row';
+    btn.style.flexDirection = 'column';
     btn.style.alignItems = 'center';
-    btn.style.justifyContent = 'flex-start';
+    btn.style.justifyContent = 'center';
     btn.style.boxSizing = 'border-box';
         // Add token image using lowercase for lookup
         const img = document.createElement('img');
         img.src = getTokenImageUrl ? getTokenImageUrl(name.toLowerCase()) : '';
         img.alt = name;
-    img.style.width = '48px';
-    img.style.height = '48px';
-    img.style.marginRight = '8px';
+    img.style.width = '56px';
+    img.style.height = '56px';
+    img.style.marginBottom = '8px';
     img.style.objectFit = 'contain';
-    img.style.flex = '0 0 48px';
+    img.style.flex = '0 0 56px';
         btn.appendChild(img);
     // Add token name (dedicated label for styling)
     const label = document.createElement('div');
