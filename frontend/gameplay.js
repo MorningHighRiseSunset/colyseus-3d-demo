@@ -5915,14 +5915,15 @@ function initializePlayers() {
 
 function createPlayerTokenSelectionUI(playerIndex) {
     // Token image mapping (using frontend/images/)
+    // Use lowercase keys so lookups with token.name.toLowerCase() succeed
     const tokenImages = {
-        "RollsRoyce": "frontend/images/image-removebg-preview.png",
-        "Helicopter": "frontend/images/image-removebg-preview (1).png",
-        "TopHat": "frontend/images/image-removebg-preview (6).png",
-        "Football": "frontend/images/image-removebg-preview (7).png",
-        "Cheeseburger": "frontend/images/image-removebg-preview (9).png",
-        "Nike": "frontend/images/image-removebg-preview (10).png",
-        "Woman": "frontend/images/image-removebg-preview (8).png"
+        "rollsroyce": "frontend/images/image-removebg-preview.png",
+        "helicopter": "frontend/images/image-removebg-preview (1).png",
+        "tophat": "frontend/images/image-removebg-preview (6).png",
+        "football": "frontend/images/image-removebg-preview (7).png",
+        "cheeseburger": "frontend/images/image-removebg-preview (9).png",
+        "nike": "frontend/images/image-removebg-preview (10).png",
+        "woman": "frontend/images/image-removebg-preview (8).png"
     };
 
     // Create the token selection UI container
@@ -5951,15 +5952,16 @@ function createPlayerTokenSelectionUI(playerIndex) {
         tokenButton.style.margin = "4px";
         tokenButton.style.borderRadius = "8px";
         tokenButton.style.width = "150px";
-        tokenButton.style.height = "100px";
+    // Give extra height so image + label don't overlap/cut off on small viewports
+    tokenButton.style.height = "130px";
         tokenButton.style.cursor = "pointer";
 
         // Create token image (above title)
         const tokenImg = document.createElement("img");
         tokenImg.src = tokenImages[token.name.toLowerCase()] || "";
         tokenImg.alt = token.displayName;
-        tokenImg.style.width = "60px";
-        tokenImg.style.height = "50px";
+    tokenImg.style.width = "80px";
+    tokenImg.style.height = "60px";
         tokenImg.style.marginBottom = "8px";
         tokenImg.style.borderRadius = "4px";
         tokenImg.style.objectFit = "contain";
@@ -5969,13 +5971,16 @@ function createPlayerTokenSelectionUI(playerIndex) {
 
         // Create token name label (title)
         const tokenName = document.createElement("div");
-        tokenName.textContent = token.displayName;
-        tokenName.style.fontSize = "12px";
-        tokenName.style.fontWeight = "bold";
-        tokenName.style.textAlign = "center";
-        tokenName.style.color = players.some(player => player.tokenName === token.name) ? "#888" : "#fff";
-        tokenName.style.minHeight = "20px";
-        tokenName.style.maxWidth = "100%";
+    tokenName.textContent = token.displayName;
+    tokenName.style.fontSize = "13px";
+    tokenName.style.fontWeight = "bold";
+    tokenName.style.textAlign = "center";
+    tokenName.style.color = players.some(player => player.tokenName === token.name) ? "#888" : "#fff";
+    tokenName.style.minHeight = "24px"; // ensure enough room for two-line names
+    tokenName.style.maxWidth = "100%";
+    tokenName.style.whiteSpace = "normal";
+    tokenName.style.wordWrap = "break-word";
+    tokenName.style.overflow = "visible";
         tokenButton.appendChild(tokenName);
 
         // Create AI button
