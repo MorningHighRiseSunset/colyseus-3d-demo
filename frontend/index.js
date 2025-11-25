@@ -36,4 +36,13 @@ document.addEventListener('DOMContentLoaded', function() {
       window.location.href = 'lobby.html';
     };
   }
+
+  // Debug: keyboard shortcut to jump directly to gameplay for quick preview
+  document.addEventListener('keydown', function (e) {
+    // Ctrl+Shift+G to open gameplay directly (useful for VS Code preview)
+    if (e.ctrlKey && e.shiftKey && e.key && e.key.toLowerCase() === 'g') {
+      e.preventDefault();
+      window.location.href = 'gameplay.html';
+    }
+  });
 });

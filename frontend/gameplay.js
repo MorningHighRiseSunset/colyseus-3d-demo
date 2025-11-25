@@ -1,6 +1,38 @@
 import { DRACOLoader } from './libs/DRACOLoader.js';
 import { GLTFLoader } from './libs/GLTFLoader.js';
 
+// Lightweight device capability probe to enable low-quality fallbacks on weak hardware
+function detectLowEndDevice() {
+    try {
+        const ua = navigator.userAgent || '';
+        const isMobile = /Mobi|Android|iPhone|iPad/i.test(ua);
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return true; // no webgl -> treat as low-end
+        const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 0;
+        const maxVertexUniforms = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS) || 0;
+        // Heuristics: devices with small max texture size or small uniform limits are likely weak
+        if (isMobile || maxTextureSize < 4096 || maxVertexUniforms < 1024) return true;
+        return false;
+    } catch (e) {
+        return true;
+    }
+}
+
+// Global flag used throughout this script to enable lighter rendering/fallbacks
+window.lowQualityMode = detectLowEndDevice();
+
+// Optional: allow forcing a simple 2D canvas fallback via URL, without changing default behavior
+(function(){
+    try {
+        const params = new URLSearchParams(window.location.search);
+        window.canvasFallback = params.get('renderer') === 'canvas';
+        if (window.canvasFallback) console.log('[Renderer] Canvas fallback requested via URL param');
+    } catch (e) {
+        window.canvasFallback = false;
+    }
+})();
+
 // Turn counter for enhanced console logs
 const ordinal = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"];
 // --- Enable Testing Mode (auto) ---
@@ -672,6 +704,7 @@ function loadTokenModelByName(name, scene, onLoaded) {
         const loader = new GLTFLoader();
         const dracoLoader = new DRACOLoader();
         dracoLoader.setDecoderPath('./libs/draco/');
+        try { dracoLoader.preload(); } catch(e) { console.warn('[DRACO] preload failed', e && e.message); }
         loader.setDRACOLoader(dracoLoader);
         
         // Track loading progress
@@ -692,7 +725,11 @@ function loadTokenModelByName(name, scene, onLoaded) {
                             // Set proper material properties for better appearance
                             mat.roughness = mat.roughness || 0.5;
                             mat.metalness = mat.metalness || 0.5;
-                            mat.side = THREE.DoubleSide; // Render both sides
+                            mat.side = window.lowQualityMode ? THREE.FrontSide : THREE.DoubleSide;
+                            if (window.lowQualityMode) {
+                                mat.flatShading = true;
+                            }
+                            mat.needsUpdate = true;
                             // Enable shadow casting/receiving
                             child.castShadow = true;
                             child.receiveShadow = true;
@@ -2118,9 +2155,113 @@ window.addEventListener('DOMContentLoaded', () => {
     let roomId = urlParams.get('roomId') || urlParams.get('room');
     let playerId = urlParams.get('playerId') || urlParams.get('player');
     let playerName = urlParams.get('playerName');
+    const debugMode = urlParams.get('debug') === '1';
 
     if (!roomId || !playerId || roomId === 'undefined' || playerId === 'undefined') {
-        // If missing, redirect to game.html (queue)
+        // Debug mode: create mock game state for testing without server
+        if (debugMode) {
+            console.log('[DEBUG] Debug mode enabled. Simulating 2-player lobby flow...');
+            window.isMultiplayerMode = true;
+            // Provide a richer debug socket so multiplayer flows can be simulated locally
+            socket = window.socket = window.socket || (function(){
+                const handlers = {};
+                const readyStates = {};
+                return {
+                    _handlers: handlers,
+                    emit(event, payload) {
+                        console.log('[DEBUG socket.emit]', event, payload);
+                        // Simulate server reactions for key events
+                        if (event === 'selectToken') {
+                            // update local playerList and players
+                            const pid = payload.playerId || currentPlayerId;
+                            const token = payload.token;
+                            // update playerList entry
+                            const pl = playerList.find(p => p.id === pid);
+                            if (pl) pl.token = token;
+                            const main = players.find(p => p.id === pid);
+                            if (main) main.token = token;
+                            // notify listeners
+                            (handlers['playerSelectedToken'] || []).forEach(cb => cb({ playerId: pid, token }));
+                        }
+                        if (event === 'playerReady') {
+                            const pid = payload.playerId || currentPlayerId;
+                            readyStates[pid] = true;
+                            // Broadcast ready states
+                            (handlers['playerReadyStates'] || []).forEach(cb => cb(readyStates));
+                        }
+                        if (event === 'startGame') {
+                            // Simulate the server broadcasting gameStarted
+                            const hostName = (payload && payload.playerName) || 'Host';
+                            (handlers['gameStarted'] || []).forEach(cb => cb({ hostName }));
+                        }
+                    },
+                    on(event, cb) {
+                        handlers[event] = handlers[event] || [];
+                        handlers[event].push(cb);
+                        console.log('[DEBUG socket.on] registered', event);
+                    },
+                    off(event, cb) {
+                        if (!handlers[event]) return;
+                        handlers[event] = handlers[event].filter(fn => fn !== cb);
+                    },
+                    disconnect() { console.log('[DEBUG socket.disconnect]'); }
+                };
+            })();
+            
+            // Create mock players without tokens selected yet (they will select in UI)
+            players = [
+                { id: 'player1', name: 'You', money: 5000, token: null, selectedToken: null, currentPosition: 0, properties: [], isAI: false },
+                { id: 'player2', name: 'Player 2', money: 5000, token: null, selectedToken: null, currentPosition: 0, properties: [], isAI: false }
+            ];
+            currentPlayerId = 'player1';
+            currentPlayerIndex = 0;
+            playerList = players.map(p => ({ id: p.id, name: p.name }));
+            
+            // Show token selection UI
+            const tokenSelectionUI = document.getElementById('token-selection-ui');
+            if (tokenSelectionUI) {
+                console.log('[DEBUG] Showing token selection UI...');
+                tokenSelectionUI.style.display = 'flex';
+                // Ensure ready/start handlers and prepared button behavior are hooked for debug
+                try { if (typeof setupMultiplayerReadyUI === 'function') setupMultiplayerReadyUI(); } catch(e) { console.warn('setupMultiplayerReadyUI failed', e && e.message); }
+                try { if (typeof setupReadyUpButton === 'function') setupReadyUpButton(); } catch(e) { console.warn('setupReadyUpButton failed', e && e.message); }
+                
+                // Auto-select token for Player 1 after a short delay
+                setTimeout(() => {
+                    console.log('[DEBUG] Auto-selecting token for Player 1...');
+                    // Player 1 selects RollsRoyce
+                    const rollsRoyceBtn = document.querySelector('[data-token="RollsRoyce"]');
+                    if (rollsRoyceBtn) {
+                        rollsRoyceBtn.click();
+                        players[0].token = 'RollsRoyce';
+                    }
+                    
+                    // Trigger ready up for Player 1
+                    setTimeout(() => {
+                        console.log('[DEBUG] Triggering ready up for Player 1...');
+                        // Mark models as ready so start button can proceed
+                        window.tokenModelsReady = true;
+                        // Emit playerReady via debug socket (this will update ready states)
+                        if (socket && typeof socket.emit === 'function') {
+                            socket.emit('playerReady', { roomId: currentRoomId, playerId: currentPlayerId });
+                        }
+                        
+                        // After ready up, immediately trigger start game via socket so handlers run
+                        setTimeout(() => {
+                            console.log('[DEBUG] Emitting startGame via debug socket...');
+                            if (socket && typeof socket.emit === 'function') {
+                                socket.emit('startGame', { roomId: currentRoomId, playerId: currentPlayerId, playerName: playerList.find(p => p.id === currentPlayerId)?.name || 'Host' });
+                            } else if (typeof startGame === 'function') {
+                                startGame();
+                            }
+                        }, 500);
+                    }, 1000);
+                }, 2000);
+            }
+            return;
+        }
+        
+        // If missing and not debug mode, redirect to game.html (queue)
         alert('Missing game session info. Returning to queue.');
         window.location.href = 'game.html';
         return;
@@ -5501,8 +5642,10 @@ function setupLighting() {
     directionalLight.shadow.camera.right = 50;
     directionalLight.shadow.camera.top = 50;
     directionalLight.shadow.camera.bottom = -50;
-    directionalLight.shadow.mapSize.width = 2048;
-    directionalLight.shadow.mapSize.height = 2048;
+    // Reduce shadow map size on low-end devices to save GPU memory/time
+    const _shadowMapSize = window.lowQualityMode ? 512 : 2048;
+    directionalLight.shadow.mapSize.width = _shadowMapSize;
+    directionalLight.shadow.mapSize.height = _shadowMapSize;
     scene.add(directionalLight);
 
     const pointLights = [{
@@ -5535,7 +5678,7 @@ function createBoard() {
     const boardOffset = 0; // Center the board at origin
 
     const boardGeometry = new THREE.BoxGeometry(boardSize, 1, boardSize);
-    const boardMaterial = new THREE.MeshPhongMaterial({
+    const boardMaterial = window.lowQualityMode ? new THREE.MeshBasicMaterial({ color: 0x444444 }) : new THREE.MeshPhongMaterial({
         color: 0x444444,
         specular: 0x666666,
         shininess: 100,
@@ -7947,8 +8090,121 @@ function init() {
 
     // Follow camera
     followCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
+    // --- Canvas fallback implementation (non-destructive) ---
+    function initCanvasFallback() {
+        if (window._canvasFallbackInit) return;
+        window._canvasFallbackInit = true;
+        const dpi = window.devicePixelRatio || 1;
+        const cvs = document.createElement('canvas');
+        cvs.id = 'canvas-fallback';
+        cvs.style.position = 'fixed';
+        cvs.style.left = '0';
+        cvs.style.top = '0';
+        cvs.style.width = '100%';
+        cvs.style.height = '100%';
+        cvs.style.zIndex = 1000;
+        document.body.appendChild(cvs);
+        const ctx = cvs.getContext('2d');
+
+        function resize() {
+            cvs.width = Math.floor(window.innerWidth * dpi);
+            cvs.height = Math.floor(window.innerHeight * dpi);
+            ctx.setTransform(dpi, 0, 0, dpi, 0, 0);
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function drawBoard() {
+            ctx.fillStyle = '#1a1a1a';
+            ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
+            const size = Math.min(window.innerWidth, window.innerHeight) * 0.7;
+            const bx = (window.innerWidth - size) / 2;
+            const by = (window.innerHeight - size) / 2;
+            ctx.fillStyle = '#444';
+            ctx.fillRect(bx, by, size, size);
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(bx, by, size, size);
+        }
+
+        const _canvasImageCache = {};
+        function drawTokens() {
+            try {
+                if (!Array.isArray(players)) return;
+                const haveGetTokenImageUrl = typeof getTokenImageUrl === 'function';
+                const haveGetBoardSquarePosition = typeof getBoardSquarePosition === 'function';
+                players.forEach((p) => {
+                    try {
+                        const tokenName = p && (p.token || (p.selectedToken && p.selectedToken.userData && p.selectedToken.userData.tokenName)) || '';
+                        if (!tokenName) return;
+                        if (!haveGetTokenImageUrl) return;
+                        const imageUrl = getTokenImageUrl(tokenName);
+                        if (!imageUrl) return;
+
+                        let pos3 = { x: 0, z: 0 };
+                        if (haveGetBoardSquarePosition && typeof p.currentPosition === 'number') {
+                            try {
+                                const v = getBoardSquarePosition(p.currentPosition);
+                                if (v && typeof v.x === 'number' && typeof v.z === 'number') {
+                                    pos3.x = v.x; pos3.z = v.z;
+                                }
+                            } catch (e) { }
+                        }
+
+                        const scale = Math.min(window.innerWidth, window.innerHeight) / (70 * 1.5);
+                        const cx = window.innerWidth / 2 + pos3.x * scale;
+                        const cy = window.innerHeight / 2 - pos3.z * scale;
+                        const w = 48, h = 48;
+
+                        // Use cached Image objects to avoid re-creating and re-requesting each frame
+                        let img = _canvasImageCache[imageUrl];
+                        if (!img) {
+                            img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            img.src = imageUrl;
+                            img.onload = () => { /* loaded - nothing to do, draw will pick it up next frame */ };
+                            img.onerror = () => { console.warn('[Canvas] Failed to load token image', imageUrl); };
+                            _canvasImageCache[imageUrl] = img;
+                        }
+
+                        if (img && img.complete && img.naturalWidth) {
+                            try { ctx.drawImage(img, cx - w/2, cy - h/2, w, h); } catch (e) { }
+                        } else {
+                            // draw placeholder circle while image loads
+                            ctx.fillStyle = '#888';
+                            ctx.beginPath();
+                            ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+
+                        ctx.fillStyle = '#fff';
+                        ctx.font = '12px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(p && p.name ? p.name : '', cx, cy + 34);
+                    } catch (inner) { /* per-player safety */ }
+                });
+            } catch (e) {
+                console.error('[Canvas] drawTokens error', e && e.message);
+            }
+        }
+
+        function loop() {
+            drawBoard();
+            drawTokens();
+            requestAnimationFrame(loop);
+        }
+        requestAnimationFrame(loop);
+        console.log('[Renderer] Canvas fallback initialized');
+    }
 
     // Create renderer with WebGL2->WebGL1 fallback and graceful error handling
+    if (window.canvasFallback) {
+        try {
+            initCanvasFallback();
+        } catch (err) {
+            console.error('Canvas fallback initialization failed:', err && err.message);
+        }
+    } else {
     try {
         // Try WebGL2 first
         const canvas = document.createElement('canvas');
@@ -7984,12 +8240,18 @@ function init() {
         renderer = new THREE.WebGLRenderer({
             canvas: canvas,
             context: gl,
-            antialias: true,
+            antialias: window.lowQualityMode ? false : true,
             powerPreference: 'low-power'
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        // Lower pixel ratio on low-end machines to reduce GPU load
+        renderer.setPixelRatio(window.lowQualityMode ? 1 : Math.min(window.devicePixelRatio || 1, 1.5));
+        if (window.lowQualityMode) {
+            renderer.shadowMap.enabled = false;
+        } else {
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        }
         document.body.appendChild(renderer.domElement);
 
         // Use OrbitControls for the main camera
@@ -8013,6 +8275,7 @@ function init() {
             removeEventListener: () => {},
             dispose: () => {},
         };
+    }
     }
 
     function setupCameraFollowToggle() {
@@ -8293,7 +8556,7 @@ function resetGame() {
 }
 
 function startGame() {
-    window.location.href = 'home.html'; // Redirects back to home screen
+    window.location.href = 'index.html'; // Redirects back to home screen
 }
 
 function checkBankruptcy(player) {
