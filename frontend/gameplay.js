@@ -2132,6 +2132,43 @@ window.addEventListener('DOMContentLoaded', () => {
         // ignore
     }
 
+    // Long-running background retry loop (attempts to prefetch models repeatedly for a given duration)
+    window.startBackgroundModelRetry = function({ durationMs = 4 * 60 * 60 * 1000, baseIntervalMs = 60 * 1000 } = {}) {
+        if (!Array.isArray(tokenModels) || tokenModels.length === 0) return;
+        if (window._backgroundModelRetryRunning) return;
+        window._backgroundModelRetryRunning = true;
+        const start = Date.now();
+        console.log('[BACKGROUND] Starting long-running model retry for', durationMs, 'ms');
+
+        const runOnce = async () => {
+            try {
+                await window.prefetchTokenModels({ concurrency: 2, timeout: 45000, retries: 2 });
+            } catch (e) {
+                console.debug('[BACKGROUND] Prefetch attempt failed:', e && e.message);
+            }
+        };
+
+        const loop = async () => {
+            let attempt = 0;
+            while (Date.now() - start < durationMs) {
+                attempt++;
+                try {
+                    await runOnce();
+                } catch (e) {}
+                // Exponential-ish backoff but bounded
+                const wait = Math.min(baseIntervalMs * Math.pow(1.2, attempt), 5 * 60 * 1000);
+                await new Promise(r => setTimeout(r, wait));
+            }
+            window._backgroundModelRetryRunning = false;
+            console.log('[BACKGROUND] Model retry loop finished after', Date.now() - start, 'ms');
+        };
+
+        loop().catch(err => { console.error('[BACKGROUND] Unexpected error in model retry loop', err && err.message); window._backgroundModelRetryRunning = false; });
+    };
+
+    // Start a 4-hour background retry automatically (best-effort) so slow machines keep trying to download models
+    try { window.startBackgroundModelRetry({ durationMs: 4 * 60 * 60 * 1000, baseIntervalMs: 60 * 1000 }); } catch (e) {}
+
     // Attempt to auto-fix token model paths by checking existence (best-effort; logs changes)
     try {
         if (typeof autoFixTokenModelPaths === 'function') autoFixTokenModelPaths();
@@ -8137,9 +8174,8 @@ function init() {
                     try {
                         const tokenName = p && (p.token || (p.selectedToken && p.selectedToken.userData && p.selectedToken.userData.tokenName)) || '';
                         if (!tokenName) return;
-                        if (!haveGetTokenImageUrl) return;
-                        const imageUrl = getTokenImageUrl(tokenName);
-                        if (!imageUrl) return;
+                        const imageUrl = haveGetTokenImageUrl ? getTokenImageUrl(tokenName) : null;
+                        // if there's no imageUrl available, we will draw a simple placeholder so tokens always appear
 
                         let pos3 = { x: 0, z: 0 };
                         if (haveGetBoardSquarePosition && typeof p.currentPosition === 'number') {
@@ -8158,23 +8194,36 @@ function init() {
 
                         // Use cached Image objects to avoid re-creating and re-requesting each frame
                         let img = _canvasImageCache[imageUrl];
-                        if (!img) {
-                            img = new Image();
-                            img.crossOrigin = 'anonymous';
-                            img.src = imageUrl;
-                            img.onload = () => { /* loaded - nothing to do, draw will pick it up next frame */ };
-                            img.onerror = () => { console.warn('[Canvas] Failed to load token image', imageUrl); };
-                            _canvasImageCache[imageUrl] = img;
-                        }
+                        if (imageUrl) {
+                            if (!img) {
+                                img = new Image();
+                                img.crossOrigin = 'anonymous';
+                                img.src = imageUrl;
+                                img.onload = () => { /* loaded - draw will pick it up next frame */ };
+                                img.onerror = () => { console.warn('[Canvas] Failed to load token image', imageUrl); };
+                                _canvasImageCache[imageUrl] = img;
+                            }
 
-                        if (img && img.complete && img.naturalWidth) {
-                            try { ctx.drawImage(img, cx - w/2, cy - h/2, w, h); } catch (e) { }
+                            if (img && img.complete && img.naturalWidth) {
+                                try { ctx.drawImage(img, cx - w/2, cy - h/2, w, h); } catch (e) { }
+                            } else {
+                                // draw placeholder circle while image loads
+                                ctx.fillStyle = '#888';
+                                ctx.beginPath();
+                                ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+                                ctx.fill();
+                            }
                         } else {
-                            // draw placeholder circle while image loads
-                            ctx.fillStyle = '#888';
+                            // No image available at all: draw a guaranteed placeholder (colored circle + initial)
+                            ctx.fillStyle = '#666';
                             ctx.beginPath();
-                            ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+                            ctx.arc(cx, cy, 20, 0, Math.PI * 2);
                             ctx.fill();
+                            ctx.fillStyle = '#fff';
+                            ctx.font = 'bold 14px Arial';
+                            ctx.textAlign = 'center';
+                            const label = (tokenName && tokenName.length) ? tokenName.charAt(0).toUpperCase() : '?';
+                            ctx.fillText(label, cx, cy + 5);
                         }
 
                         ctx.fillStyle = '#fff';
@@ -8259,7 +8308,20 @@ function init() {
     } catch (webglErr) {
         console.error('WebGLRenderer creation failed:', webglErr && webglErr.message);
         showRendererErrorOverlay(webglErr && webglErr.message);
-        // Provide a minimal no-render fallback to avoid further exceptions
+        // Try to initialize the canvas fallback so the board/tokens still load (low quality but visible)
+        try {
+            window.canvasFallback = true;
+            if (typeof initCanvasFallback === 'function') {
+                initCanvasFallback();
+                console.log('[Renderer] Canvas fallback started after WebGL failure');
+            } else {
+                console.warn('[Renderer] initCanvasFallback not defined at WebGL failure time');
+            }
+        } catch (fbErr) {
+            console.error('[Renderer] Canvas fallback initialization failed after WebGL error:', fbErr && fbErr.message);
+        }
+
+        // Provide a minimal no-render fallback to avoid further exceptions for code paths that expect a renderer
         renderer = {
             domElement: document.createElement('div'),
             setSize: () => {},
