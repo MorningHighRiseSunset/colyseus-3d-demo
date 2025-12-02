@@ -691,7 +691,7 @@ const tokenModels = [
 
 function loadTokenModelByName(name, scene, onLoaded) {
     const model = tokenModels.find(m => m.name === name);
-    if (!model) {
+        if (!model || !model.path) {
         console.error('Model not found:', name);
         return;
     }
@@ -2034,53 +2034,23 @@ window.addEventListener('DOMContentLoaded', () => {
                 while (attempt <= retries) {
                     attempt++;
                     try {
-                                // If running in lowQualityMode, attempt to prefer smaller/lower-quality
-                                // GLB variants before falling back to the original model path. We try a
-                                // few common filename patterns and use a quick HEAD check to prefer
-                                // an existing low-quality file when available.
-                                const determineLoadPath = async () => {
-                                    const original = modelInfo.path;
-                                    if (!window.lowQualityMode) return original;
-
+                                // Build candidate list and try each in order without additional HEAD checks.
+                                const determineLoadCandidates = () => {
+                                    const original = modelInfo.path || '';
                                     const candidates = [];
-                                    // If the filename ends with .glb, try replacements
-                                    if (original.toLowerCase().endsWith('.glb')) {
+                                    if (modelInfo.lowPath) candidates.push(modelInfo.lowPath);
+                                    if (window.lowQualityMode && original.toLowerCase().endsWith('.glb')) {
                                         candidates.push(original.replace(/\.glb$/i, '.low.glb'));
                                         candidates.push(original.replace(/\.glb$/i, '.draco.glb'));
                                         candidates.push(original.replace(/\.glb$/i, '.lite.glb'));
                                         candidates.push(original.replace(/\.glb$/i, '.min.glb'));
                                     }
-                                    // If modelInfo provides an explicit lowPath, try it first
-                                    if (modelInfo.lowPath) candidates.unshift(modelInfo.lowPath);
-
-                                    // HEAD-check candidates quickly (short timeout); pick first OK
-                                    const checkPath = async (p) => {
-                                        try {
-                                            const controller = new AbortController();
-                                            const to = setTimeout(() => controller.abort(), 2500);
-                                            const res = await fetch(p, { method: 'HEAD', signal: controller.signal });
-                                            clearTimeout(to);
-                                            if (res && res.ok) return true;
-                                        } catch (e) {
-                                            // swallow errors (CORS or network) and treat as not found
-                                        }
-                                        return false;
-                                    };
-
-                                    for (const c of candidates) {
-                                        if (!c) continue;
-                                        // If candidate equals original, skip
-                                        if (c === original) continue;
-                                        const ok = await checkPath(c);
-                                        if (ok) {
-                                            console.log('[Loader] Using low-quality variant for', modelInfo.name, '->', c);
-                                            return c;
-                                        }
-                                    }
-                                    return original;
+                                    candidates.push(original);
+                                    const seen = new Set();
+                                    return candidates.filter(p => { if (!p) return false; if (seen.has(p)) return false; seen.add(p); return true; });
                                 };
 
-                                const loadPath = await determineLoadPath();
+                                const candidates = determineLoadCandidates();
 
                                 const gltf = await new Promise((res, rej) => {
                                     // Use shared loader if available (global 'loader'), otherwise create one
@@ -2154,23 +2124,37 @@ window.addEventListener('DOMContentLoaded', () => {
                                         } catch (e) {}
                                     };
 
-                                    _loader.load(modelInfo.path, (gltf) => {
-                                        if (timedOut) return;
-                                        clearTimeout(timer);
-                                        if (lowQualityFallbackTimer) { clearTimeout(lowQualityFallbackTimer); lowQualityFallbackTimer = null; }
-                                        const elapsed = Date.now() - startTime;
-                                        const networkElapsed = Date.now() - networkStart;
-                                        // try to capture content-length from the browser if available (xhr.total)
-                                        const contentLength = (typeof xhr !== 'undefined' && xhr && xhr.total) ? xhr.total : null;
-                                        console.log(`[GLTF] Loaded ${modelInfo.name} (${modelInfo.path}) in ${networkElapsed}ms (parse ${elapsed}ms) ${contentLength ? `| size:${contentLength}` : ''}`);
-                                        if (elapsed > 8000) console.warn(`[PREFETCH] Model ${modelInfo.name} took ${elapsed}ms to load`);
-                                        res(gltf);
-                                    }, onProgress, (err) => {
-                                        if (timedOut) return;
-                                        clearTimeout(timer);
-                                        if (lowQualityFallbackTimer) { clearTimeout(lowQualityFallbackTimer); lowQualityFallbackTimer = null; }
-                                        rej(err || new Error('Unknown GLTFLoader error'));
-                                    });
+                                    let candidateIndex = 0;
+                                    const tryLoadCandidate = (idx) => {
+                                        if (idx >= candidates.length) {
+                                            return rej(new Error('All GLTF load candidates failed'));
+                                        }
+                                        const pathToLoad = candidates[idx];
+                                        try {
+                                            _loader.load(pathToLoad, (gltf) => {
+                                                if (timedOut) return;
+                                                clearTimeout(timer);
+                                                if (lowQualityFallbackTimer) { clearTimeout(lowQualityFallbackTimer); lowQualityFallbackTimer = null; }
+                                                const elapsed = Date.now() - startTime;
+                                                const networkElapsed = Date.now() - networkStart;
+                                                const contentLength = (typeof xhr !== 'undefined' && xhr && xhr.total) ? xhr.total : null;
+                                                console.log(`[GLTF] Loaded ${modelInfo.name} (${pathToLoad}) in ${networkElapsed}ms (parse ${elapsed}ms) ${contentLength ? `| size:${contentLength}` : ''}`);
+                                                if (elapsed > 8000) console.warn(`[PREFETCH] Model ${modelInfo.name} took ${elapsed}ms to load`);
+                                                return res(gltf);
+                                            }, onProgress, (err) => {
+                                                if (timedOut) return;
+                                                console.warn(`[GLTF] Candidate load failed for ${pathToLoad}:`, err && err.message);
+                                                clearTimeout(timer);
+                                                if (lowQualityFallbackTimer) { clearTimeout(lowQualityFallbackTimer); lowQualityFallbackTimer = null; }
+                                                setTimeout(() => tryLoadCandidate(idx + 1), 120);
+                                            });
+                                        } catch (e) {
+                                            console.warn('[GLTF] _loader.load threw for', pathToLoad, e && e.message);
+                                            setTimeout(() => tryLoadCandidate(idx + 1), 120);
+                                        }
+                                    };
+
+                                    tryLoadCandidate(0);
                                 });
 
                         // defensive checks: some GLTFs may not have a scene
