@@ -42,6 +42,126 @@ try {
     }
 })();
 
+// --- Canvas fallback renderer (2D board + token rendering) ---
+// This must be defined at top level (not inside init()) so it can be called early in DOMContentLoaded
+function initCanvasFallback() {
+    if (window._canvasFallbackInit) return;
+    window._canvasFallbackInit = true;
+    const dpi = window.devicePixelRatio || 1;
+    const cvs = document.createElement('canvas');
+    cvs.id = 'canvas-fallback';
+    cvs.style.position = 'fixed';
+    cvs.style.left = '0';
+    cvs.style.top = '0';
+    cvs.style.width = '100%';
+    cvs.style.height = '100%';
+    cvs.style.zIndex = 1000;
+    document.body.appendChild(cvs);
+    const ctx = cvs.getContext('2d');
+
+    function resize() {
+        cvs.width = Math.floor(window.innerWidth * dpi);
+        cvs.height = Math.floor(window.innerHeight * dpi);
+        ctx.setTransform(dpi, 0, 0, dpi, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function drawBoard() {
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
+        const size = Math.min(window.innerWidth, window.innerHeight) * 0.7;
+        const bx = (window.innerWidth - size) / 2;
+        const by = (window.innerHeight - size) / 2;
+        ctx.fillStyle = '#444';
+        ctx.fillRect(bx, by, size, size);
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(bx, by, size, size);
+    }
+
+    const _canvasImageCache = {};
+    function drawTokens() {
+        try {
+            if (!Array.isArray(players)) return;
+            const haveGetTokenImageUrl = typeof getTokenImageUrl === 'function';
+            const haveGetBoardSquarePosition = typeof getBoardSquarePosition === 'function';
+            players.forEach((p) => {
+                try {
+                    const tokenName = p && (p.token || (p.selectedToken && p.selectedToken.userData && p.selectedToken.userData.tokenName)) || '';
+                    if (!tokenName) return;
+                    const imageUrl = haveGetTokenImageUrl ? getTokenImageUrl(tokenName) : null;
+                    // if there's no imageUrl available, we will draw a simple placeholder so tokens always appear
+
+                    let pos3 = { x: 0, z: 0 };
+                    if (haveGetBoardSquarePosition && typeof p.currentPosition === 'number') {
+                        try {
+                            const v = getBoardSquarePosition(p.currentPosition);
+                            if (v && typeof v.x === 'number' && typeof v.z === 'number') {
+                                pos3.x = v.x; pos3.z = v.z;
+                            }
+                        } catch (e) { }
+                    }
+
+                    const scale = Math.min(window.innerWidth, window.innerHeight) / (70 * 1.5);
+                    const cx = window.innerWidth / 2 + pos3.x * scale;
+                    const cy = window.innerHeight / 2 - pos3.z * scale;
+                    const w = 48, h = 48;
+
+                    // Use cached Image objects to avoid re-creating and re-requesting each frame
+                    let img = _canvasImageCache[imageUrl];
+                    if (imageUrl) {
+                        if (!img) {
+                            img = new Image();
+                            img.crossOrigin = 'anonymous';
+                            img.src = imageUrl;
+                            img.onload = () => { /* loaded - draw will pick it up next frame */ };
+                            img.onerror = () => { console.warn('[Canvas] Failed to load token image', imageUrl); };
+                            _canvasImageCache[imageUrl] = img;
+                        }
+
+                        if (img && img.complete && img.naturalWidth) {
+                            try { ctx.drawImage(img, cx - w/2, cy - h/2, w, h); } catch (e) { }
+                        } else {
+                            // draw placeholder circle while image loads
+                            ctx.fillStyle = '#888';
+                            ctx.beginPath();
+                            ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    } else {
+                        // No image available at all: draw a guaranteed placeholder (colored circle + initial)
+                        ctx.fillStyle = '#666';
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, 20, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#fff';
+                        ctx.font = 'bold 14px Arial';
+                        ctx.textAlign = 'center';
+                        const label = (tokenName && tokenName.length) ? tokenName.charAt(0).toUpperCase() : '?';
+                        ctx.fillText(label, cx, cy + 5);
+                    }
+
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(p && p.name ? p.name : '', cx, cy + 34);
+                } catch (inner) { /* per-player safety */ }
+            });
+        } catch (e) {
+            console.error('[Canvas] drawTokens error', e && e.message);
+        }
+    }
+
+    function loop() {
+        drawBoard();
+        drawTokens();
+        requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+    console.log('[Renderer] Canvas fallback initialized');
+}
+
 // Turn counter for enhanced console logs
 const ordinal = ["first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth"];
 // --- Enable Testing Mode (auto) ---
@@ -8372,124 +8492,6 @@ function init() {
 
     // Follow camera
     followCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1500);
-    // --- Canvas fallback implementation (non-destructive) ---
-    function initCanvasFallback() {
-        if (window._canvasFallbackInit) return;
-        window._canvasFallbackInit = true;
-        const dpi = window.devicePixelRatio || 1;
-        const cvs = document.createElement('canvas');
-        cvs.id = 'canvas-fallback';
-        cvs.style.position = 'fixed';
-        cvs.style.left = '0';
-        cvs.style.top = '0';
-        cvs.style.width = '100%';
-        cvs.style.height = '100%';
-        cvs.style.zIndex = 1000;
-        document.body.appendChild(cvs);
-        const ctx = cvs.getContext('2d');
-
-        function resize() {
-            cvs.width = Math.floor(window.innerWidth * dpi);
-            cvs.height = Math.floor(window.innerHeight * dpi);
-            ctx.setTransform(dpi, 0, 0, dpi, 0, 0);
-        }
-        window.addEventListener('resize', resize);
-        resize();
-
-        function drawBoard() {
-            ctx.fillStyle = '#1a1a1a';
-            ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
-            const size = Math.min(window.innerWidth, window.innerHeight) * 0.7;
-            const bx = (window.innerWidth - size) / 2;
-            const by = (window.innerHeight - size) / 2;
-            ctx.fillStyle = '#444';
-            ctx.fillRect(bx, by, size, size);
-            ctx.strokeStyle = '#222';
-            ctx.lineWidth = 4;
-            ctx.strokeRect(bx, by, size, size);
-        }
-
-        const _canvasImageCache = {};
-        function drawTokens() {
-            try {
-                if (!Array.isArray(players)) return;
-                const haveGetTokenImageUrl = typeof getTokenImageUrl === 'function';
-                const haveGetBoardSquarePosition = typeof getBoardSquarePosition === 'function';
-                players.forEach((p) => {
-                    try {
-                        const tokenName = p && (p.token || (p.selectedToken && p.selectedToken.userData && p.selectedToken.userData.tokenName)) || '';
-                        if (!tokenName) return;
-                        const imageUrl = haveGetTokenImageUrl ? getTokenImageUrl(tokenName) : null;
-                        // if there's no imageUrl available, we will draw a simple placeholder so tokens always appear
-
-                        let pos3 = { x: 0, z: 0 };
-                        if (haveGetBoardSquarePosition && typeof p.currentPosition === 'number') {
-                            try {
-                                const v = getBoardSquarePosition(p.currentPosition);
-                                if (v && typeof v.x === 'number' && typeof v.z === 'number') {
-                                    pos3.x = v.x; pos3.z = v.z;
-                                }
-                            } catch (e) { }
-                        }
-
-                        const scale = Math.min(window.innerWidth, window.innerHeight) / (70 * 1.5);
-                        const cx = window.innerWidth / 2 + pos3.x * scale;
-                        const cy = window.innerHeight / 2 - pos3.z * scale;
-                        const w = 48, h = 48;
-
-                        // Use cached Image objects to avoid re-creating and re-requesting each frame
-                        let img = _canvasImageCache[imageUrl];
-                        if (imageUrl) {
-                            if (!img) {
-                                img = new Image();
-                                img.crossOrigin = 'anonymous';
-                                img.src = imageUrl;
-                                img.onload = () => { /* loaded - draw will pick it up next frame */ };
-                                img.onerror = () => { console.warn('[Canvas] Failed to load token image', imageUrl); };
-                                _canvasImageCache[imageUrl] = img;
-                            }
-
-                            if (img && img.complete && img.naturalWidth) {
-                                try { ctx.drawImage(img, cx - w/2, cy - h/2, w, h); } catch (e) { }
-                            } else {
-                                // draw placeholder circle while image loads
-                                ctx.fillStyle = '#888';
-                                ctx.beginPath();
-                                ctx.arc(cx, cy, 18, 0, Math.PI * 2);
-                                ctx.fill();
-                            }
-                        } else {
-                            // No image available at all: draw a guaranteed placeholder (colored circle + initial)
-                            ctx.fillStyle = '#666';
-                            ctx.beginPath();
-                            ctx.arc(cx, cy, 20, 0, Math.PI * 2);
-                            ctx.fill();
-                            ctx.fillStyle = '#fff';
-                            ctx.font = 'bold 14px Arial';
-                            ctx.textAlign = 'center';
-                            const label = (tokenName && tokenName.length) ? tokenName.charAt(0).toUpperCase() : '?';
-                            ctx.fillText(label, cx, cy + 5);
-                        }
-
-                        ctx.fillStyle = '#fff';
-                        ctx.font = '12px Arial';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(p && p.name ? p.name : '', cx, cy + 34);
-                    } catch (inner) { /* per-player safety */ }
-                });
-            } catch (e) {
-                console.error('[Canvas] drawTokens error', e && e.message);
-            }
-        }
-
-        function loop() {
-            drawBoard();
-            drawTokens();
-            requestAnimationFrame(loop);
-        }
-        requestAnimationFrame(loop);
-        console.log('[Renderer] Canvas fallback initialized');
-    }
 
     // Create renderer with WebGL2->WebGL1 fallback and graceful error handling
     if (window.canvasFallback || window.lowQualityMode) {
