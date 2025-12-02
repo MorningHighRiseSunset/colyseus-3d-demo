@@ -951,7 +951,62 @@ function assignSelectedTokenForPlayer(player) {
     }
     console.log(`[DEBUG] assignSelectedTokenForPlayer: Final tokenKey: '${tokenKey}' for player '${player.name}' (playerId: ${player.id}) with token '${player.token}'`);
     if (window.loadedTokenModels && tokenKey && window.loadedTokenModels[tokenKey]) {
-        let tokenModel = window.loadedTokenModels[tokenKey].clone();
+        const sourceModel = window.loadedTokenModels[tokenKey];
+        // Use SkeletonUtils.clone for skinned meshes to preserve skinning/bone bindings
+        let hasSkinned = false;
+        try { sourceModel.traverse(o => { if (o.isSkinnedMesh) hasSkinned = true; }); } catch (e) { hasSkinned = false; }
+        let tokenModel;
+        try {
+            if (hasSkinned && typeof SkeletonUtils !== 'undefined') {
+                tokenModel = SkeletonUtils.clone(sourceModel);
+            } else {
+                tokenModel = sourceModel.clone(true);
+            }
+        } catch (e) {
+            console.warn('[Clone] SkeletonUtils clone failed, falling back to regular clone', e && e.message);
+            tokenModel = sourceModel.clone(true);
+        }
+        // Recreate animation mixer/actions on the cloned model if animations are available
+        try {
+            const clips = [];
+            // Try several locations for stored clips
+            if (sourceModel.userData && Array.isArray(sourceModel.userData._gltfAnimations)) {
+                clips.push(...sourceModel.userData._gltfAnimations);
+            }
+            if (sourceModel.animations && Array.isArray(sourceModel.animations)) {
+                clips.push(...sourceModel.animations);
+            }
+            if (sourceModel.userData && Array.isArray(sourceModel.userData.actions)) {
+                // actions array may contain mixer actions referencing _clip
+                sourceModel.userData.actions.forEach(a => { if (a && a._clip) clips.push(a._clip); });
+            }
+            // Deduplicate clips by name
+            const clipMap = {};
+            const uniqueClips = [];
+            clips.forEach(c => { if (c && c.name && !clipMap[c.name]) { clipMap[c.name] = true; uniqueClips.push(c); } });
+            if (uniqueClips.length > 0) {
+                const mixer = new THREE.AnimationMixer(tokenModel);
+                const actions = uniqueClips.map(c => mixer.clipAction(c));
+                tokenModel.userData.mixer = mixer;
+                tokenModel.userData.actions = actions;
+                // Find idle and walk clips by name heuristics
+                const idleIndex = uniqueClips.findIndex(c => c.name && c.name.toLowerCase().includes('idle'));
+                const walkIndex = uniqueClips.findIndex(c => c.name && c.name.toLowerCase().includes('walk'));
+                if (idleIndex !== -1) {
+                    tokenModel.userData.idleAction = actions[idleIndex];
+                    try { tokenModel.userData.idleAction.reset().play(); } catch(e) { }
+                } else if (actions.length > 0) {
+                    // default to first action
+                    tokenModel.userData.idleAction = actions[0];
+                    try { tokenModel.userData.idleAction.reset().play(); } catch(e) { }
+                }
+                if (walkIndex !== -1) {
+                    tokenModel.userData.walkAction = actions[walkIndex];
+                }
+            }
+        } catch (e) {
+            console.warn('[Anim] Failed to rebuild animations on clone', e && e.message);
+        }
         // Remove transparency from ghost tokens
         if (player.isGhost) {
             tokenModel.traverse(child => {
@@ -1979,6 +2034,54 @@ window.addEventListener('DOMContentLoaded', () => {
                 while (attempt <= retries) {
                     attempt++;
                     try {
+                                // If running in lowQualityMode, attempt to prefer smaller/lower-quality
+                                // GLB variants before falling back to the original model path. We try a
+                                // few common filename patterns and use a quick HEAD check to prefer
+                                // an existing low-quality file when available.
+                                const determineLoadPath = async () => {
+                                    const original = modelInfo.path;
+                                    if (!window.lowQualityMode) return original;
+
+                                    const candidates = [];
+                                    // If the filename ends with .glb, try replacements
+                                    if (original.toLowerCase().endsWith('.glb')) {
+                                        candidates.push(original.replace(/\.glb$/i, '.low.glb'));
+                                        candidates.push(original.replace(/\.glb$/i, '.draco.glb'));
+                                        candidates.push(original.replace(/\.glb$/i, '.lite.glb'));
+                                        candidates.push(original.replace(/\.glb$/i, '.min.glb'));
+                                    }
+                                    // If modelInfo provides an explicit lowPath, try it first
+                                    if (modelInfo.lowPath) candidates.unshift(modelInfo.lowPath);
+
+                                    // HEAD-check candidates quickly (short timeout); pick first OK
+                                    const checkPath = async (p) => {
+                                        try {
+                                            const controller = new AbortController();
+                                            const to = setTimeout(() => controller.abort(), 2500);
+                                            const res = await fetch(p, { method: 'HEAD', signal: controller.signal });
+                                            clearTimeout(to);
+                                            if (res && res.ok) return true;
+                                        } catch (e) {
+                                            // swallow errors (CORS or network) and treat as not found
+                                        }
+                                        return false;
+                                    };
+
+                                    for (const c of candidates) {
+                                        if (!c) continue;
+                                        // If candidate equals original, skip
+                                        if (c === original) continue;
+                                        const ok = await checkPath(c);
+                                        if (ok) {
+                                            console.log('[Loader] Using low-quality variant for', modelInfo.name, '->', c);
+                                            return c;
+                                        }
+                                    }
+                                    return original;
+                                };
+
+                                const loadPath = await determineLoadPath();
+
                                 const gltf = await new Promise((res, rej) => {
                                     // Use shared loader if available (global 'loader'), otherwise create one
                                     const _loader = (typeof loader !== 'undefined' && loader) ? loader : new GLTFLoader();
@@ -2080,6 +2183,8 @@ window.addEventListener('DOMContentLoaded', () => {
                         const stored = (hasSkinned && typeof SkeletonUtils !== 'undefined') ? SkeletonUtils.clone(gltf.scene) : gltf.scene.clone(true);
                         stored.userData = stored.userData || {};
                         stored.userData.tokenName = modelInfo.name.toLowerCase();
+                        // Preserve original glTF animation clips for rebuilding mixers on clones
+                        try { stored.userData._gltfAnimations = Array.isArray(gltf.animations) ? gltf.animations.slice() : []; } catch (e) { stored.userData._gltfAnimations = []; }
                         if (Array.isArray(modelInfo.scale)) stored.scale.set(...modelInfo.scale);
                         // keep stored by normalized key
                         window.loadedTokenModels[key] = stored;
@@ -8328,13 +8433,21 @@ function init() {
             canvas: canvas,
             context: gl,
             antialias: window.lowQualityMode ? false : true,
-            powerPreference: 'low-power'
+            powerPreference: 'low-power',
+            precision: window.lowQualityMode ? 'lowp' : 'highp'
         });
         renderer.setSize(window.innerWidth, window.innerHeight);
         // Lower pixel ratio on low-end machines to reduce GPU load
         renderer.setPixelRatio(window.lowQualityMode ? 1 : Math.min(window.devicePixelRatio || 1, 1.5));
+        // Aggressive low-quality renderer tuning for weak devices
         if (window.lowQualityMode) {
             renderer.shadowMap.enabled = false;
+            renderer.toneMapping = THREE.NoToneMapping;
+            renderer.outputEncoding = THREE.LinearEncoding;
+            renderer.physicallyCorrectLights = false;
+            renderer.sortObjects = false;
+            // Use a darker clear color to slightly reduce shader cost on some GPUs
+            try { renderer.setClearColor(0x111111); } catch (e) {}
         } else {
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;

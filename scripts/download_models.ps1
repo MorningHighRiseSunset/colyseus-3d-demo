@@ -74,7 +74,7 @@ while ((Get-Date) -lt $endTime) {
                 Write-Host "[DL] Giving up on this pass for $leaf (will try again later)"
             }
         } catch {
-            Write-Host "[DL] Unexpected error handling $f: $($_.Exception.Message)"
+            Write-Host "[DL] Unexpected error handling ${f}: $($_.Exception.Message)"
         }
 
         Start-Sleep -Milliseconds 500
