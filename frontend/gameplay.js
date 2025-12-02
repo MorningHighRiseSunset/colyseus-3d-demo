@@ -8492,9 +8492,13 @@ function init() {
     }
 
     // Create renderer with WebGL2->WebGL1 fallback and graceful error handling
-    if (window.canvasFallback) {
+    if (window.canvasFallback || window.lowQualityMode) {
         try {
+            console.warn('[Renderer] Forcing canvas fallback (canvasFallback=' + window.canvasFallback + ', lowQualityMode=' + window.lowQualityMode + ')');
+            window.canvasFallback = true;
             initCanvasFallback();
+            renderer = { domElement: document.querySelector('canvas') || document.createElement('div'), setSize: () => {}, render: () => {} };
+            controls = { target: new THREE.Vector3(0, 0, 0), update: () => {} };
         } catch (err) {
             console.error('Canvas fallback initialization failed:', err && err.message);
         }
