@@ -2043,6 +2043,25 @@ window.addEventListener('DOMContentLoaded', () => {
         return String(name || '').toLowerCase().replace(/\s+/g, '').replace(/[^a-z0-9]/g, '');
     };
 
+    // If we're on a very low-end device or forced low mode, switch immediately to canvas fallback
+    // and disable background prefetch to avoid saturating the machine. This forces the UI to be
+    // usable (2D board + icons) and makes the start flow available.
+    try {
+        if (window.lowQualityMode) {
+            console.warn('[LowMode] Enabling aggressive 2D fallback for low-end device');
+            window.canvasFallback = true;
+            try { if (typeof initCanvasFallback === 'function') initCanvasFallback(); } catch (e) { console.warn('[LowMode] initCanvasFallback failed', e && e.message); }
+            // Mark models as ready so UI (start button etc.) is not blocked
+            window.tokenModelsReady = true;
+            try { hideTokenButtonSpinners(); } catch (e) {}
+            try { window.dispatchEvent(new CustomEvent('tokenModelsReady')); } catch (e) {}
+            // No-op prefetcher to avoid network/disk thrash
+            window.prefetchTokenModels = async function() { console.log('[LowMode] Prefetch disabled in lowQualityMode'); return Promise.resolve(); };
+            // Stop background retry loop if running
+            window._backgroundModelRetryRunning = false;
+        }
+    } catch (e) { console.warn('[LowMode] setup failed', e && e.message); }
+
     // Promise-based loader with timeout and retries. Returns a cloned scene ready to be added to the scene.
     window.loadTokenModel = function(tokenName, options = {}) {
         const { timeout = 20000, retries = 2 } = options; // increased timeout for slower clients
