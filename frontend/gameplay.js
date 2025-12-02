@@ -1776,6 +1776,73 @@ function createLowDetailPlaceholder(tokenName) {
     }
 }
 
+// Create a simple 2D board fallback for very slow devices or when WebGL fails.
+function create2DBoardFallback() {
+    try {
+        if (document.getElementById('board-2d-fallback')) return;
+        const container = document.createElement('div');
+        container.id = 'board-2d-fallback';
+        container.style.position = 'absolute';
+        container.style.left = '0';
+        container.style.top = '0';
+        container.style.width = '100%';
+        container.style.height = '100%';
+        container.style.zIndex = '1000';
+        container.style.display = 'flex';
+        container.style.alignItems = 'center';
+        container.style.justifyContent = 'center';
+        container.style.pointerEvents = 'none';
+
+        // Inner board box to mimic the 3D board area
+        const board = document.createElement('div');
+        board.style.width = '820px';
+        board.style.height = '820px';
+        board.style.background = 'linear-gradient(135deg,#9e9e9e,#6f6f6f)';
+        board.style.border = '6px solid rgba(0,0,0,0.6)';
+        board.style.boxSizing = 'border-box';
+        board.style.borderRadius = '6px';
+        board.style.boxShadow = '0 8px 30px rgba(0,0,0,0.6)';
+        board.style.display = 'grid';
+        board.style.gridTemplateColumns = 'repeat(9, 1fr)';
+        board.style.gridTemplateRows = 'repeat(9, 1fr)';
+        board.style.gap = '4px';
+        board.style.pointerEvents = 'none';
+
+        // create simple squares to represent board tiles
+        for (let i = 0; i < 81; i++) {
+            const sq = document.createElement('div');
+            sq.style.background = (i % 2 === 0) ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.04)';
+            sq.style.borderRadius = '2px';
+            sq.style.boxSizing = 'border-box';
+            board.appendChild(sq);
+        }
+
+        container.appendChild(board);
+        document.body.appendChild(container);
+
+        // small hint so user knows 3D is degraded
+        const hint = document.createElement('div');
+        hint.id = 'board-2d-fallback-hint';
+        hint.textContent = '3D rendering unavailable — using lightweight fallback';
+        hint.style.position = 'absolute';
+        hint.style.bottom = '12px';
+        hint.style.left = '12px';
+        hint.style.padding = '8px 10px';
+        hint.style.background = 'rgba(0,0,0,0.6)';
+        hint.style.color = '#fff';
+        hint.style.borderRadius = '6px';
+        hint.style.fontSize = '12px';
+        hint.style.zIndex = '1001';
+        hint.style.pointerEvents = 'none';
+        document.body.appendChild(hint);
+
+        // Keep hint visible for a while then fade
+        setTimeout(() => { try { hint.style.transition = 'opacity 1s'; hint.style.opacity = '0'; setTimeout(() => { try { hint.remove(); } catch(e){} }, 1000); } catch (e) {} }, 8000);
+    } catch (e) {
+        console.warn('create2DBoardFallback failed', e && e.message);
+    }
+}
+
 // Best-effort runtime auto-fix for token model paths. Does not write files; only adjusts in-memory tokenModels.
 async function autoFixTokenModelPaths() {
     if (!Array.isArray(tokenModels) || tokenModels.length === 0) return;
@@ -2251,7 +2318,31 @@ window.addEventListener('DOMContentLoaded', () => {
 
     // Start background prefetch without blocking UI (best-effort)
     try {
-        window.prefetchTokenModels({ concurrency: 2, timeout: 6000, retries: 1 }).catch(() => {});
+        const prefetchConcurrency = window.lowQualityMode ? 1 : 2;
+        const prefetchTimeout = window.lowQualityMode ? 12000 : 6000;
+        window.prefetchTokenModels({ concurrency: prefetchConcurrency, timeout: prefetchTimeout, retries: 1 }).catch(() => {});
+
+        // If models aren't ready after a short period on low-end devices, allow the UI to proceed
+        // so the host can start the game and users can play with 2D icons instead of blocking on 3D.
+        const forceReadyMs = window.lowQualityMode ? 10000 : 18000; // shorter on lowQuality devices
+        if (!window._tokenModelsReadyForceTimer) {
+            window._tokenModelsReadyForceTimer = setTimeout(() => {
+                try {
+                    if (!window.tokenModelsReady) {
+                        console.warn('[Fallback] Forcing tokenModelsReady after timeout to avoid blocking UI on slow device');
+                        window.tokenModelsReady = true;
+                        try { hideTokenButtonSpinners(); } catch (e) {}
+                        try { window.dispatchEvent(new CustomEvent('tokenModelsReady')); } catch (e) {}
+                        // If WebGL is not available or scene is empty, show a lightweight 2D fallback board
+                        try {
+                            if (window.canvasFallback || !renderer || !scene || (scene && scene.children && scene.children.length === 0)) {
+                                create2DBoardFallback();
+                            }
+                        } catch (e) {}
+                    }
+                } catch (e) {}
+            }, forceReadyMs);
+        }
     } catch (e) {
         // ignore
     }
