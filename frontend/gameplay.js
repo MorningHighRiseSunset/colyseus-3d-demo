@@ -21,6 +21,15 @@ function detectLowEndDevice() {
 
 // Global flag used throughout this script to enable lighter rendering/fallbacks
 window.lowQualityMode = detectLowEndDevice();
+// Allow forcing low-quality mode via URL for testing or to support very weak devices
+try {
+    const params = new URLSearchParams(window.location.search);
+    const forceLow = params.get('low') === '1' || params.get('lowQuality') === '1' || params.get('forceLow') === '1';
+    if (forceLow) {
+        window.lowQualityMode = true;
+        console.log('[Renderer] lowQualityMode forced via URL parameter');
+    }
+} catch (e) {}
 
 // Optional: allow forcing a simple 2D canvas fallback via URL, without changing default behavior
 (function(){
@@ -1987,7 +1996,8 @@ window.addEventListener('DOMContentLoaded', () => {
                                     const startTime = Date.now();
                                     let timedOut = false;
                                     let timer;
-                                    
+                                    let lowQualityFallbackTimer;
+
                                     // Set initial timeout
                                     const resetTimeout = () => {
                                         clearTimeout(timer);
@@ -1997,6 +2007,29 @@ window.addEventListener('DOMContentLoaded', () => {
                                         }, Math.max(30000, timeout)); // Minimum 30s timeout
                                     };
                                     resetTimeout();
+
+                                    // If this is a low-end device, provide a fast visual placeholder
+                                    // if the full GLB doesn't finish parsing quickly. This prevents
+                                    // the UI from hanging on very slow devices.
+                                    try {
+                                        if (window.lowQualityMode) {
+                                            const fallbackMs = 6000; // show placeholder after 6s
+                                            lowQualityFallbackTimer = setTimeout(() => {
+                                                try {
+                                                    timedOut = true; // prevent further resolve paths
+                                                    const placeholder = createLowDetailPlaceholder(modelInfo.name) || new THREE.Object3D();
+                                                    // store placeholder so future calls return a clone
+                                                    try { window.loadedTokenModels[key] = placeholder; } catch (e) {}
+                                                    if (!options._isPrefetch && typeof hideTokenSpinner === 'function') hideTokenSpinner(tokenName);
+                                                    // Resolve with an object shaped like GLTFLoader result
+                                                    res({ scene: placeholder });
+                                                } catch (e) {
+                                                    // swallow errors from placeholder creation
+                                                    console.warn('[PREFETCH] Low-quality placeholder creation failed', e && e.message);
+                                                }
+                                            }, fallbackMs);
+                                        }
+                                    } catch (e) {}
 
                                     const onProgress = (xhr) => {
                                         try {
@@ -2021,6 +2054,7 @@ window.addEventListener('DOMContentLoaded', () => {
                                     _loader.load(modelInfo.path, (gltf) => {
                                         if (timedOut) return;
                                         clearTimeout(timer);
+                                        if (lowQualityFallbackTimer) { clearTimeout(lowQualityFallbackTimer); lowQualityFallbackTimer = null; }
                                         const elapsed = Date.now() - startTime;
                                         const networkElapsed = Date.now() - networkStart;
                                         // try to capture content-length from the browser if available (xhr.total)
@@ -2031,6 +2065,7 @@ window.addEventListener('DOMContentLoaded', () => {
                                     }, onProgress, (err) => {
                                         if (timedOut) return;
                                         clearTimeout(timer);
+                                        if (lowQualityFallbackTimer) { clearTimeout(lowQualityFallbackTimer); lowQualityFallbackTimer = null; }
                                         rej(err || new Error('Unknown GLTFLoader error'));
                                     });
                                 });
@@ -8275,8 +8310,11 @@ function init() {
             }) || canvas.getContext('experimental-webgl');
             
             if (gl) {
-                // Force Three.js to use WebGL1 mode
-                THREE.REVISION = '162'; // Last version with WebGL1 support
+                // Running with a WebGL1 context. Do NOT mutate Three.js internals
+                // (assigning to `THREE.REVISION` can collide with other modules
+                // or with Emscripten-generated `Module` objects and may be read-only).
+                // Use a local flag instead to indicate we detected WebGL1.
+                window._forceWebGL1 = true;
                 console.log('[Renderer] Using WebGL1 fallback mode');
             }
         }
