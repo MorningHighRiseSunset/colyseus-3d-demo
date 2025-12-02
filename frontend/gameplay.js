@@ -55,7 +55,8 @@ function initCanvasFallback() {
     cvs.style.top = '0';
     cvs.style.width = '100%';
     cvs.style.height = '100%';
-    cvs.style.zIndex = 1000;
+    cvs.style.zIndex = 500;  // Lower z-index so UI (1002+) shows on top
+    cvs.style.pointerEvents = 'none';  // Let clicks pass through to UI elements
     document.body.appendChild(cvs);
     const ctx = cvs.getContext('2d');
 
