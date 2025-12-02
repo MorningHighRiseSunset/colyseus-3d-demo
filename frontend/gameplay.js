@@ -8490,23 +8490,35 @@ function init() {
             failIfMajorPerformanceCaveat: false
         });
         
-        // If WebGL2 fails, try WebGL1 with a modified Three.js setup
+        // If WebGL2 fails, try WebGL1 — but recent three.js builds (r163+) drop WebGL1 renderer
+        // support. Instead of forcing WebGL1 (which will throw), prefer the lightweight
+        // canvas fallback so the UI remains usable on legacy or poorly supported GPUs.
         if (!gl) {
-            console.log('[Renderer] WebGL2 not available, trying WebGL1');
-            gl = canvas.getContext('webgl', {
+            console.log('[Renderer] WebGL2 not available, checking for WebGL1');
+            const maybeGl = canvas.getContext('webgl', {
                 antialias: true,
                 alpha: false,
                 powerPreference: 'low-power',
                 failIfMajorPerformanceCaveat: false
             }) || canvas.getContext('experimental-webgl');
-            
-            if (gl) {
-                // Running with a WebGL1 context. Do NOT mutate Three.js internals
-                // (assigning to `THREE.REVISION` can collide with other modules
-                // or with Emscripten-generated `Module` objects and may be read-only).
-                // Use a local flag instead to indicate we detected WebGL1.
-                window._forceWebGL1 = true;
-                console.log('[Renderer] Using WebGL1 fallback mode');
+
+            if (maybeGl) {
+                // Detected a WebGL1 context. Newer three.js (r163+) intentionally
+                // removed WebGL1 renderer support; attempting to create a WebGLRenderer
+                // with a WebGL1 context will throw. Use canvas fallback instead.
+                console.warn('[Renderer] WebGL1 detected but not supported by this three.js build; using canvas fallback');
+                window.canvasFallback = true;
+                try {
+                    if (typeof initCanvasFallback === 'function') initCanvasFallback();
+                } catch (e) {
+                    console.error('[Renderer] initCanvasFallback failed after WebGL1 detected', e && e.message);
+                }
+                // Provide minimal renderer/control stubs to avoid null checks elsewhere.
+                renderer = { domElement: document.createElement('div'), setSize: () => {}, render: () => {} };
+                document.body.appendChild(renderer.domElement);
+                controls = { target: new THREE.Vector3(0, 0, 0), update: () => {} };
+                // Stop further renderer setup
+                gl = null;
             }
         }
         
