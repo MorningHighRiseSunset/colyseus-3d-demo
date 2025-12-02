@@ -2169,9 +2169,9 @@ window.addEventListener('DOMContentLoaded', () => {
     // usable (2D board + icons) and makes the start flow available.
     try {
         if (window.lowQualityMode) {
-            console.warn('[LowMode] Enabling aggressive 2D fallback for low-end device');
+            console.warn('[LowMode] Enabling aggressive low-end fallback mode');
             window.canvasFallback = true;
-            try { if (typeof initCanvasFallback === 'function') initCanvasFallback(); } catch (e) { console.warn('[LowMode] initCanvasFallback failed', e && e.message); }
+            // Canvas fallback will be initialized in init() when renderer setup happens
             // Mark models as ready so UI (start button etc.) is not blocked
             window.tokenModelsReady = true;
             try { hideTokenButtonSpinners(); } catch (e) {}
