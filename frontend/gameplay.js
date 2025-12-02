@@ -2118,6 +2118,17 @@ window.addEventListener('DOMContentLoaded', () => {
                                 };
 
                                 const candidates = determineLoadCandidates();
+                                // On low-end devices, also try .gltf variants as fallback (plain JSON format works better with some drivers)
+                                if (window.lowQualityMode) {
+                                    const gltfVariants = [];
+                                    candidates.forEach(cand => {
+                                        if (cand.toLowerCase().endsWith('.glb')) {
+                                            gltfVariants.push(cand.replace(/\.glb$/i, '.gltf'));
+                                        }
+                                    });
+                                    // Add .gltf variants after all .glb variants
+                                    candidates.push(...gltfVariants);
+                                }
 
                                 const gltf = await new Promise((res, rej) => {
                                     // Use shared loader if available (global 'loader'), otherwise create one
