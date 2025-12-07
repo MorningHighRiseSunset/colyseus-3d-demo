@@ -7,14 +7,23 @@ function detectLowEndDevice() {
         const ua = navigator.userAgent || '';
         const isMobile = /Mobi|Android|iPhone|iPad/i.test(ua);
         const canvas = document.createElement('canvas');
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        if (!gl) return true; // no webgl -> treat as low-end
+        // Try WebGL2 first, then WebGL1. Use tolerant options to avoid false negatives
+        const contextOptions = { antialias: false, failIfMajorPerformanceCaveat: false };
+        const gl = canvas.getContext('webgl2', contextOptions)
+                  || canvas.getContext('webgl', contextOptions)
+                  || canvas.getContext('experimental-webgl', contextOptions);
+        if (!gl) {
+            // Helpful debug info for Chrome users: show whether navigator.gpu is available and GPU prefs
+            try { console.warn('[Renderer] No WebGL context available (webgl2/webgl). navigator.gpu=', !!window.navigator.gpu); } catch(e) {}
+            return true; // no webgl -> treat as low-end
+        }
         const maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE) || 0;
-        const maxVertexUniforms = gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS) || 0;
+        const maxVertexUniforms = (gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS) || gl.getParameter(gl.MAX_VERTEX_UNIFORM_VECTORS) || 0);
         // Heuristics: devices with small max texture size or small uniform limits are likely weak
         if (isMobile || maxTextureSize < 4096 || maxVertexUniforms < 1024) return true;
         return false;
     } catch (e) {
+        console.warn('[Renderer] detectLowEndDevice error', e && e.message);
         return true;
     }
 }
