@@ -131,8 +131,58 @@ function initCanvasFallback() {
     const ctx = cvs.getContext('2d');
 
     function resize() {
-        // Disabled in simplified mode: 2D board fallback not needed
-        console.log('[Simplified] create2DBoardFallback disabled');
+        cvs.width = Math.floor(window.innerWidth * dpi);
+        cvs.height = Math.floor(window.innerHeight * dpi);
+        ctx.setTransform(dpi, 0, 0, dpi, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function drawBoard() {
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
+        const size = Math.min(window.innerWidth, window.innerHeight) * 0.7;
+        const bx = (window.innerWidth - size) / 2;
+        const by = (window.innerHeight - size) / 2;
+        ctx.fillStyle = '#444';
+        ctx.fillRect(bx, by, size, size);
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(bx, by, size, size);
+    }
+
+    const _canvasImageCache = {};
+    function drawTokens() {
+        try {
+            if (!Array.isArray(players)) return;
+            const haveGetTokenImageUrl = typeof getTokenImageUrl === 'function';
+            const haveGetBoardSquarePosition = typeof getBoardSquarePosition === 'function';
+            players.forEach((p) => {
+                try {
+                    const tokenName = p && (p.token || (p.selectedToken && p.selectedToken.userData && p.selectedToken.userData.tokenName)) || '';
+                    if (!tokenName) return;
+                    const imageUrl = haveGetTokenImageUrl ? getTokenImageUrl(tokenName) : null;
+
+                    let pos3 = { x: 0, z: 0 };
+                    if (haveGetBoardSquarePosition && typeof p.currentPosition === 'number') {
+                        try {
+                            const v = getBoardSquarePosition(p.currentPosition);
+                            if (v && typeof v.x === 'number' && typeof v.z === 'number') {
+                                pos3.x = v.x; pos3.z = v.z;
+                            }
+                        } catch (e) { }
+                    }
+
+                    const scale = Math.min(window.innerWidth, window.innerHeight) / (70 * 1.5);
+                    const cx = window.innerWidth / 2 + pos3.x * scale;
+                    const cy = window.innerHeight / 2 - pos3.z * scale;
+                    const w = 48, h = 48;
+
+                    let img = _canvasImageCache[imageUrl];
+                    if (imageUrl) {
+                        if (!img) {
+                            img = new Image();
+                            img.crossOrigin = 'anonymous';
                             img.src = imageUrl;
                             img.onload = () => { /* loaded - draw will pick it up next frame */ };
                             img.onerror = () => { console.warn('[Canvas] Failed to load token image', imageUrl); };
@@ -142,14 +192,12 @@ function initCanvasFallback() {
                         if (img && img.complete && img.naturalWidth) {
                             try { ctx.drawImage(img, cx - w/2, cy - h/2, w, h); } catch (e) { }
                         } else {
-                            // draw placeholder circle while image loads
                             ctx.fillStyle = '#888';
                             ctx.beginPath();
                             ctx.arc(cx, cy, 18, 0, Math.PI * 2);
                             ctx.fill();
                         }
                     } else {
-                        // No image available at all: draw a guaranteed placeholder (colored circle + initial)
                         ctx.fillStyle = '#666';
                         ctx.beginPath();
                         ctx.arc(cx, cy, 20, 0, Math.PI * 2);
