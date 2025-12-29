@@ -8379,7 +8379,7 @@ function init() {
             window.canvasFallback = true;
             initCanvasFallback();
             renderer = { domElement: document.querySelector('canvas') || document.createElement('div'), setSize: () => {}, render: () => {} };
-            controls = { target: new THREE.Vector3(0, 0, 0), update: () => {} };
+            controls = { target: new THREE.Vector3(0, 0, 0), update: () => {}, addEventListener: () => {}, removeEventListener: () => {} };
         } catch (err) {
             console.error('Canvas fallback initialization failed:', err && err.message);
         }
@@ -8420,7 +8420,7 @@ function init() {
                 // Provide minimal renderer/control stubs to avoid null checks elsewhere.
                 renderer = { domElement: document.createElement('div'), setSize: () => {}, render: () => {} };
                 document.body.appendChild(renderer.domElement);
-                controls = { target: new THREE.Vector3(0, 0, 0), update: () => {} };
+                controls = { target: new THREE.Vector3(0, 0, 0), update: () => {}, addEventListener: () => {}, removeEventListener: () => {} };
                 // Stop further renderer setup
                 gl = null;
             }
@@ -8458,6 +8458,16 @@ function init() {
 
         // Use OrbitControls for the main camera
         controls = new OrbitControls(camera, renderer.domElement);
+
+        // Apply any deferred control listeners that were registered before init()
+        try {
+            if (window._deferredControlListeners && controls && typeof controls.addEventListener === 'function') {
+                window._deferredControlListeners.forEach(([ev, fn]) => {
+                    try { controls.addEventListener(ev, fn); } catch (e) {}
+                });
+                window._deferredControlListeners = [];
+            }
+        } catch (e) { }
     } catch (webglErr) {
         console.error('WebGLRenderer creation failed:', webglErr && webglErr.message);
         showRendererErrorOverlay(webglErr && webglErr.message);
@@ -11174,13 +11184,21 @@ function animate() {
     renderer.render(scene, camera);
 }
 
-// Add this near your OrbitControls setup (in init or after controls is created):
-controls.addEventListener('start', () => {
-    userIsMovingCamera = true;
-});
-controls.addEventListener('end', () => {
-    userIsMovingCamera = false;
-});
+// Safe control listener helper: defers listeners until `controls` exists
+function addControlsListener(eventName, handler) {
+    try {
+        if (typeof controls !== 'undefined' && controls && typeof controls.addEventListener === 'function') {
+            controls.addEventListener(eventName, handler);
+            return;
+        }
+        // Defer until controls are created in init()
+        window._deferredControlListeners = window._deferredControlListeners || [];
+        window._deferredControlListeners.push([eventName, handler]);
+    } catch (e) { /* swallow */ }
+}
+
+addControlsListener('start', () => { userIsMovingCamera = true; });
+addControlsListener('end', () => { userIsMovingCamera = false; });
 
 // Test function for woman model
 function testWomanModel() {
