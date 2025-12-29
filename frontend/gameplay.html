@@ -341,41 +341,15 @@
 
     <div id="multiplayer-ui">
 
-    <!-- Roulette Minigame UI -->
-    <div id="roulette-game" style="display:none; align-items:flex-end; justify-content:flex-end; width:100vw; height:100vh; position:fixed; top:0; left:0; z-index:20000; background:rgba(0,0,0,0.85); pointer-events:auto;">
-        <div class="roulette-container" style="margin:0 40px 40px 0; flex-direction:row-reverse; gap:32px;">
-            <canvas id="roulette-wheel" width="400" height="400"></canvas>
-            <div class="roulette-table" id="roulette-bet-table">
-                <!-- Real betting table will be rendered here by JS -->
-            </div>
-            <div class="roulette-controls">
-                <button id="roulette-spin-btn">Spin</button>
-                <div id="roulette-result"></div>
-            </div>
-        </div>
+    <!-- Simplified multiplayer UI: players, token selection, turns, dice -->
+    <div id="players-list"></div>
+    <div id="other-players-list"></div>
+    <div id="game-controls">
+        <button class="btn btn-danger" onclick="leaveGame()">Leave Game</button>
+        <button class="btn" id="startGameBtn" style="display:none; margin-left:8px;">Start Game</button>
     </div>
 
-    <!-- Slot Machine Minigame UI -->
-    <div id="slotmachine-game" style="display:none; align-items:center; justify-content:center; width:100vw; height:100vh; position:fixed; top:0; left:0; z-index:20000; background:rgba(0,0,0,0.85);">
-        <div class="slotmachine-container">
-            <canvas id="slotmachine-canvas" width="400" height="320"></canvas>
-            <div class="slotmachine-controls">
-                <label>Bet: <input id="slotmachine-bet" type="number" min="1" value="10" style="width:60px;"></label>
-                <button id="slotmachine-spin-btn">Spin</button>
-                <div id="slotmachine-result"></div>
-            </div>
-        </div>
-    </div>
-        <div id="players-list"></div>
-        <div id="other-players-list"></div> <!-- Player properties list for other players -->
-        <div id="game-controls">
-            <button class="btn btn-danger" onclick="leaveGame()">Leave Game</button>
-            <!-- Host Start Game Button -->
-            <button class="btn" id="startGameBtn" style="display:none; margin-left:8px;">Start Game</button>
-        </div>
-    </div>
-
-    <!-- Token Selection Modal -->
+    <!-- Token Selection Modal (kept) -->
     <div id="token-selection-ui" class="token-selection-ui" style="display:none;">
         <h2>Select Your Token</h2>
         <div class="token-grid" id="tokenGrid"></div>
@@ -393,28 +367,10 @@
     <div id="notification" class="notification"></div>
 
 
-    <!-- Roll Dice Button (always present, visible by default) -->
-    <button class="dice-button">Roll Dice</button>
+    <!-- Roll Dice Button (kept) -->
+    <button id="rollDiceBtn" class="dice-button">Roll Dice</button>
 
-    <!-- Video Chat System -->
-    <button id="videoChatToggle" class="video-chat-toggle-btn">📹</button>
-
-    <div id="videoChatContainer" class="video-chat-container" style="display: none;">
-        <div class="video-chat-header">
-            <h3>Video Chat</h3>
-            <button class="video-control-btn" onclick="toggleVideo()">🔴</button>
-            <button class="video-control-btn" onclick="toggleAudio()">🔊</button>
-            <button class="video-control-btn" onclick="minimizeVideoChat()">−</button>
-            <button class="video-control-btn danger" onclick="stopVideoChat()">❌</button>
-        </div>
-        <div id="videoGrid" class="video-grid">
-            <!-- Video boxes will be dynamically created here -->
-        </div>
-    </div>
-    
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
     <script type="module" src="gameplay.js"></script>
-    <!-- Property UI container for property interactions -->
-    <div id="property-ui" style="display:none; z-index:30000; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);"></div>
 </body>
 </html>

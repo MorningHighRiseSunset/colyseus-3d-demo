@@ -1,3 +1,64 @@
+// --- Simplified mode overrides: disable minigames and property / tile UI ---
+(function(){
+    const noopAsync = async function(){ console.log('[Simplified] minigame loader disabled'); };
+    try {
+        window.loadBlackjackMinigame = noopAsync;
+        window.loadBaccaratMinigame = noopAsync;
+        window.loadRouletteMinigame = noopAsync;
+        window.loadCrapsMinigame = noopAsync;
+        window.loadSlotMachineMinigame = noopAsync;
+        window.loadPokerMinigame = noopAsync;
+
+        window.onPropertyUILoaded = function(hotelName){
+            console.log('[Simplified] onPropertyUILoaded disabled for', hotelName);
+            // intentionally noop to prevent minigame loading
+        };
+
+        window.showPropertyUI = function(position){
+            console.log('[Simplified] showPropertyUI disabled for position', position);
+            // remove any existing overlays or minigames just in case
+            const overlay = document.querySelector('.property-overlay'); if (overlay && overlay.parentElement) overlay.parentElement.removeChild(overlay);
+            const minigame = document.getElementById('minigame-container'); if (minigame) minigame.remove();
+        };
+
+        window.closePropertyUI = function(){
+            // keep behavior minimal: remove overlays and minigame containers
+            const overlay = document.querySelector('.property-overlay'); if (overlay && overlay.parentElement) overlay.parentElement.removeChild(overlay);
+            const minigame = document.getElementById('minigame-container'); if (minigame) minigame.remove();
+            console.log('[Simplified] closePropertyUI executed');
+        };
+    } catch (e) { console.warn('[Simplified] override failed', e && e.message); }
+})();
+
+// Final overrides (placed at EOF) to ensure minigames/property UI remain disabled
+(function(){
+    const noopAsync = async function(){ console.log('[Simplified EOF] minigame loader disabled'); };
+    try {
+        window.loadBlackjackMinigame = noopAsync;
+        window.loadBaccaratMinigame = noopAsync;
+        window.loadRouletteMinigame = noopAsync;
+        window.loadCrapsMinigame = noopAsync;
+        window.loadSlotMachineMinigame = noopAsync;
+        window.loadPokerMinigame = noopAsync;
+
+        window.onPropertyUILoaded = function(hotelName){
+            console.log('[Simplified EOF] onPropertyUILoaded disabled for', hotelName);
+        };
+
+        window.showPropertyUI = function(position){
+            console.log('[Simplified EOF] showPropertyUI disabled for position', position);
+            const overlay = document.querySelector('.property-overlay'); if (overlay && overlay.parentElement) overlay.parentElement.removeChild(overlay);
+            const minigame = document.getElementById('minigame-container'); if (minigame) minigame.remove();
+        };
+
+        window.closePropertyUI = function(){
+            const overlay = document.querySelector('.property-overlay'); if (overlay && overlay.parentElement) overlay.parentElement.removeChild(overlay);
+            const minigame = document.getElementById('minigame-container'); if (minigame) minigame.remove();
+            console.log('[Simplified EOF] closePropertyUI executed');
+        };
+    } catch (e) { console.warn('[Simplified EOF] override failed', e && e.message); }
+})();
+
 import { DRACOLoader } from './libs/DRACOLoader.js';
 import { GLTFLoader } from './libs/GLTFLoader.js';
 
@@ -70,60 +131,8 @@ function initCanvasFallback() {
     const ctx = cvs.getContext('2d');
 
     function resize() {
-        cvs.width = Math.floor(window.innerWidth * dpi);
-        cvs.height = Math.floor(window.innerHeight * dpi);
-        ctx.setTransform(dpi, 0, 0, dpi, 0, 0);
-    }
-    window.addEventListener('resize', resize);
-    resize();
-
-    function drawBoard() {
-        ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(0,0,window.innerWidth, window.innerHeight);
-        const size = Math.min(window.innerWidth, window.innerHeight) * 0.7;
-        const bx = (window.innerWidth - size) / 2;
-        const by = (window.innerHeight - size) / 2;
-        ctx.fillStyle = '#444';
-        ctx.fillRect(bx, by, size, size);
-        ctx.strokeStyle = '#222';
-        ctx.lineWidth = 4;
-        ctx.strokeRect(bx, by, size, size);
-    }
-
-    const _canvasImageCache = {};
-    function drawTokens() {
-        try {
-            if (!Array.isArray(players)) return;
-            const haveGetTokenImageUrl = typeof getTokenImageUrl === 'function';
-            const haveGetBoardSquarePosition = typeof getBoardSquarePosition === 'function';
-            players.forEach((p) => {
-                try {
-                    const tokenName = p && (p.token || (p.selectedToken && p.selectedToken.userData && p.selectedToken.userData.tokenName)) || '';
-                    if (!tokenName) return;
-                    const imageUrl = haveGetTokenImageUrl ? getTokenImageUrl(tokenName) : null;
-                    // if there's no imageUrl available, we will draw a simple placeholder so tokens always appear
-
-                    let pos3 = { x: 0, z: 0 };
-                    if (haveGetBoardSquarePosition && typeof p.currentPosition === 'number') {
-                        try {
-                            const v = getBoardSquarePosition(p.currentPosition);
-                            if (v && typeof v.x === 'number' && typeof v.z === 'number') {
-                                pos3.x = v.x; pos3.z = v.z;
-                            }
-                        } catch (e) { }
-                    }
-
-                    const scale = Math.min(window.innerWidth, window.innerHeight) / (70 * 1.5);
-                    const cx = window.innerWidth / 2 + pos3.x * scale;
-                    const cy = window.innerHeight / 2 - pos3.z * scale;
-                    const w = 48, h = 48;
-
-                    // Use cached Image objects to avoid re-creating and re-requesting each frame
-                    let img = _canvasImageCache[imageUrl];
-                    if (imageUrl) {
-                        if (!img) {
-                            img = new Image();
-                            img.crossOrigin = 'anonymous';
+        // Disabled in simplified mode: 2D board fallback not needed
+        console.log('[Simplified] create2DBoardFallback disabled');
                             img.src = imageUrl;
                             img.onload = () => { /* loaded - draw will pick it up next frame */ };
                             img.onerror = () => { console.warn('[Canvas] Failed to load token image', imageUrl); };
@@ -178,99 +187,8 @@ const ordinal = ["first", "second", "third", "fourth", "fifth", "sixth", "sevent
 // window.testingMode = true;
 // --- Minigame Loader: Blackjack for The Cosmopolitan ---
 async function loadBlackjackMinigame() {
-    /*
-    // Hide player/token selection UI in testing mode (force, even if created later)
-    if (window.testingMode) {
-        function hideTestingModeUIs() {
-            const tokenSel = document.getElementById('token-selection-ui');
-            if (tokenSel) tokenSel.style.display = 'none';
-            const playerList = document.getElementById('players-list');
-            if (playerList) playerList.style.display = 'none';
-            const otherPlayers = document.getElementById('other-players-list');
-            if (otherPlayers) otherPlayers.style.display = 'none';
-        }
-        hideTestingModeUIs();
-        // Also observe DOM for late creation
-        const observer = new MutationObserver(hideTestingModeUIs);
-        observer.observe(document.body, {childList: true, subtree: true});
-    }
-    */
-    // Remove any existing minigame
-    let oldContainer = document.getElementById('minigame-container');
-    if (oldContainer) oldContainer.remove();
-
-    // Create container
-    const container = document.createElement('div');
-    container.id = 'minigame-container';
-    container.style.position = 'absolute';
-    container.style.top = '0';
-    container.style.right = '0';
-    container.style.width = '1000px';
-    container.style.height = '100%';
-    container.style.zIndex = '3000';
-    container.style.background = 'none';
-    container.style.display = 'flex';
-    container.style.alignItems = 'center';
-    container.style.justifyContent = 'center';
-    container.style.boxShadow = '-4px 0 24px #000a';
-    document.body.appendChild(container);
-
-    // Load CSS if not already loaded
-    if (!document.getElementById('blackjack-minigame-style')) {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = '../BlackJack/style.css';
-        link.id = 'blackjack-minigame-style';
-        document.head.appendChild(link);
-    }
-
-    // Fetch HTML fragment
-    const html = await fetch('../BlackJack/index.html').then(r => r.text());
-    container.innerHTML = html;
-
-    // Get player balance
-    let playerMoney = 5000;
-    try {
-        if (typeof currentPlayerIndex !== 'undefined' && Array.isArray(players) && players[currentPlayerIndex]) {
-            playerMoney = players[currentPlayerIndex].money;
-        }
-    } catch (e) {}
-
-    // Callback to update main game balance
-    function updateMainGameBalance(newBalance) {
-        if (typeof currentPlayerIndex !== 'undefined' && Array.isArray(players) && players[currentPlayerIndex]) {
-            players[currentPlayerIndex].money = newBalance;
-            if (typeof updateMoneyDisplay === 'function') updateMoneyDisplay();
-        }
-    }
-
-
-    // Load script if not already loaded (classic script tag, not import)
-    function loadBlackjackScript(callback) {
-        if (window.initBlackjackMinigame) {
-            callback();
-            return;
-        }
-        const script = document.createElement('script');
-        script.src = '../BlackJack/script.js';
-        script.onload = callback;
-        document.body.appendChild(script);
-    }
-
-    loadBlackjackScript(() => {
-        if (window.initBlackjackMinigame) {
-            window.initBlackjackMinigame(container, playerMoney, updateMainGameBalance);
-        }
-    });
-
-    // On close, update main game balance
-    container.addEventListener('minigame-balance-update', e => {
-        if (e.detail && typeof e.detail.balance === 'number') {
-            updateMainGameBalance(e.detail.balance);
-        }
-    });
-    // Optionally, you can dispatch this event from the minigame when it closes
-    // Example: container.dispatchEvent(new CustomEvent('minigame-balance-update', {detail: {balance: updatedBalance}}));
+    console.log('[Minigame] loadBlackjackMinigame disabled (simplified mode)');
+    return;
 }
 // --- Minigame Loader: Baccarat for Wynn ---
 async function loadBaccaratMinigame() {
@@ -973,73 +891,10 @@ function removeCircularReferences() {
 }
 
 function allPlayersHaveTokens() {
-    return players.every(player => player.token && player.selectedToken);
+    // Property text textures disabled in simplified mode to avoid image loading
+    console.log('[Simplified] addPropertyText disabled for', name);
 }
 
-function followCurrentTurnToken(retryCount = 0) {
-    const player = players[currentPlayerIndex];
-    // If it's your turn, follow your selected token
-    if (player && player.id === currentPlayerId && player.selectedToken && typeof camera !== 'undefined' && typeof controls !== 'undefined' && scene.children.includes(player.selectedToken)) {
-        const pos = player.selectedToken.position;
-        camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
-        camera.lookAt(pos.x, pos.y, pos.z);
-        if (typeof controls.target !== 'undefined') {
-            controls.target.set(pos.x, pos.y, pos.z);
-        }
-        console.log('[PATCH] Camera now follows token for:', player.name, pos);
-    // If it's NOT your turn, follow the ghost token of the current turn player
-    } else if (player && player.id !== currentPlayerId && player.ghostToken && typeof camera !== 'undefined' && typeof controls !== 'undefined' && scene.children.includes(player.ghostToken)) {
-        const pos = player.ghostToken.position;
-        camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
-        camera.lookAt(pos.x, pos.y, pos.z);
-        if (typeof controls.target !== 'undefined') {
-            controls.target.set(pos.x, pos.y, pos.z);
-        }
-        console.log('[PATCH] Camera now follows ghost token for:', player.name, pos);
-    } else {
-        // Try to assign the token if it's missing, then instantly follow if possible
-        if (player && player.id === currentPlayerId && player.token && !player.selectedToken && window.loadedTokenModels) {
-            assignSelectedTokenForPlayer(player);
-            // After assigning, immediately follow
-            if (player.selectedToken) {
-                const pos = player.selectedToken.position;
-                camera.position.set(pos.x + 10, pos.y + 15, pos.z + 10);
-                camera.lookAt(pos.x, pos.y, pos.z);
-                if (typeof controls.target !== 'undefined') {
-                    controls.target.set(pos.x, pos.y, pos.z);
-                }
-                console.log('[PATCH] Camera now instantly follows token for:', player.name, pos);
-            } else {
-                console.warn('[PATCH] Could not follow token for current player, token not assigned:', player);
-            }
-        } else {
-            console.warn('[PATCH] Could not follow token for current player, token missing:', player);
-        }
-    }
-}
-
-function updateTurnUI() {
-    const rollButton = document.querySelector('.dice-button');
-    const turnPlayer = players[currentPlayerIndex];
-    const localPlayer = players.find(p => p.id === currentPlayerId);
-    if (rollButton) {
-        // Only show dice button if it's the local player's turn and not AI
-        if (turnPlayer && turnPlayer.id === currentPlayerId && !(turnPlayer.isAI)) {
-            rollButton.style.display = 'block';
-        } else {
-            rollButton.style.display = 'none';
-        }
-    }
-    // Update turn indicator to show correct turn and local player's money
-    const turnIndicator = document.getElementById('turn-indicator');
-    if (turnIndicator) {
-        if (turnPlayer && turnPlayer.id === currentPlayerId) {
-            turnIndicator.innerHTML = `<h2>🎲 It's Your Turn! 🎲</h2><p>Money: $${localPlayer ? localPlayer.money : 'N/A'}</p>`;
-        } else {
-            turnIndicator.innerHTML = `<h2>${turnPlayer ? turnPlayer.name : 'Other Player'}'s Turn - Money: $${localPlayer ? localPlayer.money : 'N/A'}</h2>`;
-        }
-    }
-}
 
 // Lazy loading: Do NOT load all token models at startup. Models are loaded only when selected in the UI.
 
@@ -6086,20 +5941,8 @@ function setupLighting() {
 }
 
 function createBoard() {
-    const boardSize = 70; // Adjust size accordingly
-    const boardOffset = 0; // Center the board at origin
-
-    const boardGeometry = new THREE.BoxGeometry(boardSize, 1, boardSize);
-    const boardMaterial = window.lowQualityMode ? new THREE.MeshBasicMaterial({ color: 0x444444 }) : new THREE.MeshPhongMaterial({
-        color: 0x444444,
-        specular: 0x666666,
-        shininess: 100,
-    });
-    const board = new THREE.Mesh(boardGeometry, boardMaterial);
-    board.receiveShadow = true;
-    board.position.set(boardOffset, 0, boardOffset);
-
-    scene.add(board);
+    // Board geometry disabled in simplified mode — keep an empty placeholder
+    console.log('[Simplified] createBoard disabled (board mesh omitted)');
 }
 
 function createCardDecks() {
@@ -6711,30 +6554,8 @@ function isJailCorner(startPos, endPos) {
 
 
 function createProperties() {
-    const propertySize = 5;
-    const propertyHeight = 0.5;
-    const yPosition = 1.5;
-
-    const propertyMaterial = new THREE.MeshPhongMaterial({
-        color: 0x888888,
-        specular: 0xaaaaaa,
-        shininess: 100,
-    });
-
-    positions.forEach((pos, index) => {
-        const propertyGeometry = new THREE.BoxGeometry(propertySize, propertyHeight, propertySize);
-        const propertyMesh = new THREE.Mesh(propertyGeometry, propertyMaterial);
-
-        propertyMesh.position.set(pos.x, yPosition, pos.z);
-        propertyMesh.castShadow = true;
-        propertyMesh.receiveShadow = true;
-
-        propertyMesh.userData.isProperty = true;
-        propertyMesh.userData.name = placeNames[index];
-
-        addPropertyText(propertyMesh, placeNames[index]);
-        scene.add(propertyMesh);
-    });
+    // Disabled in simplified mode: property meshes and images omitted
+    console.log('[Simplified] createProperties disabled');
 }
 
 function addPropertyText(property, name) {
@@ -12454,4 +12275,21 @@ if (socket) {
         renderPlayersList();
     });
 }
+
+// Final EOF override: ensure minigames/property UI remain disabled after full parsing
+(function(){
+    const noopAsync = async function(){ console.log('[Simplified EOF Final] minigame loader disabled'); };
+    try {
+        window.loadBlackjackMinigame = noopAsync;
+        window.loadBaccaratMinigame = noopAsync;
+        window.loadRouletteMinigame = noopAsync;
+        window.loadCrapsMinigame = noopAsync;
+        window.loadSlotMachineMinigame = noopAsync;
+        window.loadPokerMinigame = noopAsync;
+
+        window.onPropertyUILoaded = function(hotelName){ console.log('[Simplified EOF Final] onPropertyUILoaded disabled for', hotelName); };
+        window.showPropertyUI = function(position){ console.log('[Simplified EOF Final] showPropertyUI disabled for', position); const overlay = document.querySelector('.property-overlay'); if (overlay && overlay.parentElement) overlay.parentElement.removeChild(overlay); const mg = document.getElementById('minigame-container'); if (mg) mg.remove(); };
+        window.closePropertyUI = function(){ const overlay = document.querySelector('.property-overlay'); if (overlay && overlay.parentElement) overlay.parentElement.removeChild(overlay); const mg = document.getElementById('minigame-container'); if (mg) mg.remove(); console.log('[Simplified EOF Final] closePropertyUI executed'); };
+    } catch (e) { console.warn('[Simplified EOF Final] override failed', e && e.message); }
+})();
 

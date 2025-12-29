@@ -1,0 +1,17 @@
+RESET TO BACKUP
+
+This folder is a snapshot backup of the project created on 2025-12-28.
+
+To restore this backup into the workspace root (OVERWRITES current files):
+
+PowerShell (run from workspace root):
+
+    robocopy.exe backup . /MIR
+
+Notes:
+- This mirrors the backup directory into the current folder, overwriting files and
+  deleting files not present in the backup.
+- Review the command and ensure you have no uncommitted work you need to keep.
+- If you use Git, consider using `git status` / `git stash` before restoring.
+
+If you need me to perform the restore, say so and I'll run the command for you.
